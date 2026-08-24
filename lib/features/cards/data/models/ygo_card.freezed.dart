@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CardPrice {
 
-@JsonKey(name: 'cardmarket_price') double? get cardMarketPrice;@JsonKey(name: 'tcgplayer_price') double? get tcgPlayerPrice;@JsonKey(name: 'ebay_price') double? get ebayPrice;@JsonKey(name: 'amazon_price') double? get amazonPrice;@JsonKey(name: 'coolstuffinc_price') double? get coolStuffIncPrice;
+@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble) double? get cardMarketPrice;@JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble) double? get tcgPlayerPrice;@JsonKey(name: 'ebay_price', fromJson: _parseDouble) double? get ebayPrice;@JsonKey(name: 'amazon_price', fromJson: _parseDouble) double? get amazonPrice;@JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble) double? get coolStuffIncPrice;
 /// Create a copy of CardPrice
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +49,7 @@ abstract mixin class $CardPriceCopyWith<$Res>  {
   factory $CardPriceCopyWith(CardPrice value, $Res Function(CardPrice) _then) = _$CardPriceCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'cardmarket_price') double? cardMarketPrice,@JsonKey(name: 'tcgplayer_price') double? tcgPlayerPrice,@JsonKey(name: 'ebay_price') double? ebayPrice,@JsonKey(name: 'amazon_price') double? amazonPrice,@JsonKey(name: 'coolstuffinc_price') double? coolStuffIncPrice
+@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble) double? cardMarketPrice,@JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble) double? tcgPlayerPrice,@JsonKey(name: 'ebay_price', fromJson: _parseDouble) double? ebayPrice,@JsonKey(name: 'amazon_price', fromJson: _parseDouble) double? amazonPrice,@JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble) double? coolStuffIncPrice
 });
 
 
@@ -158,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'cardmarket_price')  double? cardMarketPrice, @JsonKey(name: 'tcgplayer_price')  double? tcgPlayerPrice, @JsonKey(name: 'ebay_price')  double? ebayPrice, @JsonKey(name: 'amazon_price')  double? amazonPrice, @JsonKey(name: 'coolstuffinc_price')  double? coolStuffIncPrice)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble)  double? cardMarketPrice, @JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble)  double? tcgPlayerPrice, @JsonKey(name: 'ebay_price', fromJson: _parseDouble)  double? ebayPrice, @JsonKey(name: 'amazon_price', fromJson: _parseDouble)  double? amazonPrice, @JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble)  double? coolStuffIncPrice)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CardPrice() when $default != null:
 return $default(_that.cardMarketPrice,_that.tcgPlayerPrice,_that.ebayPrice,_that.amazonPrice,_that.coolStuffIncPrice);case _:
@@ -179,7 +179,7 @@ return $default(_that.cardMarketPrice,_that.tcgPlayerPrice,_that.ebayPrice,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'cardmarket_price')  double? cardMarketPrice, @JsonKey(name: 'tcgplayer_price')  double? tcgPlayerPrice, @JsonKey(name: 'ebay_price')  double? ebayPrice, @JsonKey(name: 'amazon_price')  double? amazonPrice, @JsonKey(name: 'coolstuffinc_price')  double? coolStuffIncPrice)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble)  double? cardMarketPrice, @JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble)  double? tcgPlayerPrice, @JsonKey(name: 'ebay_price', fromJson: _parseDouble)  double? ebayPrice, @JsonKey(name: 'amazon_price', fromJson: _parseDouble)  double? amazonPrice, @JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble)  double? coolStuffIncPrice)  $default,) {final _that = this;
 switch (_that) {
 case _CardPrice():
 return $default(_that.cardMarketPrice,_that.tcgPlayerPrice,_that.ebayPrice,_that.amazonPrice,_that.coolStuffIncPrice);case _:
@@ -199,7 +199,7 @@ return $default(_that.cardMarketPrice,_that.tcgPlayerPrice,_that.ebayPrice,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'cardmarket_price')  double? cardMarketPrice, @JsonKey(name: 'tcgplayer_price')  double? tcgPlayerPrice, @JsonKey(name: 'ebay_price')  double? ebayPrice, @JsonKey(name: 'amazon_price')  double? amazonPrice, @JsonKey(name: 'coolstuffinc_price')  double? coolStuffIncPrice)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble)  double? cardMarketPrice, @JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble)  double? tcgPlayerPrice, @JsonKey(name: 'ebay_price', fromJson: _parseDouble)  double? ebayPrice, @JsonKey(name: 'amazon_price', fromJson: _parseDouble)  double? amazonPrice, @JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble)  double? coolStuffIncPrice)?  $default,) {final _that = this;
 switch (_that) {
 case _CardPrice() when $default != null:
 return $default(_that.cardMarketPrice,_that.tcgPlayerPrice,_that.ebayPrice,_that.amazonPrice,_that.coolStuffIncPrice);case _:
@@ -214,14 +214,14 @@ return $default(_that.cardMarketPrice,_that.tcgPlayerPrice,_that.ebayPrice,_that
 @JsonSerializable()
 
 class _CardPrice implements CardPrice {
-  const _CardPrice({@JsonKey(name: 'cardmarket_price') this.cardMarketPrice, @JsonKey(name: 'tcgplayer_price') this.tcgPlayerPrice, @JsonKey(name: 'ebay_price') this.ebayPrice, @JsonKey(name: 'amazon_price') this.amazonPrice, @JsonKey(name: 'coolstuffinc_price') this.coolStuffIncPrice});
+  const _CardPrice({@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble) this.cardMarketPrice, @JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble) this.tcgPlayerPrice, @JsonKey(name: 'ebay_price', fromJson: _parseDouble) this.ebayPrice, @JsonKey(name: 'amazon_price', fromJson: _parseDouble) this.amazonPrice, @JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble) this.coolStuffIncPrice});
   factory _CardPrice.fromJson(Map<String, dynamic> json) => _$CardPriceFromJson(json);
 
-@override@JsonKey(name: 'cardmarket_price') final  double? cardMarketPrice;
-@override@JsonKey(name: 'tcgplayer_price') final  double? tcgPlayerPrice;
-@override@JsonKey(name: 'ebay_price') final  double? ebayPrice;
-@override@JsonKey(name: 'amazon_price') final  double? amazonPrice;
-@override@JsonKey(name: 'coolstuffinc_price') final  double? coolStuffIncPrice;
+@override@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble) final  double? cardMarketPrice;
+@override@JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble) final  double? tcgPlayerPrice;
+@override@JsonKey(name: 'ebay_price', fromJson: _parseDouble) final  double? ebayPrice;
+@override@JsonKey(name: 'amazon_price', fromJson: _parseDouble) final  double? amazonPrice;
+@override@JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble) final  double? coolStuffIncPrice;
 
 /// Create a copy of CardPrice
 /// with the given fields replaced by the non-null parameter values.
@@ -256,7 +256,7 @@ abstract mixin class _$CardPriceCopyWith<$Res> implements $CardPriceCopyWith<$Re
   factory _$CardPriceCopyWith(_CardPrice value, $Res Function(_CardPrice) _then) = __$CardPriceCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'cardmarket_price') double? cardMarketPrice,@JsonKey(name: 'tcgplayer_price') double? tcgPlayerPrice,@JsonKey(name: 'ebay_price') double? ebayPrice,@JsonKey(name: 'amazon_price') double? amazonPrice,@JsonKey(name: 'coolstuffinc_price') double? coolStuffIncPrice
+@JsonKey(name: 'cardmarket_price', fromJson: _parseDouble) double? cardMarketPrice,@JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble) double? tcgPlayerPrice,@JsonKey(name: 'ebay_price', fromJson: _parseDouble) double? ebayPrice,@JsonKey(name: 'amazon_price', fromJson: _parseDouble) double? amazonPrice,@JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble) double? coolStuffIncPrice
 });
 
 
@@ -291,7 +291,7 @@ as double?,
 /// @nodoc
 mixin _$CardImage {
 
- int get id;@JsonKey(name: 'image_url') String get imageUrl;@JsonKey(name: 'image_url_small') String get imageUrlSmall;@JsonKey(name: 'image_url_cropped') String get imageUrlCropped;
+@JsonKey(fromJson: _parseRequiredInt) int get id;@JsonKey(name: 'image_url') String get imageUrl;@JsonKey(name: 'image_url_small') String get imageUrlSmall;@JsonKey(name: 'image_url_cropped') String get imageUrlCropped;
 /// Create a copy of CardImage
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -324,7 +324,7 @@ abstract mixin class $CardImageCopyWith<$Res>  {
   factory $CardImageCopyWith(CardImage value, $Res Function(CardImage) _then) = _$CardImageCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'image_url') String imageUrl,@JsonKey(name: 'image_url_small') String imageUrlSmall,@JsonKey(name: 'image_url_cropped') String imageUrlCropped
+@JsonKey(fromJson: _parseRequiredInt) int id,@JsonKey(name: 'image_url') String imageUrl,@JsonKey(name: 'image_url_small') String imageUrlSmall,@JsonKey(name: 'image_url_cropped') String imageUrlCropped
 });
 
 
@@ -432,7 +432,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'image_url')  String imageUrl, @JsonKey(name: 'image_url_small')  String imageUrlSmall, @JsonKey(name: 'image_url_cropped')  String imageUrlCropped)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _parseRequiredInt)  int id, @JsonKey(name: 'image_url')  String imageUrl, @JsonKey(name: 'image_url_small')  String imageUrlSmall, @JsonKey(name: 'image_url_cropped')  String imageUrlCropped)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CardImage() when $default != null:
 return $default(_that.id,_that.imageUrl,_that.imageUrlSmall,_that.imageUrlCropped);case _:
@@ -453,7 +453,7 @@ return $default(_that.id,_that.imageUrl,_that.imageUrlSmall,_that.imageUrlCroppe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'image_url')  String imageUrl, @JsonKey(name: 'image_url_small')  String imageUrlSmall, @JsonKey(name: 'image_url_cropped')  String imageUrlCropped)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _parseRequiredInt)  int id, @JsonKey(name: 'image_url')  String imageUrl, @JsonKey(name: 'image_url_small')  String imageUrlSmall, @JsonKey(name: 'image_url_cropped')  String imageUrlCropped)  $default,) {final _that = this;
 switch (_that) {
 case _CardImage():
 return $default(_that.id,_that.imageUrl,_that.imageUrlSmall,_that.imageUrlCropped);case _:
@@ -473,7 +473,7 @@ return $default(_that.id,_that.imageUrl,_that.imageUrlSmall,_that.imageUrlCroppe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'image_url')  String imageUrl, @JsonKey(name: 'image_url_small')  String imageUrlSmall, @JsonKey(name: 'image_url_cropped')  String imageUrlCropped)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _parseRequiredInt)  int id, @JsonKey(name: 'image_url')  String imageUrl, @JsonKey(name: 'image_url_small')  String imageUrlSmall, @JsonKey(name: 'image_url_cropped')  String imageUrlCropped)?  $default,) {final _that = this;
 switch (_that) {
 case _CardImage() when $default != null:
 return $default(_that.id,_that.imageUrl,_that.imageUrlSmall,_that.imageUrlCropped);case _:
@@ -488,10 +488,10 @@ return $default(_that.id,_that.imageUrl,_that.imageUrlSmall,_that.imageUrlCroppe
 @JsonSerializable()
 
 class _CardImage implements CardImage {
-  const _CardImage({required this.id, @JsonKey(name: 'image_url') required this.imageUrl, @JsonKey(name: 'image_url_small') required this.imageUrlSmall, @JsonKey(name: 'image_url_cropped') required this.imageUrlCropped});
+  const _CardImage({@JsonKey(fromJson: _parseRequiredInt) required this.id, @JsonKey(name: 'image_url') required this.imageUrl, @JsonKey(name: 'image_url_small') required this.imageUrlSmall, @JsonKey(name: 'image_url_cropped') required this.imageUrlCropped});
   factory _CardImage.fromJson(Map<String, dynamic> json) => _$CardImageFromJson(json);
 
-@override final  int id;
+@override@JsonKey(fromJson: _parseRequiredInt) final  int id;
 @override@JsonKey(name: 'image_url') final  String imageUrl;
 @override@JsonKey(name: 'image_url_small') final  String imageUrlSmall;
 @override@JsonKey(name: 'image_url_cropped') final  String imageUrlCropped;
@@ -529,7 +529,7 @@ abstract mixin class _$CardImageCopyWith<$Res> implements $CardImageCopyWith<$Re
   factory _$CardImageCopyWith(_CardImage value, $Res Function(_CardImage) _then) = __$CardImageCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'image_url') String imageUrl,@JsonKey(name: 'image_url_small') String imageUrlSmall,@JsonKey(name: 'image_url_cropped') String imageUrlCropped
+@JsonKey(fromJson: _parseRequiredInt) int id,@JsonKey(name: 'image_url') String imageUrl,@JsonKey(name: 'image_url_small') String imageUrlSmall,@JsonKey(name: 'image_url_cropped') String imageUrlCropped
 });
 
 
@@ -563,7 +563,7 @@ as String,
 /// @nodoc
 mixin _$CardSet {
 
-@JsonKey(name: 'set_name') String get setName;@JsonKey(name: 'set_code') String get setCode;@JsonKey(name: 'set_rarity') String get setRarity;@JsonKey(name: 'set_rarity_code') String get setRarityCode;@JsonKey(name: 'set_price') double? get setPrice;
+@JsonKey(name: 'set_name') String get setName;@JsonKey(name: 'set_code') String get setCode;@JsonKey(name: 'set_rarity') String get setRarity;@JsonKey(name: 'set_rarity_code') String get setRarityCode;@JsonKey(name: 'set_price', fromJson: _parseDouble) double? get setPrice;
 /// Create a copy of CardSet
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -596,7 +596,7 @@ abstract mixin class $CardSetCopyWith<$Res>  {
   factory $CardSetCopyWith(CardSet value, $Res Function(CardSet) _then) = _$CardSetCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'set_name') String setName,@JsonKey(name: 'set_code') String setCode,@JsonKey(name: 'set_rarity') String setRarity,@JsonKey(name: 'set_rarity_code') String setRarityCode,@JsonKey(name: 'set_price') double? setPrice
+@JsonKey(name: 'set_name') String setName,@JsonKey(name: 'set_code') String setCode,@JsonKey(name: 'set_rarity') String setRarity,@JsonKey(name: 'set_rarity_code') String setRarityCode,@JsonKey(name: 'set_price', fromJson: _parseDouble) double? setPrice
 });
 
 
@@ -705,7 +705,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'set_name')  String setName, @JsonKey(name: 'set_code')  String setCode, @JsonKey(name: 'set_rarity')  String setRarity, @JsonKey(name: 'set_rarity_code')  String setRarityCode, @JsonKey(name: 'set_price')  double? setPrice)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'set_name')  String setName, @JsonKey(name: 'set_code')  String setCode, @JsonKey(name: 'set_rarity')  String setRarity, @JsonKey(name: 'set_rarity_code')  String setRarityCode, @JsonKey(name: 'set_price', fromJson: _parseDouble)  double? setPrice)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CardSet() when $default != null:
 return $default(_that.setName,_that.setCode,_that.setRarity,_that.setRarityCode,_that.setPrice);case _:
@@ -726,7 +726,7 @@ return $default(_that.setName,_that.setCode,_that.setRarity,_that.setRarityCode,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'set_name')  String setName, @JsonKey(name: 'set_code')  String setCode, @JsonKey(name: 'set_rarity')  String setRarity, @JsonKey(name: 'set_rarity_code')  String setRarityCode, @JsonKey(name: 'set_price')  double? setPrice)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'set_name')  String setName, @JsonKey(name: 'set_code')  String setCode, @JsonKey(name: 'set_rarity')  String setRarity, @JsonKey(name: 'set_rarity_code')  String setRarityCode, @JsonKey(name: 'set_price', fromJson: _parseDouble)  double? setPrice)  $default,) {final _that = this;
 switch (_that) {
 case _CardSet():
 return $default(_that.setName,_that.setCode,_that.setRarity,_that.setRarityCode,_that.setPrice);case _:
@@ -746,7 +746,7 @@ return $default(_that.setName,_that.setCode,_that.setRarity,_that.setRarityCode,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'set_name')  String setName, @JsonKey(name: 'set_code')  String setCode, @JsonKey(name: 'set_rarity')  String setRarity, @JsonKey(name: 'set_rarity_code')  String setRarityCode, @JsonKey(name: 'set_price')  double? setPrice)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'set_name')  String setName, @JsonKey(name: 'set_code')  String setCode, @JsonKey(name: 'set_rarity')  String setRarity, @JsonKey(name: 'set_rarity_code')  String setRarityCode, @JsonKey(name: 'set_price', fromJson: _parseDouble)  double? setPrice)?  $default,) {final _that = this;
 switch (_that) {
 case _CardSet() when $default != null:
 return $default(_that.setName,_that.setCode,_that.setRarity,_that.setRarityCode,_that.setPrice);case _:
@@ -761,14 +761,14 @@ return $default(_that.setName,_that.setCode,_that.setRarity,_that.setRarityCode,
 @JsonSerializable()
 
 class _CardSet implements CardSet {
-  const _CardSet({@JsonKey(name: 'set_name') required this.setName, @JsonKey(name: 'set_code') required this.setCode, @JsonKey(name: 'set_rarity') required this.setRarity, @JsonKey(name: 'set_rarity_code') required this.setRarityCode, @JsonKey(name: 'set_price') this.setPrice});
+  const _CardSet({@JsonKey(name: 'set_name') required this.setName, @JsonKey(name: 'set_code') required this.setCode, @JsonKey(name: 'set_rarity') required this.setRarity, @JsonKey(name: 'set_rarity_code') required this.setRarityCode, @JsonKey(name: 'set_price', fromJson: _parseDouble) this.setPrice});
   factory _CardSet.fromJson(Map<String, dynamic> json) => _$CardSetFromJson(json);
 
 @override@JsonKey(name: 'set_name') final  String setName;
 @override@JsonKey(name: 'set_code') final  String setCode;
 @override@JsonKey(name: 'set_rarity') final  String setRarity;
 @override@JsonKey(name: 'set_rarity_code') final  String setRarityCode;
-@override@JsonKey(name: 'set_price') final  double? setPrice;
+@override@JsonKey(name: 'set_price', fromJson: _parseDouble) final  double? setPrice;
 
 /// Create a copy of CardSet
 /// with the given fields replaced by the non-null parameter values.
@@ -803,7 +803,7 @@ abstract mixin class _$CardSetCopyWith<$Res> implements $CardSetCopyWith<$Res> {
   factory _$CardSetCopyWith(_CardSet value, $Res Function(_CardSet) _then) = __$CardSetCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'set_name') String setName,@JsonKey(name: 'set_code') String setCode,@JsonKey(name: 'set_rarity') String setRarity,@JsonKey(name: 'set_rarity_code') String setRarityCode,@JsonKey(name: 'set_price') double? setPrice
+@JsonKey(name: 'set_name') String setName,@JsonKey(name: 'set_code') String setCode,@JsonKey(name: 'set_rarity') String setRarity,@JsonKey(name: 'set_rarity_code') String setRarityCode,@JsonKey(name: 'set_price', fromJson: _parseDouble) double? setPrice
 });
 
 
@@ -1107,7 +1107,7 @@ as String?,
 /// @nodoc
 mixin _$YgoCard {
 
- int get id; String get name;@JsonKey(name: 'typeline') List<String>? get typeLine; String get type;@JsonKey(name: 'humanReadableCardType') String? get humanReadableCardType;@JsonKey(name: 'frameType') String? get frameType; String get desc; String get race;@JsonKey(name: 'pend_desc') String? get pendDesc;@JsonKey(name: 'monster_desc') String? get monsterDesc; int? get atk; int? get def; int? get level; String? get attribute; String? get archetype; int? get scale;@JsonKey(name: 'linkval') int? get linkVal;@JsonKey(name: 'linkmarkers') List<String>? get linkMarkers;@JsonKey(name: 'ygoprodeck_url') String get ygoProDeckUrl;@JsonKey(name: 'card_sets') List<CardSet>? get cardSets;@JsonKey(name: 'banlist_info') BanlistInfo? get banlistInfo;@JsonKey(name: 'card_images') List<CardImage>? get cardImages;@JsonKey(name: 'card_prices') List<CardPrice>? get cardPrices;
+@JsonKey(fromJson: _parseRequiredInt) int get id; String get name;@JsonKey(name: 'typeline') List<String>? get typeLine; String get type;@JsonKey(name: 'humanReadableCardType') String? get humanReadableCardType;@JsonKey(name: 'frameType') String? get frameType; String get desc; String get race;@JsonKey(name: 'pend_desc') String? get pendDesc;@JsonKey(name: 'monster_desc') String? get monsterDesc;@JsonKey(fromJson: _parseInt) int? get atk;@JsonKey(fromJson: _parseInt) int? get def;@JsonKey(fromJson: _parseInt) int? get level; String? get attribute; String? get archetype;@JsonKey(fromJson: _parseInt) int? get scale;@JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt) int? get linkVal;@JsonKey(name: 'linkmarkers') List<String>? get linkMarkers;@JsonKey(name: 'ygoprodeck_url') String get ygoProDeckUrl;@JsonKey(name: 'card_sets') List<CardSet>? get cardSets;@JsonKey(name: 'banlist_info') BanlistInfo? get banlistInfo;@JsonKey(name: 'card_images') List<CardImage>? get cardImages;@JsonKey(name: 'card_prices') List<CardPrice>? get cardPrices;
 /// Create a copy of YgoCard
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1140,7 +1140,7 @@ abstract mixin class $YgoCardCopyWith<$Res>  {
   factory $YgoCardCopyWith(YgoCard value, $Res Function(YgoCard) _then) = _$YgoCardCopyWithImpl;
 @useResult
 $Res call({
- int id, String name,@JsonKey(name: 'typeline') List<String>? typeLine, String type,@JsonKey(name: 'humanReadableCardType') String? humanReadableCardType,@JsonKey(name: 'frameType') String? frameType, String desc, String race,@JsonKey(name: 'pend_desc') String? pendDesc,@JsonKey(name: 'monster_desc') String? monsterDesc, int? atk, int? def, int? level, String? attribute, String? archetype, int? scale,@JsonKey(name: 'linkval') int? linkVal,@JsonKey(name: 'linkmarkers') List<String>? linkMarkers,@JsonKey(name: 'ygoprodeck_url') String ygoProDeckUrl,@JsonKey(name: 'card_sets') List<CardSet>? cardSets,@JsonKey(name: 'banlist_info') BanlistInfo? banlistInfo,@JsonKey(name: 'card_images') List<CardImage>? cardImages,@JsonKey(name: 'card_prices') List<CardPrice>? cardPrices
+@JsonKey(fromJson: _parseRequiredInt) int id, String name,@JsonKey(name: 'typeline') List<String>? typeLine, String type,@JsonKey(name: 'humanReadableCardType') String? humanReadableCardType,@JsonKey(name: 'frameType') String? frameType, String desc, String race,@JsonKey(name: 'pend_desc') String? pendDesc,@JsonKey(name: 'monster_desc') String? monsterDesc,@JsonKey(fromJson: _parseInt) int? atk,@JsonKey(fromJson: _parseInt) int? def,@JsonKey(fromJson: _parseInt) int? level, String? attribute, String? archetype,@JsonKey(fromJson: _parseInt) int? scale,@JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt) int? linkVal,@JsonKey(name: 'linkmarkers') List<String>? linkMarkers,@JsonKey(name: 'ygoprodeck_url') String ygoProDeckUrl,@JsonKey(name: 'card_sets') List<CardSet>? cardSets,@JsonKey(name: 'banlist_info') BanlistInfo? banlistInfo,@JsonKey(name: 'card_images') List<CardImage>? cardImages,@JsonKey(name: 'card_prices') List<CardPrice>? cardPrices
 });
 
 
@@ -1279,7 +1279,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'typeline')  List<String>? typeLine,  String type, @JsonKey(name: 'humanReadableCardType')  String? humanReadableCardType, @JsonKey(name: 'frameType')  String? frameType,  String desc,  String race, @JsonKey(name: 'pend_desc')  String? pendDesc, @JsonKey(name: 'monster_desc')  String? monsterDesc,  int? atk,  int? def,  int? level,  String? attribute,  String? archetype,  int? scale, @JsonKey(name: 'linkval')  int? linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url')  String ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info')  BanlistInfo? banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _parseRequiredInt)  int id,  String name, @JsonKey(name: 'typeline')  List<String>? typeLine,  String type, @JsonKey(name: 'humanReadableCardType')  String? humanReadableCardType, @JsonKey(name: 'frameType')  String? frameType,  String desc,  String race, @JsonKey(name: 'pend_desc')  String? pendDesc, @JsonKey(name: 'monster_desc')  String? monsterDesc, @JsonKey(fromJson: _parseInt)  int? atk, @JsonKey(fromJson: _parseInt)  int? def, @JsonKey(fromJson: _parseInt)  int? level,  String? attribute,  String? archetype, @JsonKey(fromJson: _parseInt)  int? scale, @JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt)  int? linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url')  String ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info')  BanlistInfo? banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _YgoCard() when $default != null:
 return $default(_that.id,_that.name,_that.typeLine,_that.type,_that.humanReadableCardType,_that.frameType,_that.desc,_that.race,_that.pendDesc,_that.monsterDesc,_that.atk,_that.def,_that.level,_that.attribute,_that.archetype,_that.scale,_that.linkVal,_that.linkMarkers,_that.ygoProDeckUrl,_that.cardSets,_that.banlistInfo,_that.cardImages,_that.cardPrices);case _:
@@ -1300,7 +1300,7 @@ return $default(_that.id,_that.name,_that.typeLine,_that.type,_that.humanReadabl
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name, @JsonKey(name: 'typeline')  List<String>? typeLine,  String type, @JsonKey(name: 'humanReadableCardType')  String? humanReadableCardType, @JsonKey(name: 'frameType')  String? frameType,  String desc,  String race, @JsonKey(name: 'pend_desc')  String? pendDesc, @JsonKey(name: 'monster_desc')  String? monsterDesc,  int? atk,  int? def,  int? level,  String? attribute,  String? archetype,  int? scale, @JsonKey(name: 'linkval')  int? linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url')  String ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info')  BanlistInfo? banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _parseRequiredInt)  int id,  String name, @JsonKey(name: 'typeline')  List<String>? typeLine,  String type, @JsonKey(name: 'humanReadableCardType')  String? humanReadableCardType, @JsonKey(name: 'frameType')  String? frameType,  String desc,  String race, @JsonKey(name: 'pend_desc')  String? pendDesc, @JsonKey(name: 'monster_desc')  String? monsterDesc, @JsonKey(fromJson: _parseInt)  int? atk, @JsonKey(fromJson: _parseInt)  int? def, @JsonKey(fromJson: _parseInt)  int? level,  String? attribute,  String? archetype, @JsonKey(fromJson: _parseInt)  int? scale, @JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt)  int? linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url')  String ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info')  BanlistInfo? banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices)  $default,) {final _that = this;
 switch (_that) {
 case _YgoCard():
 return $default(_that.id,_that.name,_that.typeLine,_that.type,_that.humanReadableCardType,_that.frameType,_that.desc,_that.race,_that.pendDesc,_that.monsterDesc,_that.atk,_that.def,_that.level,_that.attribute,_that.archetype,_that.scale,_that.linkVal,_that.linkMarkers,_that.ygoProDeckUrl,_that.cardSets,_that.banlistInfo,_that.cardImages,_that.cardPrices);case _:
@@ -1320,7 +1320,7 @@ return $default(_that.id,_that.name,_that.typeLine,_that.type,_that.humanReadabl
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name, @JsonKey(name: 'typeline')  List<String>? typeLine,  String type, @JsonKey(name: 'humanReadableCardType')  String? humanReadableCardType, @JsonKey(name: 'frameType')  String? frameType,  String desc,  String race, @JsonKey(name: 'pend_desc')  String? pendDesc, @JsonKey(name: 'monster_desc')  String? monsterDesc,  int? atk,  int? def,  int? level,  String? attribute,  String? archetype,  int? scale, @JsonKey(name: 'linkval')  int? linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url')  String ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info')  BanlistInfo? banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _parseRequiredInt)  int id,  String name, @JsonKey(name: 'typeline')  List<String>? typeLine,  String type, @JsonKey(name: 'humanReadableCardType')  String? humanReadableCardType, @JsonKey(name: 'frameType')  String? frameType,  String desc,  String race, @JsonKey(name: 'pend_desc')  String? pendDesc, @JsonKey(name: 'monster_desc')  String? monsterDesc, @JsonKey(fromJson: _parseInt)  int? atk, @JsonKey(fromJson: _parseInt)  int? def, @JsonKey(fromJson: _parseInt)  int? level,  String? attribute,  String? archetype, @JsonKey(fromJson: _parseInt)  int? scale, @JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt)  int? linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url')  String ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info')  BanlistInfo? banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices)?  $default,) {final _that = this;
 switch (_that) {
 case _YgoCard() when $default != null:
 return $default(_that.id,_that.name,_that.typeLine,_that.type,_that.humanReadableCardType,_that.frameType,_that.desc,_that.race,_that.pendDesc,_that.monsterDesc,_that.atk,_that.def,_that.level,_that.attribute,_that.archetype,_that.scale,_that.linkVal,_that.linkMarkers,_that.ygoProDeckUrl,_that.cardSets,_that.banlistInfo,_that.cardImages,_that.cardPrices);case _:
@@ -1335,10 +1335,10 @@ return $default(_that.id,_that.name,_that.typeLine,_that.type,_that.humanReadabl
 @JsonSerializable()
 
 class _YgoCard implements YgoCard {
-  const _YgoCard({required this.id, required this.name, @JsonKey(name: 'typeline')  List<String>? typeLine, required this.type, @JsonKey(name: 'humanReadableCardType') this.humanReadableCardType, @JsonKey(name: 'frameType') this.frameType, required this.desc, required this.race, @JsonKey(name: 'pend_desc') this.pendDesc, @JsonKey(name: 'monster_desc') this.monsterDesc, this.atk, this.def, this.level, this.attribute, this.archetype, this.scale, @JsonKey(name: 'linkval') this.linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url') required this.ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info') this.banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices}): _typeLine = typeLine,_linkMarkers = linkMarkers,_cardSets = cardSets,_cardImages = cardImages,_cardPrices = cardPrices;
+  const _YgoCard({@JsonKey(fromJson: _parseRequiredInt) required this.id, required this.name, @JsonKey(name: 'typeline')  List<String>? typeLine, required this.type, @JsonKey(name: 'humanReadableCardType') this.humanReadableCardType, @JsonKey(name: 'frameType') this.frameType, required this.desc, required this.race, @JsonKey(name: 'pend_desc') this.pendDesc, @JsonKey(name: 'monster_desc') this.monsterDesc, @JsonKey(fromJson: _parseInt) this.atk, @JsonKey(fromJson: _parseInt) this.def, @JsonKey(fromJson: _parseInt) this.level, this.attribute, this.archetype, @JsonKey(fromJson: _parseInt) this.scale, @JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt) this.linkVal, @JsonKey(name: 'linkmarkers')  List<String>? linkMarkers, @JsonKey(name: 'ygoprodeck_url') required this.ygoProDeckUrl, @JsonKey(name: 'card_sets')  List<CardSet>? cardSets, @JsonKey(name: 'banlist_info') this.banlistInfo, @JsonKey(name: 'card_images')  List<CardImage>? cardImages, @JsonKey(name: 'card_prices')  List<CardPrice>? cardPrices}): _typeLine = typeLine,_linkMarkers = linkMarkers,_cardSets = cardSets,_cardImages = cardImages,_cardPrices = cardPrices;
   factory _YgoCard.fromJson(Map<String, dynamic> json) => _$YgoCardFromJson(json);
 
-@override final  int id;
+@override@JsonKey(fromJson: _parseRequiredInt) final  int id;
 @override final  String name;
  final  List<String>? _typeLine;
 @override@JsonKey(name: 'typeline') List<String>? get typeLine {
@@ -1356,13 +1356,13 @@ class _YgoCard implements YgoCard {
 @override final  String race;
 @override@JsonKey(name: 'pend_desc') final  String? pendDesc;
 @override@JsonKey(name: 'monster_desc') final  String? monsterDesc;
-@override final  int? atk;
-@override final  int? def;
-@override final  int? level;
+@override@JsonKey(fromJson: _parseInt) final  int? atk;
+@override@JsonKey(fromJson: _parseInt) final  int? def;
+@override@JsonKey(fromJson: _parseInt) final  int? level;
 @override final  String? attribute;
 @override final  String? archetype;
-@override final  int? scale;
-@override@JsonKey(name: 'linkval') final  int? linkVal;
+@override@JsonKey(fromJson: _parseInt) final  int? scale;
+@override@JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt) final  int? linkVal;
  final  List<String>? _linkMarkers;
 @override@JsonKey(name: 'linkmarkers') List<String>? get linkMarkers {
   final value = _linkMarkers;
@@ -1435,7 +1435,7 @@ abstract mixin class _$YgoCardCopyWith<$Res> implements $YgoCardCopyWith<$Res> {
   factory _$YgoCardCopyWith(_YgoCard value, $Res Function(_YgoCard) _then) = __$YgoCardCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name,@JsonKey(name: 'typeline') List<String>? typeLine, String type,@JsonKey(name: 'humanReadableCardType') String? humanReadableCardType,@JsonKey(name: 'frameType') String? frameType, String desc, String race,@JsonKey(name: 'pend_desc') String? pendDesc,@JsonKey(name: 'monster_desc') String? monsterDesc, int? atk, int? def, int? level, String? attribute, String? archetype, int? scale,@JsonKey(name: 'linkval') int? linkVal,@JsonKey(name: 'linkmarkers') List<String>? linkMarkers,@JsonKey(name: 'ygoprodeck_url') String ygoProDeckUrl,@JsonKey(name: 'card_sets') List<CardSet>? cardSets,@JsonKey(name: 'banlist_info') BanlistInfo? banlistInfo,@JsonKey(name: 'card_images') List<CardImage>? cardImages,@JsonKey(name: 'card_prices') List<CardPrice>? cardPrices
+@JsonKey(fromJson: _parseRequiredInt) int id, String name,@JsonKey(name: 'typeline') List<String>? typeLine, String type,@JsonKey(name: 'humanReadableCardType') String? humanReadableCardType,@JsonKey(name: 'frameType') String? frameType, String desc, String race,@JsonKey(name: 'pend_desc') String? pendDesc,@JsonKey(name: 'monster_desc') String? monsterDesc,@JsonKey(fromJson: _parseInt) int? atk,@JsonKey(fromJson: _parseInt) int? def,@JsonKey(fromJson: _parseInt) int? level, String? attribute, String? archetype,@JsonKey(fromJson: _parseInt) int? scale,@JsonKey(name: 'linkval')@JsonKey(fromJson: _parseInt) int? linkVal,@JsonKey(name: 'linkmarkers') List<String>? linkMarkers,@JsonKey(name: 'ygoprodeck_url') String ygoProDeckUrl,@JsonKey(name: 'card_sets') List<CardSet>? cardSets,@JsonKey(name: 'banlist_info') BanlistInfo? banlistInfo,@JsonKey(name: 'card_images') List<CardImage>? cardImages,@JsonKey(name: 'card_prices') List<CardPrice>? cardPrices
 });
 
 

@@ -3,15 +3,47 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'ygo_card.freezed.dart';
 part 'ygo_card.g.dart';
 
+// Parse int
+int? _parseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  if (value is double) {
+    return value.toInt();
+  }
+  return null;
+}
+
+int _parseRequiredInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? 0;
+  if (value is num) return value.toInt();
+  return 0;
+}
+
+// Parse double
+double? _parseDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) {
+    return double.tryParse(value);
+  }
+  return null;
+}
+
 // Prices
 @freezed
 abstract class CardPrice with _$CardPrice {
   const factory CardPrice({
-    @JsonKey(name: 'cardmarket_price') double? cardMarketPrice,
-    @JsonKey(name: 'tcgplayer_price') double? tcgPlayerPrice,
-    @JsonKey(name: 'ebay_price') double? ebayPrice,
-    @JsonKey(name: 'amazon_price') double? amazonPrice,
-    @JsonKey(name: 'coolstuffinc_price') double? coolStuffIncPrice,
+    @JsonKey(name: 'cardmarket_price', fromJson: _parseDouble) double? cardMarketPrice,
+    @JsonKey(name: 'tcgplayer_price', fromJson: _parseDouble) double? tcgPlayerPrice,
+    @JsonKey(name: 'ebay_price', fromJson: _parseDouble) double? ebayPrice,
+    @JsonKey(name: 'amazon_price', fromJson: _parseDouble) double? amazonPrice,
+    @JsonKey(name: 'coolstuffinc_price', fromJson: _parseDouble) double? coolStuffIncPrice,
   }) = _CardPrice;
 
   factory CardPrice.fromJson(Map<String, dynamic> json) => _$CardPriceFromJson(json);
@@ -21,7 +53,7 @@ abstract class CardPrice with _$CardPrice {
 @freezed
 abstract class CardImage with _$CardImage {
   const factory CardImage({
-    required int id,
+    @JsonKey(fromJson: _parseRequiredInt) required int id,
     @JsonKey(name: 'image_url') required String imageUrl,
     @JsonKey(name: 'image_url_small') required String imageUrlSmall,
     @JsonKey(name: 'image_url_cropped') required String imageUrlCropped,
@@ -38,7 +70,7 @@ abstract class CardSet with _$CardSet {
     @JsonKey(name: 'set_code') required String setCode,
     @JsonKey(name: 'set_rarity') required String setRarity,
     @JsonKey(name: 'set_rarity_code') required String setRarityCode,
-    @JsonKey(name: 'set_price') double? setPrice,
+    @JsonKey(name: 'set_price', fromJson: _parseDouble) double? setPrice,
   }) = _CardSet;
 
   factory CardSet.fromJson(Map<String, dynamic> json) => _$CardSetFromJson(json);
@@ -60,7 +92,7 @@ abstract class BanlistInfo with _$BanlistInfo {
 @freezed
 abstract class YgoCard with _$YgoCard {
   const factory YgoCard({
-    required int id,
+    @JsonKey(fromJson: _parseRequiredInt) required int id,
     required String name,
     @JsonKey(name: 'typeline') List<String>? typeLine,
     required String type,
@@ -70,13 +102,13 @@ abstract class YgoCard with _$YgoCard {
     required String race,
     @JsonKey(name: 'pend_desc') String? pendDesc,
     @JsonKey(name: 'monster_desc') String? monsterDesc,
-    int? atk,
-    int? def,
-    int? level,
+    @JsonKey(fromJson: _parseInt) int? atk,
+    @JsonKey(fromJson: _parseInt) int? def,
+    @JsonKey(fromJson: _parseInt) int? level,
     String? attribute,
     String? archetype,
-    int? scale,
-    @JsonKey(name: 'linkval') int? linkVal,
+    @JsonKey(fromJson: _parseInt) int? scale,
+    @JsonKey(name: 'linkval') @JsonKey(fromJson: _parseInt) int? linkVal,
     @JsonKey(name: 'linkmarkers') List<String>? linkMarkers,
     @JsonKey(name: 'ygoprodeck_url') required String ygoProDeckUrl,
 

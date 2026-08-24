@@ -7,11 +7,11 @@ part of 'ygo_card.dart';
 // **************************************************************************
 
 _CardPrice _$CardPriceFromJson(Map<String, dynamic> json) => _CardPrice(
-  cardMarketPrice: (json['cardmarket_price'] as num?)?.toDouble(),
-  tcgPlayerPrice: (json['tcgplayer_price'] as num?)?.toDouble(),
-  ebayPrice: (json['ebay_price'] as num?)?.toDouble(),
-  amazonPrice: (json['amazon_price'] as num?)?.toDouble(),
-  coolStuffIncPrice: (json['coolstuffinc_price'] as num?)?.toDouble(),
+  cardMarketPrice: _parseDouble(json['cardmarket_price']),
+  tcgPlayerPrice: _parseDouble(json['tcgplayer_price']),
+  ebayPrice: _parseDouble(json['ebay_price']),
+  amazonPrice: _parseDouble(json['amazon_price']),
+  coolStuffIncPrice: _parseDouble(json['coolstuffinc_price']),
 );
 
 Map<String, dynamic> _$CardPriceToJson(_CardPrice instance) =>
@@ -24,7 +24,7 @@ Map<String, dynamic> _$CardPriceToJson(_CardPrice instance) =>
     };
 
 _CardImage _$CardImageFromJson(Map<String, dynamic> json) => _CardImage(
-  id: (json['id'] as num).toInt(),
+  id: _parseRequiredInt(json['id']),
   imageUrl: json['image_url'] as String,
   imageUrlSmall: json['image_url_small'] as String,
   imageUrlCropped: json['image_url_cropped'] as String,
@@ -43,7 +43,7 @@ _CardSet _$CardSetFromJson(Map<String, dynamic> json) => _CardSet(
   setCode: json['set_code'] as String,
   setRarity: json['set_rarity'] as String,
   setRarityCode: json['set_rarity_code'] as String,
-  setPrice: (json['set_price'] as num?)?.toDouble(),
+  setPrice: _parseDouble(json['set_price']),
 );
 
 Map<String, dynamic> _$CardSetToJson(_CardSet instance) => <String, dynamic>{
@@ -68,7 +68,7 @@ Map<String, dynamic> _$BanlistInfoToJson(_BanlistInfo instance) =>
     };
 
 _YgoCard _$YgoCardFromJson(Map<String, dynamic> json) => _YgoCard(
-  id: (json['id'] as num).toInt(),
+  id: _parseRequiredInt(json['id']),
   name: json['name'] as String,
   typeLine: (json['typeline'] as List<dynamic>?)
       ?.map((e) => e as String)
@@ -80,12 +80,12 @@ _YgoCard _$YgoCardFromJson(Map<String, dynamic> json) => _YgoCard(
   race: json['race'] as String,
   pendDesc: json['pend_desc'] as String?,
   monsterDesc: json['monster_desc'] as String?,
-  atk: (json['atk'] as num?)?.toInt(),
-  def: (json['def'] as num?)?.toInt(),
-  level: (json['level'] as num?)?.toInt(),
+  atk: _parseInt(json['atk']),
+  def: _parseInt(json['def']),
+  level: _parseInt(json['level']),
   attribute: json['attribute'] as String?,
   archetype: json['archetype'] as String?,
-  scale: (json['scale'] as num?)?.toInt(),
+  scale: _parseInt(json['scale']),
   linkVal: (json['linkval'] as num?)?.toInt(),
   linkMarkers: (json['linkmarkers'] as List<dynamic>?)
       ?.map((e) => e as String)
