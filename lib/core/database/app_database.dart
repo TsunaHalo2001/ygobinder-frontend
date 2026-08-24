@@ -1,14 +1,16 @@
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 
 part 'app_database.g.dart';
 
-// Table definition for the 'cards' table
+// ==========================================
+// TABLE DEFINITIONS
+// ==========================================
+
+@DataClassName('DriftCard')
 class Cards extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
@@ -16,7 +18,7 @@ class Cards extends Table {
   TextColumn get desc => text()();
   TextColumn get race => text()();
   TextColumn get frameType => text().nullable()();
-  TextColumn get humanReadableType => text().nullable()();
+  TextColumn get humanReadableCardType => text().nullable()();
   IntColumn get atk => integer().nullable()();
   IntColumn get def => integer().nullable()();
   IntColumn get level => integer().nullable()();
@@ -34,25 +36,28 @@ class Cards extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('DriftCardImage')
 class CardImages extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get cardId => integer().references(Cards, #id)();
   IntColumn get imageId => integer()();
-  TextColumn get ImageUrl => text()();
+  TextColumn get imageUrl => text()(); // ← Fixed: lowercase 'i'
   TextColumn get imageUrlSmall => text()();
   TextColumn get imageUrlCropped => text()();
 }
 
+@DataClassName('DriftCardPrice')
 class CardPrices extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get cardId => integer().references(Cards, #id)();
-  TextColumn get cardMarketPrice => text().nullable()();
-  TextColumn get tcgPlayerPrice => text().nullable()();
-  TextColumn get ebayPrice => text().nullable()();
-  TextColumn get amazonPrice => text().nullable()();
-  TextColumn get coolStuffIncPrice => text().nullable()();
+  RealColumn get cardMarketPrice => real().nullable()(); // ← Fixed: RealColumn for math
+  RealColumn get tcgPlayerPrice => real().nullable()();
+  RealColumn get ebayPrice => real().nullable()();
+  RealColumn get amazonPrice => real().nullable()();
+  RealColumn get coolStuffIncPrice => real().nullable()();
 }
 
+@DataClassName('DriftCardSet')
 class CardSets extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get cardId => integer().references(Cards, #id)();
@@ -60,30 +65,35 @@ class CardSets extends Table {
   TextColumn get setCode => text()();
   TextColumn get setRarity => text()();
   TextColumn get setRarityCode => text()();
-  TextColumn get setPrice => text().nullable()();
+  RealColumn get setPrice => real().nullable()();
 }
 
+@DataClassName('DriftBanlistInfo')
 class BanlistInfos extends Table {
-  IntColumn get id => integer().autoIncrement()();
+  IntColumn get cardId => integer().references(Cards, #id)();
   TextColumn get banTcg => text().nullable()();
   TextColumn get banOcg => text().nullable()();
   TextColumn get banGoat => text().nullable()();
 
   @override
-  Set<Column> get primaryKey => {id};
+  Set<Column> get primaryKey => {cardId};
 }
 
+@DataClassName('DriftCollectionItem')
 class CollectionItems extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get cardId => integer().references(Cards, #id)();
-  IntColumn get quantity => integer()();
-  TextColumn get condition => text()();
+  IntColumn get quantity => integer().withDefault(const Constant(1))(); // ← Fixed: added default
+  TextColumn get condition => text().withDefault(const Constant('Near Mint'))(); // ← Fixed: added default
   TextColumn get notes => text().nullable()();
-  DateTime get addedAt => dateTime().withDefault(currentDateAndTime)();
-  DateTime get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)(); // ← Fixed: DateTimeColumn
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)(); // ← Fixed: DateTimeColumn
 }
 
-// Database Class
+// ==========================================
+// DATABASE CLASS
+// ==========================================
+
 @DriftDatabase(tables: [
   Cards,
   CardImages,
@@ -99,43 +109,44 @@ class AppDatabase extends _$AppDatabase {
   int get schemaVersion => 1;
 
   @override
-  MigrationStrategy get migration =>
-    MigrationStrategy(
-      onCreate: (Migrator m) async {
-        await m.createAll();
-      },
-      onUpgrade: (Migrator m, int from, int to) async {
-        // Handle database upgrades here
-      },
-      beforeOpen: (details) async {
-      },
-    );
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      // Handle database upgrades here
+    },
+    beforeOpen: (details) async {},
+  );
 
-// Card Queries
-  Future<Card?> getCardById(int cardId) {
+  // ==========================================
+  // CARD QUERIES
+  // ==========================================
+
+  Future<DriftCard?> getCardById(int cardId) { // ← Fixed: DriftCard
     return (select(cards)..where((t) => t.id.equals(cardId))).getSingleOrNull();
   }
 
-  Future<List<Card>> searchCards(String query) {
-    return (select(cards)
-      ..where((t) => t.name.like('%$query%'))
-      ..limit(20))
-    .get();
+  Future<List<DriftCard>> searchCards(String query) { // ← Fixed: DriftCard
+    return (select(cards)..where((t) => t.name.like('%$query%'))..limit(20)).get();
   }
 
-  Future<List<Cards>> getCardsByArchetype(String archetype) {
+  Future<List<DriftCard>> getCardsByArchetype(String archetype) { // ← Fixed: DriftCard
     return (select(cards)
       ..where((t) => t.archetype.equals(archetype))
       ..orderBy([(t) => OrderingTerm.asc(t.name)]))
-    .get();
+        .get();
   }
 
-  Stream <List<Cards>> watchAllCards() {
+  Stream<List<DriftCard>> watchAllCards() { // ← Fixed: DriftCard
     return select(cards).watch();
   }
 
-// Collection Queries
-  Future<List<CollectionItemWithCard>> watchCollection() {
+  // ==========================================
+  // COLLECTION QUERIES
+  // ==========================================
+
+  Stream<List<CollectionItemWithCard>> watchCollection() { // ← Fixed: returns Stream, not Future
     final query = select(collectionItems).join([
       innerJoin(cards, cards.id.equalsExp(collectionItems.cardId)),
     ]);
@@ -157,24 +168,24 @@ class AppDatabase extends _$AppDatabase {
     String? notes,
   }) async {
     final existing = await (select(collectionItems)
-      ..where((t) =>
-        t.cardId.equals(cardId) & t.condition.equals(condition)))
-    .getSingleOrNull();
+      ..where((t) => t.cardId.equals(cardId) & t.condition.equals(condition)))
+        .getSingleOrNull();
 
     if (existing != null) {
-      await (update(collectionItems)..where((t) => t.id.equals(existing.id)))
-        .write(CollectionItemsCompanion(
+      await (update(collectionItems)..where((t) => t.id.equals(existing.id))).write(
+        CollectionItemsCompanion(
           quantity: Value(existing.quantity + quantity),
           updatedAt: Value(DateTime.now()),
-        ));
+        ),
+      );
       return existing.id;
     } else {
       return await into(collectionItems).insert(
         CollectionItemsCompanion.insert(
           cardId: cardId,
-          quantity: quantity,
-          condition: condition,
-          notes: Value(notes)
+          quantity: Value(quantity),
+          condition: Value(condition),
+          notes: Value(notes),
         ),
       );
     }
@@ -185,56 +196,69 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> getCollectionSize() async {
-    final count = await collectionItems.count().get();
-    return count;
+    final query = selectOnly(collectionItems)..addColumns([collectionItems.id.count()]);
+
+    final result = await query.getSingle();
+
+    return result.read(collectionItems.id.count()) ?? 0;
   }
 
-// Upsert operations
-  Future<void> saveCard(Card card) async {
+  // ==========================================
+  // UPSERT OPERATIONS
+  // ==========================================
+
+  // ← Fixed: Removed 'drift.' prefix. These classes are generated in this same file.
+  Future<void> saveCard(CardsCompanion card) async {
     await into(cards).insertOnConflictUpdate(card);
   }
 
-  Future<void> saveCardImages(List<CardImage> images) async {
+  Future<void> saveCardImages(List<CardImagesCompanion> images) async {
     await batch((batch) {
       batch.insertAll(cardImages, images, mode: InsertMode.insertOrReplace);
     });
   }
 
-  Future<void> saveCardPrices(List<CardPrice> prices) async {
+  Future<void> saveCardPrices(List<CardPricesCompanion> prices) async {
     await batch((batch) {
       batch.insertAll(cardPrices, prices, mode: InsertMode.insertOrReplace);
     });
   }
 
-  Future<void> saveCardSets(List<CardSet> sets) async {
+  Future<void> saveCardSets(List<CardSetsCompanion> sets) async {
     await batch((batch) {
       batch.insertAll(cardSets, sets, mode: InsertMode.insertOrReplace);
     });
   }
 
-  Future<void> saveBanlistInfo(BanlistInfo banlistInfo) async {
+  Future<void> saveBanlistInfo(BanlistInfosCompanion banlistInfo) async {
     await into(banlistInfos).insertOnConflictUpdate(banlistInfo);
   }
 
-// Get Related Data
-  Future<List<CardImage>> getCardImages(int cardId) {
+  // ==========================================
+  // GET RELATED DATA
+  // ==========================================
+
+  Future<List<DriftCardImage>> getCardImages(int cardId) { // ← Fixed: DriftCardImage
     return (select(cardImages)..where((t) => t.cardId.equals(cardId))).get();
   }
 
-  Future<List<CardPrice>> getCardPrices(int cardId) {
+  Future<List<DriftCardPrice>> getCardPrices(int cardId) { // ← Fixed: DriftCardPrice
     return (select(cardPrices)..where((t) => t.cardId.equals(cardId))).get();
   }
 
-  Future<List<CardSet>> getCardSets(int cardId) {
+  Future<List<DriftCardSet>> getCardSets(int cardId) { // ← Fixed: DriftCardSet
     return (select(cardSets)..where((t) => t.cardId.equals(cardId))).get();
   }
 
-  Future<BanlistInfo?> getBanlistInfo(int cardId) {
-    return (select(banlistInfos)..where((t) => t.id.equals(cardId))).getSingleOrNull();
+  Future<DriftBanlistInfo?> getBanlistInfo(int cardId) { // ← Fixed: DriftBanlistInfo
+    return (select(banlistInfos)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
   }
 }
 
-// Database Connection
+// ==========================================
+// DATABASE CONNECTION
+// ==========================================
+
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
@@ -243,10 +267,13 @@ LazyDatabase _openConnection() {
   });
 }
 
-// Helper Classes
+// ==========================================
+// HELPER CLASSES
+// ==========================================
+
 class CollectionItemWithCard {
-  final CollectionItem collectionItem;
-  final Card card;
+  final DriftCollectionItem collectionItem; // ← Fixed: DriftCollectionItem
+  final DriftCard card; // ← Fixed: DriftCard
 
   CollectionItemWithCard({
     required this.collectionItem,

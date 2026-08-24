@@ -20,28 +20,41 @@ class CardRepository {
   Future<void> saveCards(List<YgoCard> cards) async {
     await _db.transaction(() async {
       for (final card in cards) {
-        await _db.saveCard(CardMapper.toDriftCard(card));
+        await _db.saveCard(CardMapper.toDriftCardCompanion(card));
 
-        if (card.cardImages.isNotEmpty) {
+        await (_db.delete(_db.cardImages)
+            ..where((tbl) => tbl.cardId.equals(card.id)))
+            .go();
+        await (_db.delete(_db.cardPrices)
+            ..where((tbl) => tbl.cardId.equals(card.id)))
+            .go();
+        await (_db.delete(_db.cardSets)
+            ..where((tbl) => tbl.cardId.equals(card.id)))
+            .go();
+        await (_db.delete(_db.banlistInfos)
+            ..where((tbl) => tbl.cardId.equals(card.id)))
+            .go();
+
+        if (card.cardImages?.isNotEmpty ?? false) {
           await _db.saveCardImages(
-            CardMapper.toDriftCardImages(card.id, card.cardImages),
+            CardMapper.toDriftCardImagesCompanions(card.id, card.cardImages!),
           );
         }
 
-        if (card.cardPrices.isNotEmpty) {
+        if (card.cardPrices?.isNotEmpty ?? false) {
           await _db.saveCardPrices(
-            CardMapper.toDriftCardPrices(card.id, card.cardPrices),
+            CardMapper.toDriftCardPricesCompanions(card.id, card.cardPrices!),
           );
         }
 
         if (card.cardSets != null && card.cardSets!.isNotEmpty) {
           await _db.saveCardSets(
-            CardMapper.toDriftCardSets(card.id, card.cardSets!),
+            CardMapper.toDriftCardSetsCompanions(card.id, card.cardSets!),
           );
         }
 
         if (card.banlistInfo != null) {
-          final banlist = CardMapper.toDriftBanlistInfo(card.id, card.banlistInfo);
+          final banlist = CardMapper.toDriftBanlistInfoCompanion(card.id, card.banlistInfo);
           if (banlist != null) {
             await _db.saveBanlistInfo(banlist);
           }
@@ -54,10 +67,10 @@ class CardRepository {
     final card = await _db.getCardById(cardId);
     if (card == null) return null;
 
-    final images = await _db.getCardImagesByCardId(cardId);
-    final prices = await _db.getCardPricesByCardId(cardId);
-    final sets = await _db.getCardSetsByCardId(cardId);
-    final banlistInfo = await _db.getBanlistInfoByCardId(cardId);
+    final images = await _db.getCardImages(cardId);
+    final prices = await _db.getCardPrices(cardId);
+    final sets = await _db.getCardSets(cardId);
+    final banlist = await _db.getBanlistInfo(cardId);
 
     return CardMapper.toYgoCard(
       card,
