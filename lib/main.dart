@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/presentation/screens/initial_sync_screen.dart';
+import 'package:ygobinder/core/presentation/screens/splash_screen.dart';
 // import 'package:ygobinder/features/collection/presentation/screens/collection_screen.dart'; // Your main screen
 
 void main() async {
@@ -26,13 +27,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Simple GoRouter setup
 final _router = GoRouter(
-  initialLocation: '/splash',
+  initialLocation: '/splash', // ← Start here
   routes: [
     GoRoute(
       path: '/splash',
-      builder: (context, state) => const InitializationScreen(),
+      builder: (context, state) => const SplashScreen(),
     ),
     GoRoute(
       path: '/sync',
@@ -41,7 +41,7 @@ final _router = GoRouter(
     GoRoute(
       path: '/collection',
       builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Main Collection Screen Goes Here!')),
+        body: Center(child: Text('Main Collection Screen')),
       ),
     ),
   ],

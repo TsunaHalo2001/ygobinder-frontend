@@ -9,6 +9,15 @@ part 'app_database.g.dart';
 // ==========================================
 // TABLE DEFINITIONS
 // ==========================================
+@DataClassName('DriftAppConfig')
+class AppConfig extends Table {
+  // Renamed from 'key' to avoid Dart reserved word conflicts during generation
+  TextColumn get settingKey => text()();
+  TextColumn get settingValue => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {settingKey};
+}
 
 @DataClassName('DriftCard')
 class Cards extends Table {
@@ -101,6 +110,7 @@ class CollectionItems extends Table {
   CardSets,
   BanlistInfos,
   CollectionItems,
+  AppConfig,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -118,6 +128,25 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {},
   );
+
+  // ==========================================
+  // SETTINGS / CONFIG QUERIES
+  // ==========================================
+
+  Future<String?> getSetting(String key) async {
+    final query = select(appConfig)..where((t) => t.settingKey.equals(key));
+    final result = await query.getSingleOrNull();
+    return result?.settingValue;
+  }
+
+  Future<void> saveSetting(String key, String value) async {
+    await into(appConfig).insertOnConflictUpdate(
+      AppConfigCompanion(
+        settingKey: Value(key),
+        settingValue: Value(value),
+      ),
+    );
+  }
 
   // ==========================================
   // CARD QUERIES

@@ -30,6 +30,9 @@ class CardRepository {
     onStatusChange?.call('Saving ${cards.length} cards to database...', null);
     await saveCards(cards);
 
+    final todayString = DateTime.now().toIso8601String();
+    await _db.saveSetting('last_sync_date', todayString);
+
     onStatusChange?.call('Sync complete!', 1.0);
   }
 
@@ -113,5 +116,23 @@ class CardRepository {
 
   Stream<List<YgoCard>> watchAllCards() {
     return _db.watchAllCards().map((cards) => cards.map((card) => CardMapper.toYgoCard(card)).toList());
+  }
+
+  /// Checks if the database was already synced today.
+  Future<bool> needsDailySync() async {
+    final lastSyncStr = await _db.getSetting('last_sync_date');
+    if (lastSyncStr == null) return true; // Never synced before
+
+    final lastSync = DateTime.tryParse(lastSyncStr);
+    if (lastSync == null) return true; // Invalid date
+
+    final now = DateTime.now();
+
+    // If the year, month, and day match, we already synced today!
+    final isToday = lastSync.year == now.year &&
+        lastSync.month == now.month &&
+        lastSync.day == now.day;
+
+    return !isToday;
   }
 }
