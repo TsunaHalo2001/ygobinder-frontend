@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
+import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
+
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -57,7 +59,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // Your App Logo or Icon
             Icon(Icons.deck_rounded, size: 80, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(),
+            const SpinningCardLoader(width: 60, height: 84),
             const SizedBox(height: 16),
             Text(
               'Loading YGO Binder...',

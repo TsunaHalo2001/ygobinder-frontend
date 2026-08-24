@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
+import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
+
 class InitialSyncScreen extends ConsumerStatefulWidget {
   const InitialSyncScreen({super.key});
 
@@ -60,6 +62,8 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -68,51 +72,72 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  _error != null ? Icons.cloud_off_rounded : Icons.deck_rounded,
-                  size: 80,
-                  color: _error != null ? Colors.redAccent : Theme.of(context).primaryColor,
-                ),
+                // 1. The Visual (Spinning Card or Error Icon)
+                if (_error != null)
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    size: 80,
+                    color: Colors.redAccent,
+                  )
+                else
+                // ✅ REPLACED: Use the Spinning Card instead of a static icon or generic spinner
+                  const SpinningCardLoader(width: 60, height: 84),
+
                 const SizedBox(height: 32),
 
+                // 2. Status Text
                 Text(
                   _status,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 24),
 
+                // 3. Progress Area
                 if (_isSyncing && _error == null) ...[
                   SizedBox(
                     width: 300,
                     child: _progress != null
-                        ? LinearProgressIndicator(
+                        ? Column(
+                      children: [
+                        // Linear bar for downloading
+                        LinearProgressIndicator(
                           value: _progress,
                           minHeight: 8,
                           borderRadius: BorderRadius.circular(4),
-                        )
-                        : const CircularProgressIndicator(),
-                  ),
-                  const SizedBox(height: 12),
-
-                  if (_progress != null)
-                    Text(
-                      '${(_progress! * 100).toStringAsFixed(1)}%',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 12),
+                        // Percentage text
+                        Text(
+                          '${(_progress! * 100).toStringAsFixed(0)}%',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    )
+                    // ✅ REPLACED: If we don't have a percentage (Parsing/Saving),
+                    // we just show a subtle text telling them it's working in the background.
+                        : Text(
+                      'Working in the background...',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
+                  ),
                 ],
 
+                // 4. Error State & Retry Button
                 if (_error != null) ...[
                   const SizedBox(height: 16),
                   Text(
                     _error!,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.redAccent,
                     ),
                   ),
@@ -120,7 +145,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
                   ElevatedButton.icon(
                     onPressed: _startSync,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
+                    label: const Text('Try Again'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     ),
