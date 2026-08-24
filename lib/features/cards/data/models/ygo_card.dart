@@ -21,7 +21,7 @@ class CardPrice with _$CardPrice {
 @freezed
 class CardImage with _$CardImage {
   const factory CardImage({
-    required int id;
+    required int id,
     @JsonKey(name: 'image_url') required String imageUrl,
     @JsonKey(name: 'image_url_small') required String imageUrlSmall,
     @JsonKey(name: 'image_url_cropped') required String imageUrlCropped,
@@ -78,7 +78,7 @@ class YgoCard with _$YgoCard {
     int? scale,
     @JsonKey(name: 'linkval') int? linkVal,
     @JsonKey(name: 'linkmarkers') List<String>? linkMarkers,
-    @JsonKey(name: 'ygoprodeck_url') required String ygoprodeckUrl,
+    @JsonKey(name: 'ygoprodeck_url') required String ygoProDeckUrl,
 
     // Now Lists
     @JsonKey(name: 'card_sets') List<CardSet>? cardSets,
