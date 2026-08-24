@@ -17,9 +17,9 @@ class CardRepository {
 
     final rawData = await _dataService.fetchRawCardData(
       onProgress: (received, total) {
-        if (total != -1) {
-          final progress = received / total;
-          onStatusChange?.call('Downloading card data...', progress);
+        if (total > 0) {
+          final progress = (received / total).clamp(0.0, 1.0);
+          onStatusChange?.call('Downloading...', progress);
         }
       },
     );

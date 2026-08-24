@@ -87,7 +87,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
 
                 if (_isSyncing && _error == null) ...[
                   SizedBox(
-                    width: double.infinity,
+                    width: 300,
                     child: _progress != null
                         ? LinearProgressIndicator(
                           value: _progress,
