@@ -31,7 +31,7 @@ class ApiClient {
         onError: (error, handler) async {
           if (_shouldRetry(error)) {
             try {
-              final response = await dio.fetch(error.requestOptions);
+              final response = await _dio.fetch(error.requestOptions);
               return handler.resolve(response);
             }
             catch (e) {
