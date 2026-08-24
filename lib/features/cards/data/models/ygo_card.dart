@@ -5,7 +5,7 @@ part 'ygo_card.g.dart';
 
 // Prices
 @freezed
-class CardPrice with _$CardPrice {
+abstract class CardPrice with _$CardPrice {
   const factory CardPrice({
     @JsonKey(name: 'cardmarket_price') double? cardMarketPrice,
     @JsonKey(name: 'tcgplayer_price') double? tcgPlayerPrice,
@@ -19,7 +19,7 @@ class CardPrice with _$CardPrice {
 
 // Images
 @freezed
-class CardImage with _$CardImage {
+abstract class CardImage with _$CardImage {
   const factory CardImage({
     required int id,
     @JsonKey(name: 'image_url') required String imageUrl,
@@ -32,7 +32,7 @@ class CardImage with _$CardImage {
 
 // CardSet
 @freezed
-class CardSet with _$CardSet {
+abstract class CardSet with _$CardSet {
   const factory CardSet({
     @JsonKey(name: 'set_name') required String setName,
     @JsonKey(name: 'set_code') required String setCode,
@@ -46,7 +46,7 @@ class CardSet with _$CardSet {
 
 // Banlist
 @freezed
-class BanlistInfo with _$BanlistInfo {
+abstract class BanlistInfo with _$BanlistInfo {
   const factory BanlistInfo({
     @JsonKey(name: 'ban_tcg') String? banTcg,
     @JsonKey(name: 'ban_ocg') String? banOcg,
@@ -58,7 +58,7 @@ class BanlistInfo with _$BanlistInfo {
 
 // Card
 @freezed
-class YgoCard with _$YgoCard {
+abstract class YgoCard with _$YgoCard {
   const factory YgoCard({
     required int id,
     required String name,
