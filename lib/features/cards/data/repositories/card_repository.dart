@@ -1,13 +1,37 @@
-import 'dart:convert';
 import 'dart:isolate';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 
 class CardRepository {
   final AppDatabase _db;
+  final CardDataService _dataService;
 
-  CardRepository(this._db);
+  CardRepository(this._db, this._dataService);
+
+  Future<void> syncAllCards({
+    void Function(String status, double? progress)? onStatusChange,
+  }) async {
+    onStatusChange?.call('Downloading card data...', 0.0);
+
+    final rawData = await _dataService.fetchRawCardData(
+      onProgress: (received, total) {
+        if (total != -1) {
+          final progress = received / total;
+          onStatusChange?.call('Downloading card data...', progress);
+        }
+      },
+    );
+
+    onStatusChange?.call('Parsing ${rawData.length} cards...', null);
+    final cards = await fetchAndParseCards(rawData);
+
+    onStatusChange?.call('Saving ${cards.length} cards to database...', null);
+    await saveCards(cards);
+
+    onStatusChange?.call('Sync complete!', 1.0);
+  }
 
   Future<List<YgoCard>> fetchAndParseCards(List<dynamic> apiData) async {
     return Isolate.run(() {
