@@ -22,7 +22,24 @@ class CardDataService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return jsonDecode(response.data!) as List<dynamic>;
+        final decoded = jsonDecode(response.data!);
+
+        if (decoded is List) {
+          return decoded;
+        } else if (decoded is Map<String, dynamic>) {
+          if (decoded.containsKey('data') && decoded['data'] is List) {
+            return decoded['data'] as List<dynamic>;
+          }
+          if (decoded.containsKey('cards') && decoded['cards'] is List) {
+            return decoded['cards'] as List<dynamic>;
+          }
+          if (decoded.containsKey('results') && decoded['results'] is List) {
+            return decoded['results'] as List<dynamic>;
+          }
+          throw Exception('Unexpected JSON structure: "data" key not found or not a list.');
+        }
+
+        throw Exception('Unexpected JSON structure: Expected a list or a map.');
       } else {
         throw Exception('Failed to fetch card data: ${response.statusCode}');
       }
