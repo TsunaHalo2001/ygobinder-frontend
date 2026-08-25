@@ -125,22 +125,35 @@ class CardRepository {
 
     if (driftCards.isEmpty) return [];
 
-    // Efficiently fetch all images for these cards in one query
+    // Efficiently fetch all images and banlist info for these cards in one batch
     final cardIds = driftCards.map((c) => c.id).toList();
-    final allImages = await (_db.select(_db.cardImages)
+    
+    final imagesFuture = (_db.select(_db.cardImages)
+      ..where((t) => t.cardId.isIn(cardIds)))
+        .get();
+        
+    final banlistFuture = (_db.select(_db.banlistInfos)
       ..where((t) => t.cardId.isIn(cardIds)))
         .get();
 
+    final [allImages, allBanlists] = await Future.wait([imagesFuture, banlistFuture]);
+
     // Group images by cardId
     final imagesByCardId = <int, List<DriftCardImage>>{};
-    for (final img in allImages) {
+    for (final img in allImages as List<DriftCardImage>) {
       imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
     }
+    
+    // Group banlist by cardId
+    final banlistByCardId = {
+      for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b
+    };
 
     return driftCards.map((card) {
       return CardMapper.toYgoCard(
         card,
         images: imagesByCardId[card.id] ?? [],
+        banlist: banlistByCardId[card.id],
       );
     }).toList();
   }

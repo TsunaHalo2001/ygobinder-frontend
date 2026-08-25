@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/presentation/screens/initial_sync_screen.dart';
+import 'package:ygobinder/features/cards/presentation/screens/card_detail_screen.dart';
 import 'package:ygobinder/core/presentation/screens/splash_screen.dart';
 import 'package:ygobinder/core/presentation/screens/main_shell.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
@@ -18,43 +19,87 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Detect screen size
+    // 1. Detect screen size for adaptive fonts
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isLargeScreen = screenWidth > 600;
 
     return MaterialApp.router(
       title: 'YGO Binder',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
         fontFamily: 'YuGiOh',
-        // 2. Apply dynamic TextTheme
+        brightness: Brightness.dark,
+        
+        // Custom ColorScheme based on your YGO palette
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFD4AF37), // Pharaoh's Gold
+          onPrimary: Color(0xFF1A1A1A), // Obsidian
+          secondary: Color(0xFF7E57C2), // Dark Magician
+          surface: Color(0xFF0B0C10), // Shadow Void (Main background)
+          onSurface: Color(0xFFF0F0F0), // Starlight
+          surfaceContainerHighest: Color(0xFF1F2833), // Dark Slate (Cards, etc.)
+          onSurfaceVariant: Color(0xFFF0F0F0),
+          outline: Color(0xFF45A29E), // Teal/Faint Gold
+        ),
+
+        // Applying the adaptive TextTheme
         textTheme: _buildTextTheme(isLargeScreen),
+        
+        // Themed Card appearance
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1F2833),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+
+        // Themed Input appearance for your search bar
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF1F2833),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF45A29E)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+        ),
       ),
       routerConfig: _router,
     );
   }
 
   TextTheme _buildTextTheme(bool isLargeScreen) {
-    // Increase base sizes by ~20% for large screens
-    final double scale = isLargeScreen ? 1.2 : 1.0;
+    // Increase base sizes significantly for large screens (from 1.2 to 1.6)
+    final double scale = isLargeScreen ? 1.6 : 1.0;
+    const double lineHeight = 1.0; // Reduced line height for YGO font
+    
+    // Subtle shadow to help text pop against varied backgrounds
+    final List<Shadow> textShadows = [
+      Shadow(
+        offset: const Offset(0.5, 0.5),
+        blurRadius: 1.0,
+        color: Colors.black.withOpacity(0.4),
+      ),
+    ];
 
     return TextTheme(
-      displayLarge: TextStyle(fontSize: 57 * scale),
-      displayMedium: TextStyle(fontSize: 45 * scale),
-      displaySmall: TextStyle(fontSize: 36 * scale),
-      headlineLarge: TextStyle(fontSize: 32 * scale),
-      headlineMedium: TextStyle(fontSize: 28 * scale),
-      headlineSmall: TextStyle(fontSize: 24 * scale),
-      titleLarge: TextStyle(fontSize: 22 * scale),
-      titleMedium: TextStyle(fontSize: 16 * scale),
-      titleSmall: TextStyle(fontSize: 14 * scale),
-      bodyLarge: TextStyle(fontSize: 16 * scale),
-      bodyMedium: TextStyle(fontSize: 14 * scale),
-      bodySmall: TextStyle(fontSize: 12 * scale),
-      labelLarge: TextStyle(fontSize: 14 * scale),
-      labelMedium: TextStyle(fontSize: 12 * scale),
-      labelSmall: TextStyle(fontSize: 11 * scale),
+      displayLarge: TextStyle(fontSize: 57 * scale, height: lineHeight, shadows: textShadows),
+      displayMedium: TextStyle(fontSize: 45 * scale, height: lineHeight, shadows: textShadows),
+      displaySmall: TextStyle(fontSize: 36 * scale, height: lineHeight, shadows: textShadows),
+      headlineLarge: TextStyle(fontSize: 32 * scale, height: lineHeight, shadows: textShadows),
+      headlineMedium: TextStyle(fontSize: 28 * scale, height: lineHeight, shadows: textShadows),
+      headlineSmall: TextStyle(fontSize: 24 * scale, height: lineHeight, shadows: textShadows),
+      titleLarge: TextStyle(fontSize: 22 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
+      titleMedium: TextStyle(fontSize: 16 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
+      titleSmall: TextStyle(fontSize: 14 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
+      bodyLarge: TextStyle(fontSize: 16 * scale, height: lineHeight, shadows: textShadows),
+      bodyMedium: TextStyle(fontSize: 14 * scale, height: lineHeight, shadows: textShadows),
+      bodySmall: TextStyle(fontSize: 12 * scale, height: lineHeight, shadows: textShadows),
+      labelLarge: TextStyle(fontSize: 14 * scale, height: lineHeight, shadows: textShadows),
+      labelMedium: TextStyle(fontSize: 12 * scale, height: lineHeight, shadows: textShadows),
+      labelSmall: TextStyle(fontSize: 11 * scale, height: lineHeight, shadows: textShadows),
     );
   }
 }
@@ -78,7 +123,14 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/main',
-      builder: (context, state) => const MainShell(), // <-- Change this
+      builder: (context, state) => const MainShell(),
+    ),
+    GoRoute(
+      path: '/card/:id',
+      builder: (context, state) {
+        final id = int.parse(state.pathParameters['id']!);
+        return CardDetailScreen(cardId: id);
+      },
     ),
   ],
 );

@@ -116,7 +116,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -124,7 +124,13 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      // Handle database upgrades here
+      if (from < 2) {
+        // Create new indexes for faster search using raw SQL
+        await customStatement('CREATE INDEX IF NOT EXISTS cards_name_idx ON cards (name)');
+        await customStatement('CREATE INDEX IF NOT EXISTS cards_archetype_idx ON cards (archetype)');
+        await customStatement('CREATE INDEX IF NOT EXISTS card_sets_card_id_idx ON card_sets (card_id)');
+        await customStatement('CREATE INDEX IF NOT EXISTS card_sets_set_code_idx ON card_sets (set_code)');
+      }
     },
     beforeOpen: (details) async {},
   );
@@ -302,7 +308,23 @@ class AppDatabase extends _$AppDatabase {
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final safeQuery = '%$searchQuery%';
-      query = query..where((t) => t.name.like(safeQuery));
+      
+      query = query..where((t) {
+        // 1. Matches Name
+        final nameMatch = t.name.like(safeQuery);
+        // 2. Matches Archetype
+        final archetypeMatch = t.archetype.like(safeQuery);
+        
+        // 3. Matches Set Code (LOB-001, etc.)
+        // Using isInQuery is efficient and handles the "duplicate" problem automatically
+        final setCodeMatch = t.id.isInQuery(
+          selectOnly(cardSets)
+            ..addColumns([cardSets.cardId])
+            ..where(cardSets.setCode.like(safeQuery))
+        );
+
+        return nameMatch | archetypeMatch | setCodeMatch;
+      });
     }
 
     // Order by name so pagination is consistent
