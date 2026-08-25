@@ -1,71 +1,99 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
-import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 
 part 'card_list_provider.g.dart';
 
+class CardListState {
+  final List<YgoCard> cards;
+  final bool hasMore;
+  final bool isLoadingMore;
+
+  CardListState({
+    required this.cards,
+    required this.hasMore,
+    this.isLoadingMore = false,
+  });
+
+  CardListState copyWith({
+    List<YgoCard>? cards,
+    bool? hasMore,
+    bool? isLoadingMore,
+  }) {
+    return CardListState(
+      cards: cards ?? this.cards,
+      hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
+}
+
 @riverpod
 class CardList extends _$CardList {
   int _offset = 0;
-  final int _pageSize = 50; // Load 50 cards at a time
-  bool _isLoading = false;
-  bool _hasMore = true;
+  final int _pageSize = 50;
   String _currentSearch = '';
 
   @override
-  Future<List<YgoCard>> build() async {
-    // Initial load
-    return _fetchPage(0);
+  Future<CardListState> build() async {
+    _offset = 0;
+    _currentSearch = '';
+    
+    final initialCards = await _fetchPage(0);
+    _offset = initialCards.length;
+    
+    return CardListState(
+      cards: initialCards,
+      hasMore: initialCards.length >= _pageSize,
+    );
   }
 
-  // Helper to fetch a specific page
   Future<List<YgoCard>> _fetchPage(int offset) async {
-    final db = ref.read(databaseProvider);
-    final driftCards = await db.getCardsPage(
+    final repo = ref.read(cardRepositoryProvider);
+    return repo.getCardsPage(
       offset: offset,
       limit: _pageSize,
       searchQuery: _currentSearch,
     );
-
-    return driftCards.map((card) => CardMapper.toYgoCard(card)).toList();
   }
 
-  // Call this when the user scrolls near the bottom
   Future<void> loadMore() async {
-    if (_isLoading || !_hasMore) return;
+    final currentState = state.value;
+    if (currentState == null || currentState.isLoadingMore || !currentState.hasMore) return;
 
-    _isLoading = true;
+    state = AsyncValue.data(currentState.copyWith(isLoadingMore: true));
+
     try {
       final newCards = await _fetchPage(_offset);
+      
+      state = AsyncValue.data(CardListState(
+        cards: [...currentState.cards, ...newCards],
+        hasMore: newCards.length >= _pageSize,
+        isLoadingMore: false,
+      ));
 
-      // If we got fewer cards than the page size, we've reached the end
-      if (newCards.length < _pageSize) {
-        _hasMore = false;
-      }
-
-      // Append new cards to the existing state
-      final currentList = state.value ?? [];
-      state = AsyncValue.data([...currentList, ...newCards]);
-
-      _offset += _pageSize;
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
-    } finally {
-      _isLoading = false;
+      _offset += newCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
-  // Call this when the user types in the search bar
   Future<void> search(String query) async {
+    if (_currentSearch == query) return;
+
     _currentSearch = query;
     _offset = 0;
-    _hasMore = true;
-    _isLoading = false;
 
-    // Reset state and fetch the first page of the new search
     state = const AsyncValue.loading();
-    state = AsyncValue.data(await _fetchPage(0));
-    _offset = _pageSize;
+    try {
+      final initialCards = await _fetchPage(0);
+      state = AsyncValue.data(CardListState(
+        cards: initialCards,
+        hasMore: initialCards.length >= _pageSize,
+      ));
+      _offset = initialCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_list_provider.dart';
+import 'package:ygobinder/core/providers/image_cache_provider.dart';
+import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 class CollectionTab extends ConsumerStatefulWidget {
   const CollectionTab({super.key});
@@ -73,15 +75,16 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
             // The Grid
             Expanded(
               child: cardsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: SpinningCardLoader(width: 40, height: 56)),
                 error: (err, stack) => Center(child: Text('Error: $err')),
-                data: (cards) {
+                data: (state) {
+                  final cards = state.cards;
                   if (cards.isEmpty) {
                     return const Center(child: Text('No cards found.'));
                   }
 
                   return GridView.builder(
-                    controller: _scrollController, // Attach the scroll controller!
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(8.0),
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: 160.0,
@@ -89,13 +92,12 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
-                    itemCount: cards.length + 1, // +1 for the loading indicator at the bottom
+                    itemCount: state.hasMore ? cards.length + 1 : cards.length,
                     itemBuilder: (context, index) {
-                      // If we are at the very last item, show a loading spinner
                       if (index == cards.length) {
                         return const Center(child: Padding(
                           padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
+                          child: SpinningCardLoader(width: 30, height: 42),
                         ));
                       }
 
@@ -113,13 +115,15 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
 }
 
 // (Keep your existing CardGridItem widget here)
-class CardGridItem extends StatelessWidget {
+class CardGridItem extends ConsumerWidget {
   final YgoCard card;
   const CardGridItem({super.key, required this.card});
 
   @override
-  Widget build(BuildContext context) {
-    final imageUrl = card.cardImages?.firstOrNull?.imageUrl ?? '';
+  Widget build(BuildContext context, WidgetRef ref) {
+    final imageUrl = card.cardImages?.firstOrNull?.imageUrlCropped ?? '';
+    final cacheManager = ref.watch(imageCacheManagerProvider);
+
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 2,
@@ -132,10 +136,17 @@ class CardGridItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(color: Colors.grey[300]),
+              // ✅ Now using a singleton cache manager from Provider
+              cacheManager: cacheManager,
+              // ✅ 2. Fast placeholder
+              placeholder: (context, url) => Container(
+                color: Colors.grey[200],
+                child: const Center(child: Icon(Icons.deck, color: Colors.grey, size: 20)),
+              ),
+              // ✅ 3. Robust fallback if CDN is down/rate-limited
               errorWidget: (context, url, error) => Container(
-                color: Colors.grey[300],
-                child: const Icon(Icons.broken_image),
+                color: Colors.grey[200],
+                child: const Icon(Icons.broken_image, color: Colors.redAccent, size: 20),
               ),
             ),
           ),

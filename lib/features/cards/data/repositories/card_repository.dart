@@ -112,6 +112,39 @@ class CardRepository {
     return cards.map((card) => CardMapper.toYgoCard(card)).toList();
   }
 
+  Future<List<YgoCard>> getCardsPage({
+    required int offset,
+    required int limit,
+    String? searchQuery,
+  }) async {
+    final driftCards = await _db.getCardsPage(
+      offset: offset,
+      limit: limit,
+      searchQuery: searchQuery,
+    );
+
+    if (driftCards.isEmpty) return [];
+
+    // Efficiently fetch all images for these cards in one query
+    final cardIds = driftCards.map((c) => c.id).toList();
+    final allImages = await (_db.select(_db.cardImages)
+      ..where((t) => t.cardId.isIn(cardIds)))
+        .get();
+
+    // Group images by cardId
+    final imagesByCardId = <int, List<DriftCardImage>>{};
+    for (final img in allImages) {
+      imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
+    }
+
+    return driftCards.map((card) {
+      return CardMapper.toYgoCard(
+        card,
+        images: imagesByCardId[card.id] ?? [],
+      );
+    }).toList();
+  }
+
   Stream<List<YgoCard>> watchAllCards() {
     return _db.watchAllCards().map((cards) => cards.map((card) => CardMapper.toYgoCard(card)).toList());
   }

@@ -13,7 +13,7 @@ part of 'card_list_provider.dart';
 final cardListProvider = CardListProvider._();
 
 final class CardListProvider
-    extends $AsyncNotifierProvider<CardList, List<YgoCard>> {
+    extends $AsyncNotifierProvider<CardList, CardListState> {
   CardListProvider._()
     : super(
         from: null,
@@ -33,19 +33,19 @@ final class CardListProvider
   CardList create() => CardList();
 }
 
-String _$cardListHash() => r'7e8974a4ec83650d0598e617f0d2b44a8cbe05b5';
+String _$cardListHash() => r'ce16a6eec4c44aeab791233ca9a12f4565f53445';
 
-abstract class _$CardList extends $AsyncNotifier<List<YgoCard>> {
-  FutureOr<List<YgoCard>> build();
+abstract class _$CardList extends $AsyncNotifier<CardListState> {
+  FutureOr<CardListState> build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<YgoCard>>, List<YgoCard>>;
+    final ref = this.ref as $Ref<AsyncValue<CardListState>, CardListState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<YgoCard>>, List<YgoCard>>,
-              AsyncValue<List<YgoCard>>,
+              AnyNotifier<AsyncValue<CardListState>, CardListState>,
+              AsyncValue<CardListState>,
               Object?,
               Object?
             >;
