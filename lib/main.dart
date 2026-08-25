@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/presentation/screens/initial_sync_screen.dart';
 import 'package:ygobinder/core/presentation/screens/splash_screen.dart';
+import 'package:ygobinder/core/presentation/screens/main_shell.dart';
 // import 'package:ygobinder/features/collection/presentation/screens/collection_screen.dart'; // Your main screen
 
 void main() async {
@@ -43,6 +44,10 @@ final _router = GoRouter(
       builder: (context, state) => const Scaffold(
         body: Center(child: Text('Main Collection Screen')),
       ),
+    ),
+    GoRoute(
+      path: '/main',
+      builder: (context, state) => const MainShell(), // <-- Change this
     ),
   ],
 );

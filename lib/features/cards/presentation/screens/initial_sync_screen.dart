@@ -46,7 +46,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
       );
 
       if (mounted) {
-        context.go('/collection'); // Navigate to the collection screen after sync
+        context.go('/main'); // Navigate to the collection screen after sync
       }
     }
     catch (e) {

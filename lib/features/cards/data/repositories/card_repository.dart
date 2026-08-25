@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:drift/drift.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
@@ -45,48 +46,45 @@ class CardRepository {
   }
 
   Future<void> saveCards(List<YgoCard> cards) async {
-    await _db.transaction(() async {
-      for (final card in cards) {
-        await _db.saveCard(CardMapper.toDriftCardCompanion(card));
+    // 1. Prepare all data in memory first (Very fast, no DB calls yet)
+    final cardCompanions = cards.map((c) => CardMapper.toDriftCardCompanion(c)).toList();
+    final imageCompanions = <CardImagesCompanion>[];
+    final priceCompanions = <CardPricesCompanion>[];
+    final setCompanions = <CardSetsCompanion>[];
+    final banlistCompanions = <BanlistInfosCompanion>[];
 
-        await (_db.delete(_db.cardImages)
-            ..where((tbl) => tbl.cardId.equals(card.id)))
-            .go();
-        await (_db.delete(_db.cardPrices)
-            ..where((tbl) => tbl.cardId.equals(card.id)))
-            .go();
-        await (_db.delete(_db.cardSets)
-            ..where((tbl) => tbl.cardId.equals(card.id)))
-            .go();
-        await (_db.delete(_db.banlistInfos)
-            ..where((tbl) => tbl.cardId.equals(card.id)))
-            .go();
-
-        if (card.cardImages?.isNotEmpty ?? false) {
-          await _db.saveCardImages(
-            CardMapper.toDriftCardImagesCompanions(card.id, card.cardImages!),
-          );
-        }
-
-        if (card.cardPrices?.isNotEmpty ?? false) {
-          await _db.saveCardPrices(
-            CardMapper.toDriftCardPricesCompanions(card.id, card.cardPrices!),
-          );
-        }
-
-        if (card.cardSets != null && card.cardSets!.isNotEmpty) {
-          await _db.saveCardSets(
-            CardMapper.toDriftCardSetsCompanions(card.id, card.cardSets!),
-          );
-        }
-
-        if (card.banlistInfo != null) {
-          final banlist = CardMapper.toDriftBanlistInfoCompanion(card.id, card.banlistInfo);
-          if (banlist != null) {
-            await _db.saveBanlistInfo(banlist);
-          }
-        }
+    for (final card in cards) {
+      if (card.cardImages?.isNotEmpty ?? false) {
+        imageCompanions.addAll(CardMapper.toDriftCardImagesCompanions(card.id, card.cardImages!));
       }
+      if (card.cardPrices?.isNotEmpty ?? false) {
+        priceCompanions.addAll(CardMapper.toDriftCardPricesCompanions(card.id, card.cardPrices!));
+      }
+      if (card.cardSets?.isNotEmpty ?? false) {
+        setCompanions.addAll(CardMapper.toDriftCardSetsCompanions(card.id, card.cardSets!));
+      }
+      if (card.banlistInfo != null) {
+        final banlist = CardMapper.toDriftBanlistInfoCompanion(card.id, card.banlistInfo);
+        if (banlist != null) banlistCompanions.add(banlist);
+      }
+    }
+
+    // 2. Execute ONE massive transaction (The "Second Plane" speed boost)
+    await _db.transaction(() async {
+      // Clear old related data (Since this is a full sync, it's faster to clear than to update row-by-row)
+      await _db.delete(_db.cardImages).go();
+      await _db.delete(_db.cardPrices).go();
+      await _db.delete(_db.cardSets).go();
+      await _db.delete(_db.banlistInfos).go();
+
+      // Batch insert everything at once
+      await _db.batch((batch) {
+        batch.insertAll(_db.cards, cardCompanions, mode: InsertMode.insertOrReplace);
+        batch.insertAll(_db.cardImages, imageCompanions);
+        batch.insertAll(_db.cardPrices, priceCompanions);
+        batch.insertAll(_db.cardSets, setCompanions);
+        batch.insertAll(_db.banlistInfos, banlistCompanions);
+      });
     });
   }
 

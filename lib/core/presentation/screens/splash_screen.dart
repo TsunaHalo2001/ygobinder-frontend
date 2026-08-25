@@ -21,31 +21,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _checkDatabaseAndRoute() async {
-    // Give the UI a tiny moment to render the splash screen
     await Future.delayed(const Duration(milliseconds: 500));
 
     final repo = ref.read(cardRepositoryProvider);
     final db = ref.read(databaseProvider);
 
-    // 1. Check if we need to sync
     final needsSync = await repo.needsDailySync();
 
     if (needsSync) {
-      // Check if DB is completely empty (first time ever)
-      final cardCount = await db.getCollectionSize(); // Or a specific card count query
+      final cardCount = await db.getCollectionSize();
 
       if (cardCount == 0) {
         // First time ever: Go to full sync
         if (mounted) context.go('/sync');
       } else {
-        // Has cards, but needs daily update: Go to background sync or just main app
-        // For now, let's just go to collection and sync in background, or force sync.
-        // Let's force sync for simplicity:
+        // Has cards, but needs daily update: Go to sync
         if (mounted) context.go('/sync');
       }
     } else {
-      // Already synced today! Skip download completely.
-      if (mounted) context.go('/collection');
+      // ✅ CHANGED: Already synced today! Go straight to the Main Shell
+      if (mounted) context.go('/main');
     }
   }
 

@@ -282,6 +282,36 @@ class AppDatabase extends _$AppDatabase {
   Future<DriftBanlistInfo?> getBanlistInfo(int cardId) { // ← Fixed: DriftBanlistInfo
     return (select(banlistInfos)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
   }
+
+  Stream<List<DriftCard>> watchCardsByName(String query) {
+    final safeQuery = '%$query%';
+    return (select(cards)
+      ..where((t) => t.name.like(safeQuery))
+      ..orderBy([(t) => OrderingTerm.asc(t.name)])  // ← Add this line!
+      ..limit(100))
+        .watch();
+  }
+
+  // Add this inside AppDatabase
+  Future<List<DriftCard>> getCardsPage({
+    required int offset,
+    required int limit,
+    String? searchQuery,
+  }) {
+    var query = select(cards);
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final safeQuery = '%$searchQuery%';
+      query = query..where((t) => t.name.like(safeQuery));
+    }
+
+    // Order by name so pagination is consistent
+    query = query..orderBy([(t) => OrderingTerm.asc(t.name)]);
+
+    // LIMIT X OFFSET Y is the magic of pagination
+    query.limit(limit, offset: offset);
+    return query.get();
+  }
 }
 
 // ==========================================
