@@ -178,11 +178,12 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
         ? constraints.maxWidth 
         : constraints.maxHeight;
         
-    // ✅ Reduced scaling factor from 0.28 to 0.18 to prevent arrows from becoming too large
-    final double arrowSize = referenceSize * 0.18; 
-    // ✅ Adjusted shift to maintain proportional overlap
-    final double shift = arrowSize * 0.25; 
-
+    // ✅ Base scaling factors
+    final double baseArrowSize = referenceSize * 0.18; 
+    // ✅ Reduced Axis arrows (Top, Bottom, Left, Right) to 75% of their previous size
+    // Previous: 0.315 * 0.75 = 0.23625
+    final double enlargedArrowSize = referenceSize * 0.23625; 
+    
     return Stack(
       clipBehavior: Clip.none,
       children: markerMap.entries.map((entry) {
@@ -192,24 +193,31 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
         final bool isOn = normalizedActive.contains(marker);
         final String suffix = isOn ? 'on' : 'off';
 
+        final bool isCorner = marker.contains('-');
+        
+        // ✅ Per-marker size and shift
+        final double currentArrowSize = isCorner ? baseArrowSize : enlargedArrowSize;
+        // ✅ Adjusted Axis shift: center is slightly outside, border sits between inner edge and center
+        final double currentShift = isCorner ? (currentArrowSize * 0.25) : (currentArrowSize * 0.58);
+
         Offset offset = Offset.zero;
 
         if (marker == 'Top') {
-          offset = Offset(0, -shift);
+          offset = Offset(0, -currentShift);
         } else if (marker == 'Bottom') {
-          offset = Offset(0, shift);
+          offset = Offset(0, currentShift);
         } else if (marker == 'Left') {
-          offset = Offset(-shift, 0);
+          offset = Offset(-currentShift, 0);
         } else if (marker == 'Right') {
-          offset = Offset(shift, 0);
+          offset = Offset(currentShift, 0);
         } else if (marker == 'Top-Left') {
-          offset = Offset(-shift, -shift);
+          offset = Offset(-currentShift, -currentShift);
         } else if (marker == 'Top-Right') {
-          offset = Offset(shift, -shift);
+          offset = Offset(currentShift, -currentShift);
         } else if (marker == 'Bottom-Left') {
-          offset = Offset(-shift, shift);
+          offset = Offset(-currentShift, currentShift);
         } else if (marker == 'Bottom-Right') {
-          offset = Offset(shift, shift);
+          offset = Offset(currentShift, currentShift);
         }
 
         return Align(
@@ -218,8 +226,8 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
             offset: offset,
             child: Image.asset(
               'assets/images/arrows/$fileName-$suffix.png',
-              width: arrowSize,
-              height: arrowSize,
+              width: currentArrowSize,
+              height: currentArrowSize,
               fit: BoxFit.contain,
             ),
           ),
