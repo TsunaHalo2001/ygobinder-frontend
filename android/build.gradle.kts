@@ -14,6 +14,15 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
+    
+    // ✅ Force checker-qual version to resolve firebase_auth compilation error
+    project.configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.checkerframework" && requested.name == "checker-qual") {
+                useVersion("3.42.0")
+            }
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")

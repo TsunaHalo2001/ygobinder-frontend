@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1017987650151",
+    "project_id": "ygobinder-e31e1",
+    "storage_bucket": "ygobinder-e31e1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1017987650151:android:7c96bcda738e417dccbac2",
+        "android_client_info": {
+          "package_name": "com.tsuna2001.ygobinder"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1017987650151-2d1e4g8bdhv8v6fl7q1bdp8qvaor3ki6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tsuna2001.ygobinder",
+            "certificate_hash": "e4db5d9d2c5975ccd61ba08c0874b9ffdc5d4d5e"
+          }
+        },
+        {
+          "client_id": "1017987650151-ido2f7pki69sjfvo05ci9qlkgisoh4b2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkyXlJbov4KHCC3-m8gQHaGWE8oDOSy50"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1017987650151-ido2f7pki69sjfvo05ci9qlkgisoh4b2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1017987650151-h2k7v5hc1gofngp3gm9kmbk1c5c9v7rn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tsuna2001.ygobinder"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

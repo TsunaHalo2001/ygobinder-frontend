@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
-
+import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
+import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -17,29 +17,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkDatabaseAndRoute();
+    _checkStatusAndRoute();
   }
 
-  Future<void> _checkDatabaseAndRoute() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+  Future<void> _checkStatusAndRoute() async {
+    await Future.delayed(const Duration(milliseconds: 1500)); // Slightly longer for thematic effect
 
-    final repo = ref.read(cardRepositoryProvider);
+    // 1. Check Auth
+    final user = await ref.read(authProvider.future);
+    
+    if (user == null) {
+      if (mounted) context.go('/login');
+      return;
+    }
+
+    // ✅ Pull collection from Cloud if local is empty
+    final syncRepo = ref.read(inventorySyncRepositoryProvider);
     final db = ref.read(databaseProvider);
+    
+    final localCount = await db.getCollectionSize();
+    if (localCount == 0) {
+      await syncRepo.fullSync(db);
+    }
+
+    // 2. Check Database Sync (Global Card Database)
+    final repo = ref.read(cardRepositoryProvider);
 
     final needsSync = await repo.needsDailySync();
 
     if (needsSync) {
-      final cardCount = await db.getCollectionSize();
-
-      if (cardCount == 0) {
-        // First time ever: Go to full sync
-        if (mounted) context.go('/sync');
-      } else {
-        // Has cards, but needs daily update: Go to sync
-        if (mounted) context.go('/sync');
-      }
+      if (mounted) context.go('/sync');
     } else {
-      // ✅ CHANGED: Already synced today! Go straight to the Main Shell
       if (mounted) context.go('/main');
     }
   }

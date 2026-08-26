@@ -312,6 +312,10 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<void> clearCollection() async {
+    await delete(collectionItems).go();
+  }
+
   Future<int> getCollectionSize() async {
     final query = selectOnly(collectionItems)..addColumns([collectionItems.id.count()]);
     final result = await query.getSingle();
@@ -379,6 +383,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<DriftCollectionItem>> getCollectionItemsByCardId(int cardId) {
     return (select(collectionItems)..where((t) => t.cardId.equals(cardId))).get();
+  }
+
+  Future<DriftCollectionItem?> getCollectionItemById(int id) {
+    return (select(collectionItems)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   // ==========================================

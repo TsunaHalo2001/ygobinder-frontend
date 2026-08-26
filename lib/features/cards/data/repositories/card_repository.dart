@@ -4,12 +4,14 @@ import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
+import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 
 class CardRepository {
   final AppDatabase _db;
   final CardDataService _dataService;
+  final InventorySyncRepository? _syncRepo;
 
-  CardRepository(this._db, this._dataService);
+  CardRepository(this._db, this._dataService, [this._syncRepo]);
 
   Future<void> syncAllCards({
     void Function(String status, double? progress)? onStatusChange,
@@ -169,23 +171,46 @@ class CardRepository {
     required int quantity,
     required int collectionNumber,
   }) async {
-    await _db.addToCollection(
+    final itemId = await _db.addToCollection(
       cardId: cardId,
       setCode: setCode,
       rarity: rarity,
       quantity: quantity,
       collectionNumber: collectionNumber,
     );
+
+    // Sync to Cloud
+    if (_syncRepo != null) {
+      final updatedItem = await _db.getCollectionItemById(itemId);
+      if (updatedItem != null) {
+        await _syncRepo!.syncItem(updatedItem);
+      }
+    }
   }
 
   Future<void> removeCardFromCollection({
     required int collectionItemId,
     int quantity = 1,
   }) async {
+    // We need to check if it still exists after removal for sync
+    final existing = await _db.getCollectionItemById(collectionItemId);
+    
     await _db.removeFromCollection(
       collectionItemId: collectionItemId,
       quantityToRemove: quantity,
     );
+
+    // Sync to Cloud
+    if (_syncRepo != null && existing != null) {
+      final updatedItem = await _db.getCollectionItemById(collectionItemId);
+      if (updatedItem != null) {
+        // Still exists (decreased quantity)
+        await _syncRepo!.syncItem(updatedItem);
+      } else {
+        // Completely removed
+        await _syncRepo!.removeItem(existing);
+      }
+    }
   }
 
   Future<List<DriftCollectionItem>> getInventoryForCard(int cardId) {
