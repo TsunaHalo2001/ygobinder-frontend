@@ -208,6 +208,57 @@ class CardRepository {
     return _db.watchTopCards(limit);
   }
 
+  Future<int?> identifyCardFromText(List<String> lines) async {
+    final idRegex = RegExp(r'\b\d{8}\b'); // Exactly 8 digits
+    final setCodeRegex = RegExp(r'([A-Z0-9]{3,4})-([A-Z0-9]+)'); // Basic PREFIX-SUFFIX pattern
+
+    final List<String> cleanLines = lines.map((l) => l.trim().toUpperCase()).where((l) => l.isNotEmpty).toList();
+
+    // Priority 1: Card ID (Exact 8-digit match anywhere in the text)
+    for (final line in cleanLines) {
+      final match = idRegex.firstMatch(line);
+      if (match != null) {
+        final id = int.tryParse(match.group(0)!);
+        if (id != null) {
+          final card = await _db.getCardById(id);
+          if (card != null) return card.id;
+        }
+      }
+    }
+
+    // Priority 2: Set Code (Fuzzy)
+    for (final line in cleanLines) {
+      final match = setCodeRegex.firstMatch(line);
+      if (match != null) {
+        final fullMatch = match.group(0)!;
+        
+        // Try exact match first
+        final exactId = await _db.getCardIdBySetCode(fullMatch);
+        if (exactId != null) return exactId;
+
+        // Try fuzzy: Extract Prefix and trailing digits
+        final prefix = match.group(1)!;
+        final suffix = match.group(2)!;
+        
+        // Extract only the digits from the suffix (e.g. BNO38 -> 038)
+        final digitsMatch = RegExp(r'\d+').firstMatch(suffix);
+        if (digitsMatch != null) {
+          final digits = digitsMatch.group(0)!;
+          final fuzzyId = await _db.getCardIdByFuzzySetCode(prefix, digits);
+          if (fuzzyId != null) return fuzzyId;
+        }
+      }
+    }
+
+    // Priority 3: Name (Exact match)
+    for (final line in cleanLines) {
+      final card = await _db.getCardByName(line);
+      if (card != null) return card.id;
+    }
+
+    return null;
+  }
+
   /// Checks if the database was already synced today.
   Future<bool> needsDailySync() async {
     final lastSyncStr = await _db.getSetting('last_sync_date');

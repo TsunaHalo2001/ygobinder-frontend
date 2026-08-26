@@ -78,7 +78,7 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                   const SizedBox(width: 8),
                   IconButton.filled(
                     onPressed: () {
-                      // Camera functionality coming soon
+                      context.push('/scanner');
                     },
                     icon: const Icon(Icons.camera_alt_rounded),
                     style: IconButton.styleFrom(

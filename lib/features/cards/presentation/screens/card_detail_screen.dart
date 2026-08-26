@@ -414,14 +414,16 @@ class _CardInfo extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        mainAxisAlignment: isXyz ? MainAxisAlignment.start : MainAxisAlignment.end,
+      child: Wrap(
+        alignment: isXyz ? WrapAlignment.start : WrapAlignment.end,
+        spacing: -4, // Slightly overlap stars for a more authentic TCG look
+        runSpacing: 4,
         children: List.generate(
           count,
           (index) => Image.asset(
             asset,
-            width: 32,
-            height: 32,
+            width: 24, // Slightly reduced size to fit better on narrow screens
+            height: 24,
             fit: BoxFit.contain,
           ),
         ),
@@ -632,13 +634,17 @@ class _CardInfo extends ConsumerWidget {
                 if (headerLeading != null) headerLeading,
                 if (header != null)
                   Expanded(
-                    child: Text(
-                      header,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: headerLeading != null ? Alignment.center : Alignment.centerLeft,
+                      child: Text(
+                        header,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                        textAlign: headerLeading != null ? TextAlign.center : TextAlign.start,
                       ),
-                      textAlign: headerLeading != null ? TextAlign.center : TextAlign.start,
                     ),
                   ),
                 if (headerTrailing != null) headerTrailing,
@@ -766,11 +772,14 @@ class _CardInfo extends ConsumerWidget {
           footer: (isMonster && (card.atk != null || card.def != null || card.linkVal != null))
               ? Align(
                   alignment: Alignment.centerRight,
-                  child: Text(
-                    isLink ? 'ATK/ ${card.atk ?? '?'}  LINK-${card.linkVal ?? '?'}' : 'ATK/ ${card.atk ?? '?'}  DEF/ ${card.def ?? '?'}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      isLink ? 'ATK/ ${card.atk ?? '?'}  LINK-${card.linkVal ?? '?'}' : 'ATK/ ${card.atk ?? '?'}  DEF/ ${card.def ?? '?'}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 )

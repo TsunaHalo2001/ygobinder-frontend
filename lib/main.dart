@@ -6,6 +6,7 @@ import 'package:ygobinder/features/cards/presentation/screens/initial_sync_scree
 import 'package:ygobinder/features/cards/presentation/screens/card_detail_screen.dart';
 import 'package:ygobinder/core/presentation/screens/splash_screen.dart';
 import 'package:ygobinder/core/presentation/screens/main_shell.dart';
+import 'package:ygobinder/features/scanner/presentation/screens/camera_scanner_screen.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 // import 'package:ygobinder/features/collection/presentation/screens/collection_screen.dart'; // Your main screen
 
@@ -131,6 +132,10 @@ final _router = GoRouter(
         final id = int.parse(state.pathParameters['id']!);
         return CardDetailScreen(cardId: id);
       },
+    ),
+    GoRoute(
+      path: '/scanner',
+      builder: (context, state) => const CameraScannerScreen(),
     ),
   ],
 );

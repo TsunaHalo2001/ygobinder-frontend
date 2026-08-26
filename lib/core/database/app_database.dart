@@ -190,6 +190,32 @@ class AppDatabase extends _$AppDatabase {
     return (select(cards)..where((t) => t.id.equals(cardId))).getSingleOrNull();
   }
 
+  Future<DriftCard?> getCardByName(String name) {
+    return (select(cards)..where((t) => t.name.equals(name))).getSingleOrNull();
+  }
+
+  Future<int?> getCardIdBySetCode(String setCode) async {
+    final query = selectOnly(cardSets)
+      ..addColumns([cardSets.cardId])
+      ..where(cardSets.setCode.equals(setCode))
+      ..limit(1);
+    final result = await query.getSingleOrNull();
+    return result?.read(cardSets.cardId);
+  }
+
+  Future<int?> getCardIdByFuzzySetCode(String prefix, String digits) async {
+    // Pattern: prefix-[any language/edition]digits
+    // e.g. CRBR-%038 matches CRBR-EN038 or CRBR-JP038
+    final fuzzyPattern = '$prefix-%$digits';
+    
+    final query = selectOnly(cardSets)
+      ..addColumns([cardSets.cardId])
+      ..where(cardSets.setCode.like(fuzzyPattern))
+      ..limit(1);
+    final result = await query.getSingleOrNull();
+    return result?.read(cardSets.cardId);
+  }
+
   Future<List<DriftCard>> searchCards(String query) { // ← Fixed: DriftCard
     return (select(cards)..where((t) => t.name.like('%$query%'))..limit(20)).get();
   }
