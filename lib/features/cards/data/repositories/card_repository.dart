@@ -192,6 +192,22 @@ class CardRepository {
     return _db.getCollectionItemsByCardId(cardId);
   }
 
+  Stream<int> watchTotalCardCount() {
+    return _db.watchTotalCardCount();
+  }
+
+  Stream<int> watchUniqueCardCount() {
+    return _db.watchUniqueCardCount();
+  }
+
+  Stream<List<SetStat>> watchTopSets(int limit) {
+    return _db.watchTopSets(limit);
+  }
+
+  Stream<List<CardStat>> watchTopCards(int limit) {
+    return _db.watchTopCards(limit);
+  }
+
   /// Checks if the database was already synced today.
   Future<bool> needsDailySync() async {
     final lastSyncStr = await _db.getSetting('last_sync_date');

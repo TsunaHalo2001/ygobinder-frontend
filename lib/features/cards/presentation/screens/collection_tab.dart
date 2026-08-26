@@ -48,28 +48,46 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search Bar
+            // Search Bar + Camera Button
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search cards...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                    icon: const Icon(Icons.clear),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search cards...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  ref.read(cardListProvider.notifier).search('');
+                                },
+                              )
+                            : null,
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        ref.read(cardListProvider.notifier).search(value);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
                     onPressed: () {
-                      _searchController.clear();
-                      ref.read(cardListProvider.notifier).search('');
+                      // Camera functionality coming soon
                     },
-                  )
-                      : null,
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  ref.read(cardListProvider.notifier).search(value);
-                },
+                    icon: const Icon(Icons.camera_alt_rounded),
+                    style: IconButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 

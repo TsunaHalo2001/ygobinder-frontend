@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ygobinder/features/cards/presentation/screens/collection_tab.dart';
+import 'package:ygobinder/features/stats/presentation/screens/stats_tab.dart';
+import 'package:ygobinder/features/options/presentation/screens/options_tab.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -11,28 +13,28 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  // The actual screens for each tab
+  // The actual screens for each tab - Options moved to the end
   final List<Widget> _tabs = const [
     CollectionTab(),
-    Center(child: Text('Statistics (Coming Soon)', style: TextStyle(fontSize: 24))),
-    Center(child: Text('Options (Coming Soon)', style: TextStyle(fontSize: 24))),
+    StatsTab(),
     Center(child: Text('Deck Builder (Coming Soon)', style: TextStyle(fontSize: 24))),
+    OptionsTab(),
   ];
 
   // Destinations for Bottom Navigation (Phone)
   final List<NavigationDestination> _bottomDestinations = const [
     NavigationDestination(icon: Icon(Icons.view_module), label: 'Collection'),
     NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Stats'),
-    NavigationDestination(icon: Icon(Icons.settings), label: 'Options'),
     NavigationDestination(icon: Icon(Icons.grid_view), label: 'Decks'),
+    NavigationDestination(icon: Icon(Icons.settings), label: 'Options'),
   ];
 
   // Destinations for Side Navigation (Tablet/Desktop)
   final List<NavigationRailDestination> _sideDestinations = const [
     NavigationRailDestination(icon: Icon(Icons.view_module), label: Text('Collection')),
     NavigationRailDestination(icon: Icon(Icons.bar_chart), label: Text('Stats')),
-    NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Options')),
     NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Decks')),
+    NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Options')),
   ];
 
   @override

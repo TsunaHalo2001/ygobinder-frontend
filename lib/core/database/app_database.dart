@@ -288,10 +288,67 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> getCollectionSize() async {
     final query = selectOnly(collectionItems)..addColumns([collectionItems.id.count()]);
-
     final result = await query.getSingle();
-
     return result.read(collectionItems.id.count()) ?? 0;
+  }
+
+  Stream<int> watchTotalCardCount() {
+    final quantitySum = collectionItems.quantity.sum();
+    final query = selectOnly(collectionItems)..addColumns([quantitySum]);
+    return query.watchSingle().map((row) => row.read(quantitySum) ?? 0);
+  }
+
+  Stream<int> watchUniqueCardCount() {
+    final countColumn = collectionItems.cardId.count(distinct: true);
+    final query = selectOnly(collectionItems)..addColumns([countColumn]);
+    return query.watchSingle().map((row) => row.read(countColumn) ?? 0);
+  }
+
+  Stream<List<SetStat>> watchTopSets(int limit) {
+    final quantitySum = collectionItems.quantity.sum();
+    
+    final query = selectOnly(collectionItems).join([
+      innerJoin(cardSets, cardSets.setCode.equalsExp(collectionItems.setCode)),
+    ]);
+
+    query
+      ..addColumns([cardSets.setName, cardSets.setCode, quantitySum])
+      ..groupBy([cardSets.setName])
+      ..orderBy([OrderingTerm.desc(quantitySum)])
+      ..limit(limit);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return SetStat(
+          setName: row.read(cardSets.setName)!,
+          setCode: row.read(cardSets.setCode)!,
+          count: row.read(quantitySum) ?? 0,
+        );
+      }).toList();
+    });
+  }
+
+  Stream<List<CardStat>> watchTopCards(int limit) {
+    final quantitySum = collectionItems.quantity.sum();
+
+    final query = selectOnly(collectionItems).join([
+      innerJoin(cards, cards.id.equalsExp(collectionItems.cardId)),
+    ]);
+
+    query
+      ..addColumns([cards.name, quantitySum])
+      ..groupBy([cards.id])
+      ..orderBy([OrderingTerm.desc(quantitySum)])
+      ..limit(limit);
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return CardStat(
+          cardName: row.read(cards.name)!,
+          count: row.read(quantitySum) ?? 0,
+        );
+      }).toList();
+    });
   }
 
   Future<List<DriftCollectionItem>> getCollectionItemsByCardId(int cardId) {
@@ -419,5 +476,27 @@ class CollectionItemWithCard {
   CollectionItemWithCard({
     required this.collectionItem,
     required this.card,
+  });
+}
+
+class SetStat {
+  final String setCode;
+  final String setName;
+  final int count;
+
+  SetStat({
+    required this.setCode,
+    required this.setName,
+    required this.count,
+  });
+}
+
+class CardStat {
+  final String cardName;
+  final int count;
+
+  CardStat({
+    required this.cardName,
+    required this.count,
   });
 }
