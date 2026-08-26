@@ -159,13 +159,83 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
     });
   }
 
+  Widget _buildLinkMarkersOverlay(List<String> activeMarkers, BoxConstraints constraints) {
+    const markerMap = {
+      'Top': {'alignment': Alignment.topCenter, 'file': 'arrow-up'},
+      'Bottom': {'alignment': Alignment.bottomCenter, 'file': 'arrow-down'},
+      'Left': {'alignment': Alignment.centerLeft, 'file': 'arrow-left'},
+      'Right': {'alignment': Alignment.centerRight, 'file': 'arrow-right'},
+      'Top-Left': {'alignment': Alignment.topLeft, 'file': 'arrow-left-up'},
+      'Top-Right': {'alignment': Alignment.topRight, 'file': 'arrow-right-up'},
+      'Bottom-Left': {'alignment': Alignment.bottomLeft, 'file': 'arrow-left-down'},
+      'Bottom-Right': {'alignment': Alignment.bottomRight, 'file': 'arrow-right-down'},
+    };
+
+    final normalizedActive = activeMarkers.map((m) => m.replaceAll(' ', '-')).toList();
+
+    // ✅ Dynamic scaling based on the smallest dimension of the parent (width or height)
+    final double referenceSize = constraints.maxWidth < constraints.maxHeight 
+        ? constraints.maxWidth 
+        : constraints.maxHeight;
+        
+    // ✅ Reduced scaling factor from 0.28 to 0.18 to prevent arrows from becoming too large
+    final double arrowSize = referenceSize * 0.18; 
+    // ✅ Adjusted shift to maintain proportional overlap
+    final double shift = arrowSize * 0.25; 
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: markerMap.entries.map((entry) {
+        final String marker = entry.key;
+        final Alignment alignment = entry.value['alignment'] as Alignment;
+        final String fileName = entry.value['file'] as String;
+        final bool isOn = normalizedActive.contains(marker);
+        final String suffix = isOn ? 'on' : 'off';
+
+        Offset offset = Offset.zero;
+
+        if (marker == 'Top') {
+          offset = Offset(0, -shift);
+        } else if (marker == 'Bottom') {
+          offset = Offset(0, shift);
+        } else if (marker == 'Left') {
+          offset = Offset(-shift, 0);
+        } else if (marker == 'Right') {
+          offset = Offset(shift, 0);
+        } else if (marker == 'Top-Left') {
+          offset = Offset(-shift, -shift);
+        } else if (marker == 'Top-Right') {
+          offset = Offset(shift, -shift);
+        } else if (marker == 'Bottom-Left') {
+          offset = Offset(-shift, shift);
+        } else if (marker == 'Bottom-Right') {
+          offset = Offset(shift, shift);
+        }
+
+        return Align(
+          alignment: alignment,
+          child: Transform.translate(
+            offset: offset,
+            child: Image.asset(
+              'assets/images/arrows/$fileName-$suffix.png',
+              width: arrowSize,
+              height: arrowSize,
+              fit: BoxFit.contain,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final images = widget.card.cardImages;
     final imageUrl = (images != null && images.isNotEmpty)
-        ? images[_currentImageIndex].imageUrlCropped
+        ? images[_currentImageIndex].imageUrlCropped // ✅ Reverted to cropped image as requested
         : '';
+    final bool isLink = widget.card.type.toLowerCase().contains('link');
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -175,64 +245,67 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
           tag: 'card_image_${widget.card.id}',
           child: GestureDetector(
             onTap: _nextImage,
-            child: Container(
-              padding: EdgeInsets.zero,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-                border: Border.all(
-                  color: Colors.grey,
-                  width: 3.0,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none, // ✅ Allow Link markers to bleed outside the Stack
+              children: [
+                // 1. The Framed Image (Defines the size of the Stack)
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(
+                      color: Colors.grey,
+                      width: 3.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: CachedNetworkImage(
+                      key: ValueKey(imageUrl),
+                      imageUrl: imageUrl,
+                      cacheManager: cacheManager,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => const SpinningCardLoader(),
+                      errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 100),
+                    ),
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 2,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(0),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (Widget child, Animation<double> animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: ScaleTransition(scale: animation, child: child),
-                        );
+                
+                // 2. The Link Markers overlay (Sitting ON TOP of the border)
+                if (isLink)
+                  Positioned.fill(
+                    child: LayoutBuilder(
+                      builder: (context, markersConstraints) {
+                        if (markersConstraints.maxWidth <= 0) return const SizedBox.shrink();
+                        return _buildLinkMarkersOverlay(widget.card.linkMarkers ?? [], markersConstraints);
                       },
-                      child: CachedNetworkImage(
-                        key: ValueKey(imageUrl),
-                        imageUrl: imageUrl,
-                        cacheManager: cacheManager,
-                        fit: BoxFit.contain,
-                        placeholder: (context, url) => const SpinningCardLoader(),
-                        errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 100),
+                    ),
+                  ),
+
+                if (images != null && images.length > 1)
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_currentImageIndex + 1} / ${images.length}',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
-                  if (images != null && images.length > 1)
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_currentImageIndex + 1} / ${images.length}',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
         );
@@ -477,7 +550,7 @@ class _CardInfo extends ConsumerWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -506,7 +579,7 @@ class _CardInfo extends ConsumerWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -697,17 +770,24 @@ class _CardInfo extends ConsumerWidget {
         ),
 
         const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _buildBanlistStatus(theme),
-            const Spacer(),
-            if (hasInventory) ...[
-              _buildRemoveButton(context),
-              const SizedBox(width: 12),
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 16,
+            children: [
+              _buildBanlistStatus(theme),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  if (hasInventory) _buildRemoveButton(context),
+                  _buildAddButton(context),
+                ],
+              ),
             ],
-            _buildAddButton(context),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
         _buildInventoryTable(context, ref),
@@ -927,74 +1007,80 @@ class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
           ),
           const SizedBox(height: 24),
 
-          Row(
+          // 1. Selectors Row (Quantity and Collection)
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 20,
+            runSpacing: 20,
             children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    Text('Quantity', style: theme.textTheme.labelLarge),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: () => setState(() => _quantity = (_quantity > 1) ? _quantity - 1 : 1),
-                          icon: const Icon(Icons.remove_circle_outline),
+              // Quantity Selector
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Quantity', style: theme.textTheme.labelLarge),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () => setState(() => _quantity = (_quantity > 1) ? _quantity - 1 : 1),
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Container(
+                        width: 40,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: theme.colorScheme.primary),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        Container(
-                          width: 40,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: theme.colorScheme.primary),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$_quantity',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium,
-                          ),
+                        child: Text(
+                          '$_quantity',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleMedium,
                         ),
-                        IconButton(
-                          onPressed: () => setState(() => _quantity++),
-                          icon: const Icon(Icons.add_circle_outline),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      IconButton(
+                        onPressed: () => setState(() => _quantity++),
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 40, child: VerticalDivider()),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text('Collection #', style: theme.textTheme.labelLarge),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: () => setState(() => _collectionNumber = (_collectionNumber > 1) ? _collectionNumber - 1 : 1),
-                          icon: const Icon(Icons.remove_circle_outline),
+              // Collection Selector
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Collection #', style: theme.textTheme.labelLarge),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: () => setState(() => _collectionNumber = (_collectionNumber > 1) ? _collectionNumber - 1 : 1),
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Container(
+                        width: 40,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: theme.colorScheme.secondary),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        Container(
-                          width: 40,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: theme.colorScheme.secondary),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$_collectionNumber',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium,
-                          ),
+                        child: Text(
+                          '$_collectionNumber',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleMedium,
                         ),
-                        IconButton(
-                          onPressed: () => setState(() => _collectionNumber++),
-                          icon: const Icon(Icons.add_circle_outline),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      IconButton(
+                        onPressed: () => setState(() => _collectionNumber++),
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -1171,80 +1257,83 @@ class _RemoveCardBottomSheetState extends ConsumerState<_RemoveCardBottomSheet> 
               const SizedBox(height: 24),
 
               // 2. Selectors Row (Quantity and Collection)
-              Row(
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 20,
+                runSpacing: 20,
                 children: [
                   // Quantity Selector
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text('Quantity', style: theme.textTheme.labelLarge),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              onPressed: () => setState(() => _quantityToRemove = (_quantityToRemove > 1) ? _quantityToRemove - 1 : 1),
-                              icon: const Icon(Icons.remove_circle_outline),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Quantity', style: theme.textTheme.labelLarge),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: () => setState(() => _quantityToRemove = (_quantityToRemove > 1) ? _quantityToRemove - 1 : 1),
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Container(
+                            width: 40,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.redAccent),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            Container(
-                              width: 40,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.redAccent),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '$_quantityToRemove',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.titleMedium,
-                              ),
+                            child: Text(
+                              '$_quantityToRemove',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleMedium,
                             ),
-                            IconButton(
-                              onPressed: () => setState(() => _quantityToRemove++),
-                              icon: const Icon(Icons.add_circle_outline),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          IconButton(
+                            onPressed: () => setState(() => _quantityToRemove++),
+                            icon: const Icon(Icons.add_circle_outline),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 40, child: VerticalDivider()),
                   // Collection Selector (Cycle through existing collections only)
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text('Collection #', style: theme.textTheme.labelLarge),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              onPressed: currentIndex > 0
-                                  ? () => setState(() => _selectedCollectionNumber = collections[currentIndex - 1])
-                                  : null,
-                              icon: const Icon(Icons.remove_circle_outline),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Collection #', style: theme.textTheme.labelLarge),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: currentIndex > 0
+                                ? () => setState(() => _selectedCollectionNumber = collections[currentIndex - 1])
+                                : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                          Container(
+                            width: 40,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: theme.colorScheme.secondary),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            Container(
-                              width: 40,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: theme.colorScheme.secondary),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '$_selectedCollectionNumber',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.titleMedium,
-                              ),
+                            child: Text(
+                              '$_selectedCollectionNumber',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleMedium,
                             ),
-                            IconButton(
-                              onPressed: currentIndex < collections.length - 1
-                                  ? () => setState(() => _selectedCollectionNumber = collections[currentIndex + 1])
-                                  : null,
-                              icon: const Icon(Icons.add_circle_outline),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          IconButton(
+                            onPressed: currentIndex < collections.length - 1
+                                ? () => setState(() => _selectedCollectionNumber = collections[currentIndex + 1])
+                                : null,
+                            icon: const Icon(Icons.add_circle_outline),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
