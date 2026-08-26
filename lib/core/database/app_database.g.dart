@@ -2759,6 +2759,38 @@ class $CollectionItemsTable extends CollectionItems
       'REFERENCES cards (id)',
     ),
   );
+  static const VerificationMeta _setCodeMeta = const VerificationMeta(
+    'setCode',
+  );
+  @override
+  late final GeneratedColumn<String> setCode = GeneratedColumn<String>(
+    'set_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rarityMeta = const VerificationMeta('rarity');
+  @override
+  late final GeneratedColumn<String> rarity = GeneratedColumn<String>(
+    'rarity',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _collectionNumberMeta = const VerificationMeta(
+    'collectionNumber',
+  );
+  @override
+  late final GeneratedColumn<int> collectionNumber = GeneratedColumn<int>(
+    'collection_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   static const VerificationMeta _quantityMeta = const VerificationMeta(
     'quantity',
   );
@@ -2782,6 +2814,44 @@ class $CollectionItemsTable extends CollectionItems
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant('Near Mint'),
+  );
+  static const VerificationMeta _languageMeta = const VerificationMeta(
+    'language',
+  );
+  @override
+  late final GeneratedColumn<String> language = GeneratedColumn<String>(
+    'language',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('EN'),
+  );
+  static const VerificationMeta _isFirstEditionMeta = const VerificationMeta(
+    'isFirstEdition',
+  );
+  @override
+  late final GeneratedColumn<bool> isFirstEdition = GeneratedColumn<bool>(
+    'is_first_edition',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_first_edition" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _priceAtPurchaseMeta = const VerificationMeta(
+    'priceAtPurchase',
+  );
+  @override
+  late final GeneratedColumn<double> priceAtPurchase = GeneratedColumn<double>(
+    'price_at_purchase',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
@@ -2820,8 +2890,14 @@ class $CollectionItemsTable extends CollectionItems
   List<GeneratedColumn> get $columns => [
     id,
     cardId,
+    setCode,
+    rarity,
+    collectionNumber,
     quantity,
     condition,
+    language,
+    isFirstEdition,
+    priceAtPurchase,
     notes,
     addedAt,
     updatedAt,
@@ -2849,6 +2925,31 @@ class $CollectionItemsTable extends CollectionItems
     } else if (isInserting) {
       context.missing(_cardIdMeta);
     }
+    if (data.containsKey('set_code')) {
+      context.handle(
+        _setCodeMeta,
+        setCode.isAcceptableOrUnknown(data['set_code']!, _setCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setCodeMeta);
+    }
+    if (data.containsKey('rarity')) {
+      context.handle(
+        _rarityMeta,
+        rarity.isAcceptableOrUnknown(data['rarity']!, _rarityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rarityMeta);
+    }
+    if (data.containsKey('collection_number')) {
+      context.handle(
+        _collectionNumberMeta,
+        collectionNumber.isAcceptableOrUnknown(
+          data['collection_number']!,
+          _collectionNumberMeta,
+        ),
+      );
+    }
     if (data.containsKey('quantity')) {
       context.handle(
         _quantityMeta,
@@ -2859,6 +2960,30 @@ class $CollectionItemsTable extends CollectionItems
       context.handle(
         _conditionMeta,
         condition.isAcceptableOrUnknown(data['condition']!, _conditionMeta),
+      );
+    }
+    if (data.containsKey('language')) {
+      context.handle(
+        _languageMeta,
+        language.isAcceptableOrUnknown(data['language']!, _languageMeta),
+      );
+    }
+    if (data.containsKey('is_first_edition')) {
+      context.handle(
+        _isFirstEditionMeta,
+        isFirstEdition.isAcceptableOrUnknown(
+          data['is_first_edition']!,
+          _isFirstEditionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('price_at_purchase')) {
+      context.handle(
+        _priceAtPurchaseMeta,
+        priceAtPurchase.isAcceptableOrUnknown(
+          data['price_at_purchase']!,
+          _priceAtPurchaseMeta,
+        ),
       );
     }
     if (data.containsKey('notes')) {
@@ -2896,6 +3021,18 @@ class $CollectionItemsTable extends CollectionItems
         DriftSqlType.int,
         data['${effectivePrefix}card_id'],
       )!,
+      setCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_code'],
+      )!,
+      rarity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rarity'],
+      )!,
+      collectionNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}collection_number'],
+      )!,
       quantity: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}quantity'],
@@ -2904,6 +3041,18 @@ class $CollectionItemsTable extends CollectionItems
         DriftSqlType.string,
         data['${effectivePrefix}condition'],
       )!,
+      language: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}language'],
+      )!,
+      isFirstEdition: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_first_edition'],
+      )!,
+      priceAtPurchase: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}price_at_purchase'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -2929,16 +3078,28 @@ class DriftCollectionItem extends DataClass
     implements Insertable<DriftCollectionItem> {
   final int id;
   final int cardId;
+  final String setCode;
+  final String rarity;
+  final int collectionNumber;
   final int quantity;
   final String condition;
+  final String language;
+  final bool isFirstEdition;
+  final double? priceAtPurchase;
   final String? notes;
   final DateTime addedAt;
   final DateTime updatedAt;
   const DriftCollectionItem({
     required this.id,
     required this.cardId,
+    required this.setCode,
+    required this.rarity,
+    required this.collectionNumber,
     required this.quantity,
     required this.condition,
+    required this.language,
+    required this.isFirstEdition,
+    this.priceAtPurchase,
     this.notes,
     required this.addedAt,
     required this.updatedAt,
@@ -2948,8 +3109,16 @@ class DriftCollectionItem extends DataClass
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['card_id'] = Variable<int>(cardId);
+    map['set_code'] = Variable<String>(setCode);
+    map['rarity'] = Variable<String>(rarity);
+    map['collection_number'] = Variable<int>(collectionNumber);
     map['quantity'] = Variable<int>(quantity);
     map['condition'] = Variable<String>(condition);
+    map['language'] = Variable<String>(language);
+    map['is_first_edition'] = Variable<bool>(isFirstEdition);
+    if (!nullToAbsent || priceAtPurchase != null) {
+      map['price_at_purchase'] = Variable<double>(priceAtPurchase);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -2962,8 +3131,16 @@ class DriftCollectionItem extends DataClass
     return CollectionItemsCompanion(
       id: Value(id),
       cardId: Value(cardId),
+      setCode: Value(setCode),
+      rarity: Value(rarity),
+      collectionNumber: Value(collectionNumber),
       quantity: Value(quantity),
       condition: Value(condition),
+      language: Value(language),
+      isFirstEdition: Value(isFirstEdition),
+      priceAtPurchase: priceAtPurchase == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceAtPurchase),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -2980,8 +3157,14 @@ class DriftCollectionItem extends DataClass
     return DriftCollectionItem(
       id: serializer.fromJson<int>(json['id']),
       cardId: serializer.fromJson<int>(json['cardId']),
+      setCode: serializer.fromJson<String>(json['setCode']),
+      rarity: serializer.fromJson<String>(json['rarity']),
+      collectionNumber: serializer.fromJson<int>(json['collectionNumber']),
       quantity: serializer.fromJson<int>(json['quantity']),
       condition: serializer.fromJson<String>(json['condition']),
+      language: serializer.fromJson<String>(json['language']),
+      isFirstEdition: serializer.fromJson<bool>(json['isFirstEdition']),
+      priceAtPurchase: serializer.fromJson<double?>(json['priceAtPurchase']),
       notes: serializer.fromJson<String?>(json['notes']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -2993,8 +3176,14 @@ class DriftCollectionItem extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'cardId': serializer.toJson<int>(cardId),
+      'setCode': serializer.toJson<String>(setCode),
+      'rarity': serializer.toJson<String>(rarity),
+      'collectionNumber': serializer.toJson<int>(collectionNumber),
       'quantity': serializer.toJson<int>(quantity),
       'condition': serializer.toJson<String>(condition),
+      'language': serializer.toJson<String>(language),
+      'isFirstEdition': serializer.toJson<bool>(isFirstEdition),
+      'priceAtPurchase': serializer.toJson<double?>(priceAtPurchase),
       'notes': serializer.toJson<String?>(notes),
       'addedAt': serializer.toJson<DateTime>(addedAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -3004,16 +3193,30 @@ class DriftCollectionItem extends DataClass
   DriftCollectionItem copyWith({
     int? id,
     int? cardId,
+    String? setCode,
+    String? rarity,
+    int? collectionNumber,
     int? quantity,
     String? condition,
+    String? language,
+    bool? isFirstEdition,
+    Value<double?> priceAtPurchase = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     DateTime? addedAt,
     DateTime? updatedAt,
   }) => DriftCollectionItem(
     id: id ?? this.id,
     cardId: cardId ?? this.cardId,
+    setCode: setCode ?? this.setCode,
+    rarity: rarity ?? this.rarity,
+    collectionNumber: collectionNumber ?? this.collectionNumber,
     quantity: quantity ?? this.quantity,
     condition: condition ?? this.condition,
+    language: language ?? this.language,
+    isFirstEdition: isFirstEdition ?? this.isFirstEdition,
+    priceAtPurchase: priceAtPurchase.present
+        ? priceAtPurchase.value
+        : this.priceAtPurchase,
     notes: notes.present ? notes.value : this.notes,
     addedAt: addedAt ?? this.addedAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3022,8 +3225,20 @@ class DriftCollectionItem extends DataClass
     return DriftCollectionItem(
       id: data.id.present ? data.id.value : this.id,
       cardId: data.cardId.present ? data.cardId.value : this.cardId,
+      setCode: data.setCode.present ? data.setCode.value : this.setCode,
+      rarity: data.rarity.present ? data.rarity.value : this.rarity,
+      collectionNumber: data.collectionNumber.present
+          ? data.collectionNumber.value
+          : this.collectionNumber,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       condition: data.condition.present ? data.condition.value : this.condition,
+      language: data.language.present ? data.language.value : this.language,
+      isFirstEdition: data.isFirstEdition.present
+          ? data.isFirstEdition.value
+          : this.isFirstEdition,
+      priceAtPurchase: data.priceAtPurchase.present
+          ? data.priceAtPurchase.value
+          : this.priceAtPurchase,
       notes: data.notes.present ? data.notes.value : this.notes,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -3035,8 +3250,14 @@ class DriftCollectionItem extends DataClass
     return (StringBuffer('DriftCollectionItem(')
           ..write('id: $id, ')
           ..write('cardId: $cardId, ')
+          ..write('setCode: $setCode, ')
+          ..write('rarity: $rarity, ')
+          ..write('collectionNumber: $collectionNumber, ')
           ..write('quantity: $quantity, ')
           ..write('condition: $condition, ')
+          ..write('language: $language, ')
+          ..write('isFirstEdition: $isFirstEdition, ')
+          ..write('priceAtPurchase: $priceAtPurchase, ')
           ..write('notes: $notes, ')
           ..write('addedAt: $addedAt, ')
           ..write('updatedAt: $updatedAt')
@@ -3045,16 +3266,35 @@ class DriftCollectionItem extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, cardId, quantity, condition, notes, addedAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    cardId,
+    setCode,
+    rarity,
+    collectionNumber,
+    quantity,
+    condition,
+    language,
+    isFirstEdition,
+    priceAtPurchase,
+    notes,
+    addedAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DriftCollectionItem &&
           other.id == this.id &&
           other.cardId == this.cardId &&
+          other.setCode == this.setCode &&
+          other.rarity == this.rarity &&
+          other.collectionNumber == this.collectionNumber &&
           other.quantity == this.quantity &&
           other.condition == this.condition &&
+          other.language == this.language &&
+          other.isFirstEdition == this.isFirstEdition &&
+          other.priceAtPurchase == this.priceAtPurchase &&
           other.notes == this.notes &&
           other.addedAt == this.addedAt &&
           other.updatedAt == this.updatedAt);
@@ -3063,16 +3303,28 @@ class DriftCollectionItem extends DataClass
 class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
   final Value<int> id;
   final Value<int> cardId;
+  final Value<String> setCode;
+  final Value<String> rarity;
+  final Value<int> collectionNumber;
   final Value<int> quantity;
   final Value<String> condition;
+  final Value<String> language;
+  final Value<bool> isFirstEdition;
+  final Value<double?> priceAtPurchase;
   final Value<String?> notes;
   final Value<DateTime> addedAt;
   final Value<DateTime> updatedAt;
   const CollectionItemsCompanion({
     this.id = const Value.absent(),
     this.cardId = const Value.absent(),
+    this.setCode = const Value.absent(),
+    this.rarity = const Value.absent(),
+    this.collectionNumber = const Value.absent(),
     this.quantity = const Value.absent(),
     this.condition = const Value.absent(),
+    this.language = const Value.absent(),
+    this.isFirstEdition = const Value.absent(),
+    this.priceAtPurchase = const Value.absent(),
     this.notes = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -3080,17 +3332,31 @@ class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
   CollectionItemsCompanion.insert({
     this.id = const Value.absent(),
     required int cardId,
+    required String setCode,
+    required String rarity,
+    this.collectionNumber = const Value.absent(),
     this.quantity = const Value.absent(),
     this.condition = const Value.absent(),
+    this.language = const Value.absent(),
+    this.isFirstEdition = const Value.absent(),
+    this.priceAtPurchase = const Value.absent(),
     this.notes = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
-  }) : cardId = Value(cardId);
+  }) : cardId = Value(cardId),
+       setCode = Value(setCode),
+       rarity = Value(rarity);
   static Insertable<DriftCollectionItem> custom({
     Expression<int>? id,
     Expression<int>? cardId,
+    Expression<String>? setCode,
+    Expression<String>? rarity,
+    Expression<int>? collectionNumber,
     Expression<int>? quantity,
     Expression<String>? condition,
+    Expression<String>? language,
+    Expression<bool>? isFirstEdition,
+    Expression<double>? priceAtPurchase,
     Expression<String>? notes,
     Expression<DateTime>? addedAt,
     Expression<DateTime>? updatedAt,
@@ -3098,8 +3364,14 @@ class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (cardId != null) 'card_id': cardId,
+      if (setCode != null) 'set_code': setCode,
+      if (rarity != null) 'rarity': rarity,
+      if (collectionNumber != null) 'collection_number': collectionNumber,
       if (quantity != null) 'quantity': quantity,
       if (condition != null) 'condition': condition,
+      if (language != null) 'language': language,
+      if (isFirstEdition != null) 'is_first_edition': isFirstEdition,
+      if (priceAtPurchase != null) 'price_at_purchase': priceAtPurchase,
       if (notes != null) 'notes': notes,
       if (addedAt != null) 'added_at': addedAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -3109,8 +3381,14 @@ class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
   CollectionItemsCompanion copyWith({
     Value<int>? id,
     Value<int>? cardId,
+    Value<String>? setCode,
+    Value<String>? rarity,
+    Value<int>? collectionNumber,
     Value<int>? quantity,
     Value<String>? condition,
+    Value<String>? language,
+    Value<bool>? isFirstEdition,
+    Value<double?>? priceAtPurchase,
     Value<String?>? notes,
     Value<DateTime>? addedAt,
     Value<DateTime>? updatedAt,
@@ -3118,8 +3396,14 @@ class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
     return CollectionItemsCompanion(
       id: id ?? this.id,
       cardId: cardId ?? this.cardId,
+      setCode: setCode ?? this.setCode,
+      rarity: rarity ?? this.rarity,
+      collectionNumber: collectionNumber ?? this.collectionNumber,
       quantity: quantity ?? this.quantity,
       condition: condition ?? this.condition,
+      language: language ?? this.language,
+      isFirstEdition: isFirstEdition ?? this.isFirstEdition,
+      priceAtPurchase: priceAtPurchase ?? this.priceAtPurchase,
       notes: notes ?? this.notes,
       addedAt: addedAt ?? this.addedAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -3135,11 +3419,29 @@ class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
     if (cardId.present) {
       map['card_id'] = Variable<int>(cardId.value);
     }
+    if (setCode.present) {
+      map['set_code'] = Variable<String>(setCode.value);
+    }
+    if (rarity.present) {
+      map['rarity'] = Variable<String>(rarity.value);
+    }
+    if (collectionNumber.present) {
+      map['collection_number'] = Variable<int>(collectionNumber.value);
+    }
     if (quantity.present) {
       map['quantity'] = Variable<int>(quantity.value);
     }
     if (condition.present) {
       map['condition'] = Variable<String>(condition.value);
+    }
+    if (language.present) {
+      map['language'] = Variable<String>(language.value);
+    }
+    if (isFirstEdition.present) {
+      map['is_first_edition'] = Variable<bool>(isFirstEdition.value);
+    }
+    if (priceAtPurchase.present) {
+      map['price_at_purchase'] = Variable<double>(priceAtPurchase.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -3158,8 +3460,14 @@ class CollectionItemsCompanion extends UpdateCompanion<DriftCollectionItem> {
     return (StringBuffer('CollectionItemsCompanion(')
           ..write('id: $id, ')
           ..write('cardId: $cardId, ')
+          ..write('setCode: $setCode, ')
+          ..write('rarity: $rarity, ')
+          ..write('collectionNumber: $collectionNumber, ')
           ..write('quantity: $quantity, ')
           ..write('condition: $condition, ')
+          ..write('language: $language, ')
+          ..write('isFirstEdition: $isFirstEdition, ')
+          ..write('priceAtPurchase: $priceAtPurchase, ')
           ..write('notes: $notes, ')
           ..write('addedAt: $addedAt, ')
           ..write('updatedAt: $updatedAt')
@@ -5700,8 +6008,14 @@ typedef $$CollectionItemsTableCreateCompanionBuilder =
     CollectionItemsCompanion Function({
       Value<int> id,
       required int cardId,
+      required String setCode,
+      required String rarity,
+      Value<int> collectionNumber,
       Value<int> quantity,
       Value<String> condition,
+      Value<String> language,
+      Value<bool> isFirstEdition,
+      Value<double?> priceAtPurchase,
       Value<String?> notes,
       Value<DateTime> addedAt,
       Value<DateTime> updatedAt,
@@ -5710,8 +6024,14 @@ typedef $$CollectionItemsTableUpdateCompanionBuilder =
     CollectionItemsCompanion Function({
       Value<int> id,
       Value<int> cardId,
+      Value<String> setCode,
+      Value<String> rarity,
+      Value<int> collectionNumber,
       Value<int> quantity,
       Value<String> condition,
+      Value<String> language,
+      Value<bool> isFirstEdition,
+      Value<double?> priceAtPurchase,
       Value<String?> notes,
       Value<DateTime> addedAt,
       Value<DateTime> updatedAt,
@@ -5762,6 +6082,21 @@ class $$CollectionItemsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get setCode => $composableBuilder(
+    column: $table.setCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rarity => $composableBuilder(
+    column: $table.rarity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get collectionNumber => $composableBuilder(
+    column: $table.collectionNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get quantity => $composableBuilder(
     column: $table.quantity,
     builder: (column) => ColumnFilters(column),
@@ -5769,6 +6104,21 @@ class $$CollectionItemsTableFilterComposer
 
   ColumnFilters<String> get condition => $composableBuilder(
     column: $table.condition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get language => $composableBuilder(
+    column: $table.language,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFirstEdition => $composableBuilder(
+    column: $table.isFirstEdition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get priceAtPurchase => $composableBuilder(
+    column: $table.priceAtPurchase,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5825,6 +6175,21 @@ class $$CollectionItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get setCode => $composableBuilder(
+    column: $table.setCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rarity => $composableBuilder(
+    column: $table.rarity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get collectionNumber => $composableBuilder(
+    column: $table.collectionNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get quantity => $composableBuilder(
     column: $table.quantity,
     builder: (column) => ColumnOrderings(column),
@@ -5832,6 +6197,21 @@ class $$CollectionItemsTableOrderingComposer
 
   ColumnOrderings<String> get condition => $composableBuilder(
     column: $table.condition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get language => $composableBuilder(
+    column: $table.language,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isFirstEdition => $composableBuilder(
+    column: $table.isFirstEdition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get priceAtPurchase => $composableBuilder(
+    column: $table.priceAtPurchase,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5886,11 +6266,35 @@ class $$CollectionItemsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get setCode =>
+      $composableBuilder(column: $table.setCode, builder: (column) => column);
+
+  GeneratedColumn<String> get rarity =>
+      $composableBuilder(column: $table.rarity, builder: (column) => column);
+
+  GeneratedColumn<int> get collectionNumber => $composableBuilder(
+    column: $table.collectionNumber,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get quantity =>
       $composableBuilder(column: $table.quantity, builder: (column) => column);
 
   GeneratedColumn<String> get condition =>
       $composableBuilder(column: $table.condition, builder: (column) => column);
+
+  GeneratedColumn<String> get language =>
+      $composableBuilder(column: $table.language, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFirstEdition => $composableBuilder(
+    column: $table.isFirstEdition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get priceAtPurchase => $composableBuilder(
+    column: $table.priceAtPurchase,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -5957,16 +6361,28 @@ class $$CollectionItemsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> cardId = const Value.absent(),
+                Value<String> setCode = const Value.absent(),
+                Value<String> rarity = const Value.absent(),
+                Value<int> collectionNumber = const Value.absent(),
                 Value<int> quantity = const Value.absent(),
                 Value<String> condition = const Value.absent(),
+                Value<String> language = const Value.absent(),
+                Value<bool> isFirstEdition = const Value.absent(),
+                Value<double?> priceAtPurchase = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => CollectionItemsCompanion(
                 id: id,
                 cardId: cardId,
+                setCode: setCode,
+                rarity: rarity,
+                collectionNumber: collectionNumber,
                 quantity: quantity,
                 condition: condition,
+                language: language,
+                isFirstEdition: isFirstEdition,
+                priceAtPurchase: priceAtPurchase,
                 notes: notes,
                 addedAt: addedAt,
                 updatedAt: updatedAt,
@@ -5975,16 +6391,28 @@ class $$CollectionItemsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required int cardId,
+                required String setCode,
+                required String rarity,
+                Value<int> collectionNumber = const Value.absent(),
                 Value<int> quantity = const Value.absent(),
                 Value<String> condition = const Value.absent(),
+                Value<String> language = const Value.absent(),
+                Value<bool> isFirstEdition = const Value.absent(),
+                Value<double?> priceAtPurchase = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => CollectionItemsCompanion.insert(
                 id: id,
                 cardId: cardId,
+                setCode: setCode,
+                rarity: rarity,
+                collectionNumber: collectionNumber,
                 quantity: quantity,
                 condition: condition,
+                language: language,
+                isFirstEdition: isFirstEdition,
+                priceAtPurchase: priceAtPurchase,
                 notes: notes,
                 addedAt: addedAt,
                 updatedAt: updatedAt,

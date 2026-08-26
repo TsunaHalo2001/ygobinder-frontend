@@ -162,6 +162,36 @@ class CardRepository {
     return _db.watchAllCards().map((cards) => cards.map((card) => CardMapper.toYgoCard(card)).toList());
   }
 
+  Future<void> addCardToCollection({
+    required int cardId,
+    required String setCode,
+    required String rarity,
+    required int quantity,
+    required int collectionNumber,
+  }) async {
+    await _db.addToCollection(
+      cardId: cardId,
+      setCode: setCode,
+      rarity: rarity,
+      quantity: quantity,
+      collectionNumber: collectionNumber,
+    );
+  }
+
+  Future<void> removeCardFromCollection({
+    required int collectionItemId,
+    int quantity = 1,
+  }) async {
+    await _db.removeFromCollection(
+      collectionItemId: collectionItemId,
+      quantityToRemove: quantity,
+    );
+  }
+
+  Future<List<DriftCollectionItem>> getInventoryForCard(int cardId) {
+    return _db.getCollectionItemsByCardId(cardId);
+  }
+
   /// Checks if the database was already synced today.
   Future<bool> needsDailySync() async {
     final lastSyncStr = await _db.getSetting('last_sync_date');

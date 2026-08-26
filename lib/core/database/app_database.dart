@@ -92,11 +92,24 @@ class BanlistInfos extends Table {
 class CollectionItems extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get cardId => integer().references(Cards, #id)();
-  IntColumn get quantity => integer().withDefault(const Constant(1))(); // ← Fixed: added default
-  TextColumn get condition => text().withDefault(const Constant('Near Mint'))(); // ← Fixed: added default
+
+  // The specific printing info
+  TextColumn get setCode => text()(); // e.g., 'LOB-001'
+  TextColumn get rarity => text()(); // e.g., 'Ultra Rare'
+
+  // User organization
+  IntColumn get collectionNumber => integer().withDefault(const Constant(1))();
+
+  // Inventory details
+  IntColumn get quantity => integer().withDefault(const Constant(1))();
+  TextColumn get condition => text().withDefault(const Constant('Near Mint'))();
+  TextColumn get language => text().withDefault(const Constant('EN'))();
+  BoolColumn get isFirstEdition => boolean().withDefault(const Constant(false))();
+  RealColumn get priceAtPurchase => real().nullable()();
+
   TextColumn get notes => text().nullable()();
-  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)(); // ← Fixed: DateTimeColumn
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)(); // ← Fixed: DateTimeColumn
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 // ==========================================
@@ -116,7 +129,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -131,8 +144,23 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('CREATE INDEX IF NOT EXISTS card_sets_card_id_idx ON card_sets (card_id)');
         await customStatement('CREATE INDEX IF NOT EXISTS card_sets_set_code_idx ON card_sets (set_code)');
       }
+      if (from < 3) {
+        // Add new columns to CollectionItems using Migrator
+        await m.addColumn(collectionItems, collectionItems.setCode);
+        await m.addColumn(collectionItems, collectionItems.rarity);
+        await m.addColumn(collectionItems, collectionItems.collectionNumber);
+        await m.addColumn(collectionItems, collectionItems.language);
+        await m.addColumn(collectionItems, collectionItems.isFirstEdition);
+        await m.addColumn(collectionItems, collectionItems.priceAtPurchase);
+        
+        // Add indexes for the new columns using raw SQL for simplicity
+        await customStatement('CREATE INDEX IF NOT EXISTS collection_items_col_num_idx ON collection_items (collection_number)');
+        await customStatement('CREATE INDEX IF NOT EXISTS collection_items_print_idx ON collection_items (card_id, set_code, rarity)');
+      }
     },
-    beforeOpen: (details) async {},
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
   );
 
   // ==========================================
@@ -198,12 +226,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> addToCollection({
     required int cardId,
+    required String setCode,
+    required String rarity,
+    int collectionNumber = 1,
     int quantity = 1,
     String condition = 'Near Mint',
     String? notes,
   }) async {
     final existing = await (select(collectionItems)
-      ..where((t) => t.cardId.equals(cardId) & t.condition.equals(condition)))
+      ..where((t) =>
+          t.cardId.equals(cardId) &
+          t.setCode.equals(setCode) &
+          t.rarity.equals(rarity) &
+          t.condition.equals(condition) &
+          t.collectionNumber.equals(collectionNumber)))
         .getSingleOrNull();
 
     if (existing != null) {
@@ -218,6 +254,9 @@ class AppDatabase extends _$AppDatabase {
       return await into(collectionItems).insert(
         CollectionItemsCompanion.insert(
           cardId: cardId,
+          setCode: setCode,
+          rarity: rarity,
+          collectionNumber: Value(collectionNumber),
           quantity: Value(quantity),
           condition: Value(condition),
           notes: Value(notes),
@@ -226,8 +265,25 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  Future<void> removeFromCollection(int collectionItemId) async {
-    await (delete(collectionItems)..where((t) => t.id.equals(collectionItemId))).go();
+  Future<void> removeFromCollection({
+    required int collectionItemId,
+    int quantityToRemove = 1,
+  }) async {
+    final existing = await (select(collectionItems)..where((t) => t.id.equals(collectionItemId))).getSingleOrNull();
+    if (existing == null) return;
+
+    if (existing.quantity <= quantityToRemove) {
+      // Remove entirely if quantity becomes 0 or less
+      await (delete(collectionItems)..where((t) => t.id.equals(collectionItemId))).go();
+    } else {
+      // Just decrease quantity
+      await (update(collectionItems)..where((t) => t.id.equals(collectionItemId))).write(
+        CollectionItemsCompanion(
+          quantity: Value(existing.quantity - quantityToRemove),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    }
   }
 
   Future<int> getCollectionSize() async {
@@ -236,6 +292,10 @@ class AppDatabase extends _$AppDatabase {
     final result = await query.getSingle();
 
     return result.read(collectionItems.id.count()) ?? 0;
+  }
+
+  Future<List<DriftCollectionItem>> getCollectionItemsByCardId(int cardId) {
+    return (select(collectionItems)..where((t) => t.cardId.equals(cardId))).get();
   }
 
   // ==========================================

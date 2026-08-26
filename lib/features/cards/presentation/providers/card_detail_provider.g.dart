@@ -59,7 +59,7 @@ final class CardDetailProvider
   }
 }
 
-String _$cardDetailHash() => r'705c6afc44e628d27276d559520e6ec77e1bd440';
+String _$cardDetailHash() => r'75a3fa5b7392c64a9f7e5449d87fce1f2c789a7a';
 
 final class CardDetailFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<YgoCard?>, int> {

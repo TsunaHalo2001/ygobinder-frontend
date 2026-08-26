@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_detail_provider.dart';
+import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
+import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
+import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 class CardDetailScreen extends ConsumerWidget {
@@ -283,7 +286,7 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
   }
 }
 
-class _CardInfo extends StatelessWidget {
+class _CardInfo extends ConsumerWidget {
   final YgoCard card;
   final Color foregroundColor;
 
@@ -349,12 +352,19 @@ class _CardInfo extends StatelessWidget {
     final String race = card.race.toLowerCase();
     String? asset;
 
-    if (race.contains('continuous')) asset = 'assets/images/attributes/continuous.png';
-    else if (race.contains('counter')) asset = 'assets/images/attributes/counter.webp';
-    else if (race.contains('equip')) asset = 'assets/images/attributes/equip.webp';
-    else if (race.contains('field')) asset = 'assets/images/attributes/field.png';
-    else if (race.contains('quick-play')) asset = 'assets/images/attributes/quickplay.webp';
-    else if (race.contains('ritual')) asset = 'assets/images/attributes/ritual.webp';
+    if (race.contains('continuous')) {
+      asset = 'assets/images/attributes/continuous.png';
+    } else if (race.contains('counter')) {
+      asset = 'assets/images/attributes/counter.webp';
+    } else if (race.contains('equip')) {
+      asset = 'assets/images/attributes/equip.webp';
+    } else if (race.contains('field')) {
+      asset = 'assets/images/attributes/field.png';
+    } else if (race.contains('quick-play')) {
+      asset = 'assets/images/attributes/quickplay.webp';
+    } else if (race.contains('ritual')) {
+      asset = 'assets/images/attributes/ritual.webp';
+    }
 
     if (asset == null) return const SizedBox.shrink();
 
@@ -476,6 +486,35 @@ class _CardInfo extends StatelessWidget {
     );
   }
 
+  void _showRemoveMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _RemoveCardBottomSheet(card: card),
+    );
+  }
+
+  Widget _buildRemoveButton(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: () => _showRemoveMenu(context), // ✅ Show pop-up menu
+      icon: const Icon(Icons.indeterminate_check_box_rounded),
+      label: const Text(
+        'REMOVE FROM COLLECTION',
+        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+      ),
+    );
+  }
+
   Widget _buildDescriptionBox({
     required BuildContext context,
     required String text,
@@ -517,7 +556,6 @@ class _CardInfo extends StatelessWidget {
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
-                        fontSize: 22,
                       ),
                       textAlign: headerLeading != null ? TextAlign.center : TextAlign.start,
                     ),
@@ -552,7 +590,6 @@ class _CardInfo extends StatelessWidget {
   Widget _buildPendulumEffectRow(BuildContext context, String effect, int? scale) {
     final theme = Theme.of(context);
     
-    // Common decoration for the sub-boxes
     final boxDecoration = BoxDecoration(
       color: Colors.white.withValues(alpha: 0.85),
       borderRadius: BorderRadius.circular(2),
@@ -568,7 +605,7 @@ class _CardInfo extends StatelessWidget {
 
     Widget buildScaleBox(String assetPath) {
       return Container(
-        width: 70, // Increased width slightly
+        width: 70,
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: boxDecoration,
         child: Column(
@@ -578,7 +615,7 @@ class _CardInfo extends StatelessWidget {
             Image.asset(assetPath, width: 32, height: 32, fit: BoxFit.contain),
             const SizedBox(height: 4),
             Text(
-              '${scale ?? '?'}', // ✅ Removed the diamond symbol that was causing confusion/overflow
+              '${scale ?? '?'}',
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -589,15 +626,12 @@ class _CardInfo extends StatelessWidget {
       );
     }
 
-    return IntrinsicHeight( // ✅ Ensures all boxes in the row have the same height
+    return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch to match IntrinsicHeight
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Left Scale Box
           buildScaleBox('assets/images/arrows/left_pend.png'),
           const SizedBox(width: 8),
-          
-          // Center Effect Box
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(12.0),
@@ -614,8 +648,6 @@ class _CardInfo extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          
-          // Right Scale Box
           buildScaleBox('assets/images/arrows/right_pend.png'),
         ],
       ),
@@ -623,11 +655,14 @@ class _CardInfo extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isMonster = !card.type.toLowerCase().contains('spell') && !card.type.toLowerCase().contains('trap');
     final isLink = card.type.toLowerCase().contains('link');
     final isPendulum = card.frameType?.toLowerCase().contains('pendulum') ?? false;
+
+    final inventoryAsync = ref.watch(cardInventoryProvider(card.id));
+    final hasInventory = inventoryAsync.value?.isNotEmpty ?? false;
 
     final monsterEffect = card.monsterDesc ?? card.desc;
     final pendulumEffect = card.pendDesc;
@@ -638,7 +673,6 @@ class _CardInfo extends StatelessWidget {
         if (isMonster) _buildLevelStars() else _buildSpellTrapIcon(),
         const SizedBox(height: 8),
 
-        // 1. Pendulum Effect Row (Left Scale | Effect | Right Scale)
         if (isPendulum && pendulumEffect != null && pendulumEffect.isNotEmpty) ...[
           _buildPendulumEffectRow(context, pendulumEffect, card.scale),
           const SizedBox(height: 16),
@@ -656,7 +690,6 @@ class _CardInfo extends StatelessWidget {
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
-                      fontSize: 20,
                     ),
                   ),
                 )
@@ -669,27 +702,197 @@ class _CardInfo extends StatelessWidget {
           children: [
             _buildBanlistStatus(theme),
             const Spacer(),
+            if (hasInventory) ...[
+              _buildRemoveButton(context),
+              const SizedBox(width: 12),
+            ],
             _buildAddButton(context),
           ],
         ),
+        const SizedBox(height: 16),
+        _buildInventoryTable(context, ref),
         const SizedBox(height: 32),
       ],
     );
   }
+
+  Widget _buildInventoryTable(BuildContext context, WidgetRef ref) {
+    final inventoryAsync = ref.watch(cardInventoryProvider(card.id));
+    final theme = Theme.of(context);
+
+    return inventoryAsync.when(
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+
+        // 1. Group items by collection number
+        final grouped = <int, List<DriftCollectionItem>>{};
+        for (final item in items) {
+          grouped.putIfAbsent(item.collectionNumber, () => []).add(item);
+        }
+        final sortedCollectionNumbers = grouped.keys.toList()..sort();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'INVENTORY',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: foregroundColor.withValues(alpha: 0.6),
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // 2. Build a grouped section for each collection
+            ...sortedCollectionNumbers.map((colNum) {
+              final collectionItems = grouped[colNum]!;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: foregroundColor.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.folder_copy_rounded, size: 16, color: theme.colorScheme.secondary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'COLLECTION #$colNum',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.secondary,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Table(
+                      columnWidths: const {
+                        0: FlexColumnWidth(2),
+                        1: FlexColumnWidth(2),
+                        2: IntrinsicColumnWidth(),
+                      },
+                      children: [
+                        TableRow(
+                          children: [
+                            _tableHeader('SET', theme),
+                            _tableHeader('RARITY', theme),
+                            _tableHeader('QTY', theme),
+                          ],
+                        ),
+                        ...collectionItems.map((item) => TableRow(
+                              children: [
+                                _tableCell(item.setCode, theme),
+                                _tableCell(item.rarity, theme),
+                                _tableCell(item.quantity.toString(), theme, textAlign: TextAlign.center),
+                              ],
+                            )),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _tableHeader(String text, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: foregroundColor.withValues(alpha: 0.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _tableCell(String text, ThemeData theme, {TextAlign textAlign = TextAlign.start}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        text,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: foregroundColor,
+        ),
+        textAlign: textAlign,
+      ),
+    );
+  }
 }
 
-class _AddCardBottomSheet extends StatefulWidget {
+class _AddCardBottomSheet extends ConsumerStatefulWidget {
   final YgoCard card;
 
   const _AddCardBottomSheet({required this.card});
 
   @override
-  State<_AddCardBottomSheet> createState() => _AddCardBottomSheetState();
+  ConsumerState<_AddCardBottomSheet> createState() => _AddCardBottomSheetState();
 }
 
-class _AddCardBottomSheetState extends State<_AddCardBottomSheet> {
+class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
   int _quantity = 1;
+  int _collectionNumber = 1;
   String _searchQuery = '';
+  bool _isSaving = false;
+
+  Future<void> _addToCollection(CardSet cardSet) async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final repo = ref.read(cardRepositoryProvider);
+      await repo.addCardToCollection(
+        cardId: widget.card.id,
+        setCode: cardSet.setCode,
+        rarity: cardSet.setRarity,
+        quantity: _quantity,
+        collectionNumber: _collectionNumber,
+      );
+
+      ref.invalidate(cardInventoryProvider(widget.card.id));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added $_quantity x ${widget.card.name} to Collection #$_collectionNumber'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding to collection: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -725,28 +928,73 @@ class _AddCardBottomSheetState extends State<_AddCardBottomSheet> {
           const SizedBox(height: 24),
 
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                onPressed: () => setState(() => _quantity = (_quantity > 1) ? _quantity - 1 : 1),
-                icon: const Icon(Icons.remove_circle_outline),
-              ),
-              Container(
-                width: 60,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.colorScheme.primary),
-                  borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text('Quantity', style: theme.textTheme.labelLarge),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () => setState(() => _quantity = (_quantity > 1) ? _quantity - 1 : 1),
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Container(
+                          width: 40,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.colorScheme.primary),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$_quantity',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => _quantity++),
+                          icon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: Text(
-                  '$_quantity',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge,
-                ),
               ),
-              IconButton(
-                onPressed: () => setState(() => _quantity++),
-                icon: const Icon(Icons.add_circle_outline),
+              const SizedBox(height: 40, child: VerticalDivider()),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text('Collection #', style: theme.textTheme.labelLarge),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: () => setState(() => _collectionNumber = (_collectionNumber > 1) ? _collectionNumber - 1 : 1),
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Container(
+                          width: 40,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.colorScheme.secondary),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$_collectionNumber',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => _collectionNumber++),
+                          icon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -793,10 +1041,14 @@ class _AddCardBottomSheetState extends State<_AddCardBottomSheet> {
                         ),
                         subtitle: Text('${cardSet.setCode} • ${cardSet.setRarity}'),
                         trailing: IconButton(
-                          onPressed: () {
-                            // Functionality to be added later
-                          },
-                          icon: const Icon(Icons.add_circle, color: Colors.greenAccent),
+                          onPressed: _isSaving ? null : () => _addToCollection(cardSet),
+                          icon: _isSaving
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.add_circle, color: Colors.greenAccent),
                           iconSize: 32,
                         ),
                       );
@@ -805,6 +1057,272 @@ class _AddCardBottomSheetState extends State<_AddCardBottomSheet> {
           ),
           const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+}
+
+class _RemoveCardBottomSheet extends ConsumerStatefulWidget {
+  final YgoCard card;
+
+  const _RemoveCardBottomSheet({required this.card});
+
+  @override
+  ConsumerState<_RemoveCardBottomSheet> createState() => _RemoveCardBottomSheetState();
+}
+
+class _RemoveCardBottomSheetState extends ConsumerState<_RemoveCardBottomSheet> {
+  int? _selectedCollectionNumber;
+  int _quantityToRemove = 1;
+  String _searchQuery = '';
+  bool _isSaving = false;
+
+  Future<void> _handleRemove(DriftCollectionItem item) async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final repo = ref.read(cardRepositoryProvider);
+      await repo.removeCardFromCollection(
+        collectionItemId: item.id,
+        quantity: _quantityToRemove,
+      );
+
+      // Refresh providers
+      ref.invalidate(cardInventoryProvider(widget.card.id));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Removed $_quantityToRemove copies from Collection #${item.collectionNumber}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error removing: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final inventoryAsync = ref.watch(cardInventoryProvider(widget.card.id));
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: 24.0,
+        left: 24.0,
+        right: 24.0,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: inventoryAsync.when(
+        data: (items) {
+          if (items.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Text('No copies found in collection', textAlign: TextAlign.center),
+            );
+          }
+
+          // 1. Extract unique collection numbers
+          final collections = items.map((e) => e.collectionNumber).toSet().toList()..sort();
+          
+          // Initialize selected number if not set or no longer available
+          if (_selectedCollectionNumber == null || !collections.contains(_selectedCollectionNumber)) {
+            _selectedCollectionNumber = collections.first;
+          }
+
+          final currentIndex = collections.indexOf(_selectedCollectionNumber!);
+          
+          // Filter items by collection AND search query
+          final filteredItems = items.where((e) {
+            final matchesCollection = e.collectionNumber == _selectedCollectionNumber;
+            if (!matchesCollection) return false;
+            
+            if (_searchQuery.isEmpty) return true;
+            return e.setCode.toLowerCase().contains(_searchQuery.toLowerCase()) || 
+                   e.rarity.toLowerCase().contains(_searchQuery.toLowerCase());
+          }).toList();
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Remove from Collection',
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.redAccent),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              // 2. Selectors Row (Quantity and Collection)
+              Row(
+                children: [
+                  // Quantity Selector
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text('Quantity', style: theme.textTheme.labelLarge),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: () => setState(() => _quantityToRemove = (_quantityToRemove > 1) ? _quantityToRemove - 1 : 1),
+                              icon: const Icon(Icons.remove_circle_outline),
+                            ),
+                            Container(
+                              width: 40,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.redAccent),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$_quantityToRemove',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => setState(() => _quantityToRemove++),
+                              icon: const Icon(Icons.add_circle_outline),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40, child: VerticalDivider()),
+                  // Collection Selector (Cycle through existing collections only)
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text('Collection #', style: theme.textTheme.labelLarge),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: currentIndex > 0
+                                  ? () => setState(() => _selectedCollectionNumber = collections[currentIndex - 1])
+                                  : null,
+                              icon: const Icon(Icons.remove_circle_outline),
+                            ),
+                            Container(
+                              width: 40,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: theme.colorScheme.secondary),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$_selectedCollectionNumber',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: currentIndex < collections.length - 1
+                                  ? () => setState(() => _selectedCollectionNumber = collections[currentIndex + 1])
+                                  : null,
+                              icon: const Icon(Icons.add_circle_outline),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // 3. Search Bar
+              TextField(
+                onChanged: (value) => setState(() => _searchQuery = value),
+                decoration: InputDecoration(
+                  hintText: 'Filter your copies (e.g. LOB)...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.redAccent),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 4. List of items in that specific collection
+              Text(
+                'Copies in this collection:',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.35,
+                ),
+                child: filteredItems.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Text(_searchQuery.isEmpty ? 'No copies found' : 'No matching copies found'),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: filteredItems.length,
+                        separatorBuilder: (context, index) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final item = filteredItems[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'QTY: ${item.quantity}',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text('${item.setCode} • ${item.rarity}'),
+                            trailing: IconButton(
+                              onPressed: _isSaving ? null : () => _handleRemove(item),
+                              icon: _isSaving
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.redAccent),
+                                    )
+                                  : const Icon(Icons.remove_circle, color: Colors.redAccent),
+                              iconSize: 32,
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+        loading: () => const Center(child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: SpinningCardLoader(width: 40, height: 56),
+        )),
+        error: (err, _) => Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Text('Error: $err', textAlign: TextAlign.center),
+        ),
       ),
     );
   }
