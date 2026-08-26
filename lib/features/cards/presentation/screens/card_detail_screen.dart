@@ -171,47 +171,65 @@ class _CardDetailBodyState extends ConsumerState<_CardDetailBody> {
         Widget imageWidget = Hero(
           tag: 'card_image_${widget.card.id}',
           child: GestureDetector(
-            onTap: _nextImage, // ✅ Cycle images on tap
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: ScaleTransition(scale: animation, child: child),
-                      );
-                    },
-                    child: CachedNetworkImage(
-                      key: ValueKey(imageUrl), // Crucial for AnimatedSwitcher
-                      imageUrl: imageUrl,
-                      cacheManager: cacheManager,
-                      fit: BoxFit.contain,
-                      placeholder: (context, url) => const SpinningCardLoader(),
-                      errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 100),
-                    ),
-                  ),
+            onTap: _nextImage,
+            child: Container(
+              padding: EdgeInsets.zero,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+                border: Border.all(
+                  color: Colors.grey,
+                  width: 3.0,
                 ),
-                if (images != null && images.length > 1)
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_currentImageIndex + 1} / ${images.length}',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 2,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(0),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(scale: animation, child: child),
+                        );
+                      },
+                      child: CachedNetworkImage(
+                        key: ValueKey(imageUrl),
+                        imageUrl: imageUrl,
+                        cacheManager: cacheManager,
+                        fit: BoxFit.contain,
+                        placeholder: (context, url) => const SpinningCardLoader(),
+                        errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 100),
                       ),
                     ),
                   ),
-              ],
+                  if (images != null && images.length > 1)
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_currentImageIndex + 1} / ${images.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -272,11 +290,9 @@ class _CardInfo extends StatelessWidget {
   const _CardInfo({required this.card, required this.foregroundColor});
 
   String _getMonsterTypeLine() {
-    // Format: [Race / Type1 / Type2 ...]
     final List<String> parts = [];
     parts.add(card.race);
 
-    // Add types from typeLine, but filter out "Monster" as it's redundant inside the brackets
     if (card.typeLine != null) {
       for (final t in card.typeLine!) {
         if (t != 'Monster' && t != card.race) {
@@ -284,7 +300,6 @@ class _CardInfo extends StatelessWidget {
         }
       }
     } else {
-      // Fallback if typeLine is missing: Parse from the 'type' string
       final typeStr = card.type.toLowerCase();
       if (typeStr.contains('effect')) parts.add('Effect');
       if (typeStr.contains('fusion')) parts.add('Fusion');
@@ -425,12 +440,184 @@ class _CardInfo extends StatelessWidget {
 
     if (items.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 16.0),
-      child: Wrap(
-        spacing: 24,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: items,
+    return Wrap(
+      spacing: 24,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: items,
+    );
+  }
+
+  void _showAddMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _AddCardBottomSheet(card: card),
+    );
+  }
+
+  Widget _buildAddButton(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: () => _showAddMenu(context),
+      icon: const Icon(Icons.add_box_rounded),
+      label: const Text(
+        'ADD TO COLLECTION',
+        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+      ),
+    );
+  }
+
+  Widget _buildDescriptionBox({
+    required BuildContext context,
+    required String text,
+    String? header,
+    Widget? headerLeading,
+    Widget? headerTrailing,
+    Widget? footer,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(
+          color: const Color(0xFF8B4513),
+          width: 3.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 2,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (header != null || headerLeading != null || headerTrailing != null) ...[
+            Row(
+              children: [
+                if (headerLeading != null) headerLeading,
+                if (header != null)
+                  Expanded(
+                    child: Text(
+                      header,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontSize: 22,
+                      ),
+                      textAlign: headerLeading != null ? TextAlign.center : TextAlign.start,
+                    ),
+                  ),
+                if (headerTrailing != null) headerTrailing,
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Divider(color: Color(0xFF8B4513), thickness: 2),
+            const SizedBox(height: 6),
+          ],
+          Text(
+            text,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              height: 1.25,
+              color: Colors.black87,
+              letterSpacing: 0.1,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (footer != null) ...[
+            const SizedBox(height: 6),
+            const Divider(color: Color(0xFF8B4513), thickness: 2),
+            const SizedBox(height: 6),
+            footer,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendulumEffectRow(BuildContext context, String effect, int? scale) {
+    final theme = Theme.of(context);
+    
+    // Common decoration for the sub-boxes
+    final boxDecoration = BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.85),
+      borderRadius: BorderRadius.circular(2),
+      border: Border.all(color: const Color(0xFF8B4513), width: 3.0),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.3),
+          blurRadius: 2,
+          spreadRadius: 1,
+        ),
+      ],
+    );
+
+    Widget buildScaleBox(String assetPath) {
+      return Container(
+        width: 70, // Increased width slightly
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: boxDecoration,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(assetPath, width: 32, height: 32, fit: BoxFit.contain),
+            const SizedBox(height: 4),
+            Text(
+              '${scale ?? '?'}', // ✅ Removed the diamond symbol that was causing confusion/overflow
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return IntrinsicHeight( // ✅ Ensures all boxes in the row have the same height
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch to match IntrinsicHeight
+        children: [
+          // Left Scale Box
+          buildScaleBox('assets/images/arrows/left_pend.png'),
+          const SizedBox(width: 8),
+          
+          // Center Effect Box
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: boxDecoration,
+              child: Text(
+                effect,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  height: 1.25,
+                  color: Colors.black87,
+                  letterSpacing: 0.1,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Right Scale Box
+          buildScaleBox('assets/images/arrows/right_pend.png'),
+        ],
       ),
     );
   }
@@ -440,102 +627,184 @@ class _CardInfo extends StatelessWidget {
     final theme = Theme.of(context);
     final isMonster = !card.type.toLowerCase().contains('spell') && !card.type.toLowerCase().contains('trap');
     final isLink = card.type.toLowerCase().contains('link');
+    final isPendulum = card.frameType?.toLowerCase().contains('pendulum') ?? false;
+
+    final monsterEffect = card.monsterDesc ?? card.desc;
+    final pendulumEffect = card.pendDesc;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (isMonster) _buildLevelStars() else _buildSpellTrapIcon(),
         const SizedBox(height: 8),
-        // Description Box that resembles the physical card text area
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(2),
-            border: Border.all(
-              color: const Color(0xFF8B4513),
-              width: 3.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 2,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (isMonster) ...[
-                Text(
-                  _getMonsterTypeLine(),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    fontSize: 22,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Divider(color: Color(0xFF8B4513), thickness: 2),
-                const SizedBox(height: 6),
-              ],
-              Text(
-                card.desc,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  height: 1.25,
-                  color: Colors.black87,
-                  letterSpacing: 0.1,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (isMonster && (card.atk != null || card.def != null || card.linkVal != null)) ...[
-                const SizedBox(height: 6),
-                const Divider(color: Color(0xFF8B4513), thickness: 2),
-                const SizedBox(height: 6),
-                Align(
+
+        // 1. Pendulum Effect Row (Left Scale | Effect | Right Scale)
+        if (isPendulum && pendulumEffect != null && pendulumEffect.isNotEmpty) ...[
+          _buildPendulumEffectRow(context, pendulumEffect, card.scale),
+          const SizedBox(height: 16),
+        ],
+
+        _buildDescriptionBox(
+          context: context,
+          text: monsterEffect,
+          header: isMonster ? _getMonsterTypeLine() : null,
+          footer: (isMonster && (card.atk != null || card.def != null || card.linkVal != null))
+              ? Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    isLink 
-                      ? 'ATK/ ${card.atk ?? '?'}  LINK-${card.linkVal ?? '?'}'
-                      : 'ATK/ ${card.atk ?? '?'}  DEF/ ${card.def ?? '?'}',
+                    isLink ? 'ATK/ ${card.atk ?? '?'}  LINK-${card.linkVal ?? '?'}' : 'ATK/ ${card.atk ?? '?'}  DEF/ ${card.def ?? '?'}',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                       fontSize: 20,
                     ),
                   ),
-                ),
-              ],
-            ],
-          ),
+                )
+              : null,
         ),
-        _buildBanlistStatus(theme), // ✅ Moved under the box
+
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildBanlistStatus(theme),
+            const Spacer(),
+            _buildAddButton(context),
+          ],
+        ),
         const SizedBox(height: 32),
       ],
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final Color? color;
-  final Color textColor;
+class _AddCardBottomSheet extends StatefulWidget {
+  final YgoCard card;
 
-  const _InfoChip({required this.label, this.color, required this.textColor});
+  const _AddCardBottomSheet({required this.card});
+
+  @override
+  State<_AddCardBottomSheet> createState() => _AddCardBottomSheetState();
+}
+
+class _AddCardBottomSheetState extends State<_AddCardBottomSheet> {
+  int _quantity = 1;
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final allSets = widget.card.cardSets ?? [];
+    
+    final filteredSets = allSets.where((s) {
+      if (_searchQuery.isEmpty) return true;
+      return s.setCode.toLowerCase().contains(_searchQuery.toLowerCase()) || 
+             s.setName.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color ?? Colors.grey[800],
-        borderRadius: BorderRadius.circular(16),
+      padding: EdgeInsets.only(
+        top: 24.0,
+        left: 24.0,
+        right: 24.0,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Add to Collection',
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: () => setState(() => _quantity = (_quantity > 1) ? _quantity - 1 : 1),
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              Container(
+                width: 60,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: theme.colorScheme.primary),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$_quantity',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                onPressed: () => setState(() => _quantity++),
+                icon: const Icon(Icons.add_circle_outline),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          TextField(
+            onChanged: (value) => setState(() => _searchQuery = value),
+            decoration: InputDecoration(
+              hintText: 'Filter by set code (e.g. LOB)...',
+              prefixIcon: const Icon(Icons.search),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Text(
+            'Select Version:',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.35,
+            ),
+            child: filteredSets.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(_searchQuery.isEmpty ? 'No set information' : 'No matching sets found'),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: filteredSets.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final cardSet = filteredSets[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          cardSet.setName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('${cardSet.setCode} • ${cardSet.setRarity}'),
+                        trailing: IconButton(
+                          onPressed: () {
+                            // Functionality to be added later
+                          },
+                          icon: const Icon(Icons.add_circle, color: Colors.greenAccent),
+                          iconSize: 32,
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
