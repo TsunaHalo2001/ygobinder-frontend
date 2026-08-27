@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
     final bool isLargeScreen = screenWidth > 600;
 
     return MaterialApp.router(
-      title: 'YGO Binder',
+      title: 'YGOBinder',
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'YuGiOh',

@@ -65,8 +65,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Your App Logo or Icon
-            Icon(Icons.deck_rounded, size: 80, color: Theme.of(context).colorScheme.primary),
+            // Your App Logo
+            Image.asset(
+              'assets/images/icon/logo.png',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 24),
             const SpinningCardLoader(width: 60, height: 84),
             const SizedBox(height: 16),

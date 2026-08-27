@@ -274,7 +274,14 @@ class CardGridItem extends ConsumerWidget {
                           cacheManager: cacheManager,
                           placeholder: (context, url) => Container(
                             color: Colors.black12,
-                            child: const Center(child: Icon(Icons.deck, color: Colors.white24, size: 20)),
+                            child: Center(
+                              child: Image.asset(
+                                'assets/images/icon/logo.png',
+                                width: 32,
+                                height: 32,
+                                opacity: const AlwaysStoppedAnimation(0.2),
+                              ),
+                            ),
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: Colors.black12,

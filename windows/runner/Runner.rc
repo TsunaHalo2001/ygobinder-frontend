@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.tsuna2001" "\0"
-            VALUE "FileDescription", "ygobinder" "\0"
+            VALUE "FileDescription", "YGOBinder" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "ygobinder" "\0"
+            VALUE "InternalName", "YGOBinder" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.tsuna2001. All rights reserved." "\0"
             VALUE "OriginalFilename", "ygobinder.exe" "\0"
-            VALUE "ProductName", "ygobinder" "\0"
+            VALUE "ProductName", "YGOBinder" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

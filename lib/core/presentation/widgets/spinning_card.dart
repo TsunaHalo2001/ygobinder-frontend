@@ -82,11 +82,12 @@ class _SpinningCardLoaderState extends State<SpinningCardLoader>
         ],
       ),
       child: Center(
-        // The iconic swirl/eye symbol in the center
-        child: Icon(
-          Icons.auto_awesome,
-          color: const Color(0xFFFFD54F),
-          size: widget.width * 0.4,
+        // ✅ REPLACED: Use the Logo in the center of the spinning card
+        child: Image.asset(
+          'assets/images/icon/logo.png',
+          width: widget.width * 0.7,
+          height: widget.height * 0.7,
+          fit: BoxFit.contain,
         ),
       ),
     );

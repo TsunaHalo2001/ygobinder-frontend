@@ -38,8 +38,13 @@ class LoginScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SpinningCardLoader(width: 120, height: 168),
-                const SizedBox(height: 48),
+                Image.asset(
+                  'assets/images/icon/logo.png',
+                  width: 140,
+                  height: 140,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 24),
                 const Text(
                   'YGO BINDER',
                   style: TextStyle(

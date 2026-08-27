@@ -72,12 +72,17 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 1. The Visual (Spinning Card or Error Icon)
+                // 1. The Visual (Logo or Spinning Card)
                 if (_error != null)
-                  Icon(
-                    Icons.cloud_off_rounded,
-                    size: 80,
-                    color: Colors.redAccent,
+                  Opacity(
+                    opacity: 0.5,
+                    child: Image.asset(
+                      'assets/images/icon/logo.png',
+                      width: 120,
+                      height: 120,
+                      color: Colors.redAccent,
+                      colorBlendMode: BlendMode.modulate,
+                    ),
                   )
                 else
                 // ✅ REPLACED: Use the Spinning Card instead of a static icon or generic spinner
