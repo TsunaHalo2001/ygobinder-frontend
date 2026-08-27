@@ -414,17 +414,20 @@ class _CardInfo extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Wrap(
-        alignment: isXyz ? WrapAlignment.start : WrapAlignment.end,
-        spacing: -4, // Slightly overlap stars for a more authentic TCG look
-        runSpacing: 4,
-        children: List.generate(
-          count,
-          (index) => Image.asset(
-            asset,
-            width: 24, // Slightly reduced size to fit better on narrow screens
-            height: 24,
-            fit: BoxFit.contain,
+      child: Align(
+        alignment: isXyz ? Alignment.centerLeft : Alignment.centerRight,
+        child: Wrap(
+          textDirection: isXyz ? TextDirection.ltr : TextDirection.rtl, // ✅ Content grows from edge
+          spacing: -4, // Slightly overlap stars for a more authentic TCG look
+          runSpacing: 4,
+          children: List.generate(
+            count,
+            (index) => Image.asset(
+              asset,
+              width: 24, // Slightly reduced size to fit better on narrow screens
+              height: 24,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),
@@ -775,7 +778,9 @@ class _CardInfo extends ConsumerWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      isLink ? 'ATK/ ${card.atk ?? '?'}  LINK-${card.linkVal ?? '?'}' : 'ATK/ ${card.atk ?? '?'}  DEF/ ${card.def ?? '?'}',
+                      isLink
+                          ? 'ATK/ ${(card.atk == null || card.atk == -1) ? '?' : card.atk}  LINK-${card.linkVal ?? '?'}'
+                          : 'ATK/ ${(card.atk == null || card.atk == -1) ? '?' : card.atk}  DEF/ ${(card.def == null || card.def == -1) ? '?' : card.def}',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
