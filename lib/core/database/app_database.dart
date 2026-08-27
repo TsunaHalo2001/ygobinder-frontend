@@ -389,6 +389,21 @@ class AppDatabase extends _$AppDatabase {
     return (select(collectionItems)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
+  Future<DriftCollectionItem?> findCollectionItem({
+    required int cardId,
+    required String setCode,
+    required String rarity,
+    required int collectionNumber,
+  }) {
+    return (select(collectionItems)
+          ..where((t) =>
+              t.cardId.equals(cardId) &
+              t.setCode.equals(setCode) &
+              t.rarity.equals(rarity) &
+              t.collectionNumber.equals(collectionNumber)))
+        .getSingleOrNull();
+  }
+
   // ==========================================
   // UPSERT OPERATIONS
   // ==========================================

@@ -27,16 +27,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final user = await ref.read(authProvider.future);
     
     if (user == null) {
-      if (mounted) context.go('/login');
-      return;
+      // Check if user previously chose to skip login
+      final db = ref.read(databaseProvider);
+      final skipped = await db.getSetting('login_skipped');
+      
+      if (skipped != 'true') {
+        if (mounted) context.go('/login');
+        return;
+      }
     }
 
-    // ✅ Pull collection from Cloud if local is empty
+    // ✅ Sync collection from Cloud on every startup for multi-device support
     final syncRepo = ref.read(inventorySyncRepositoryProvider);
     final db = ref.read(databaseProvider);
     
-    final localCount = await db.getCollectionSize();
-    if (localCount == 0) {
+    // Only attempt full sync if user is logged in
+    if (user != null) {
       await syncRepo.fullSync(db);
     }
 

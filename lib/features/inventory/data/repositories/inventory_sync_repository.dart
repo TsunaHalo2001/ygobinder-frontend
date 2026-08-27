@@ -44,7 +44,7 @@ class InventorySyncRepository {
       'isFirstEdition': item.isFirstEdition,
       'priceAtPurchase': item.priceAtPurchase,
       'notes': item.notes,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': Timestamp.fromDate(item.updatedAt), // ✅ Use local timestamp for multi-device ordering
     }, SetOptions(merge: true));
   }
 
@@ -64,26 +64,50 @@ class InventorySyncRepository {
       if (snapshot.docs.isEmpty) return;
 
       await db.transaction(() async {
-        // Clear local items first to ensure we don't have duplicates
-        await db.clearCollection();
-
         for (final doc in snapshot.docs) {
           final data = doc.data();
+          final cloudUpdatedAt = (data['updatedAt'] as Timestamp).toDate();
 
-          await db.into(db.collectionItems).insert(
-                CollectionItemsCompanion.insert(
-                  cardId: data['cardId'] as int,
-                  setCode: data['setCode'] as String,
-                  rarity: data['rarity'] as String,
-                  collectionNumber: Value(data['collectionNumber'] as int),
-                  quantity: Value(data['quantity'] as int),
-                  condition: Value(data['condition'] as String),
-                  language: Value(data['language'] as String? ?? 'EN'),
-                  isFirstEdition: Value(data['isFirstEdition'] as bool? ?? false),
-                  priceAtPurchase: Value(data['priceAtPurchase'] != null ? (data['priceAtPurchase'] as num).toDouble() : null),
-                  notes: Value(data['notes'] as String?),
-                ),
-              );
+          // 1. Check if item exists locally
+          final existing = await db.findCollectionItem(
+            cardId: data['cardId'] as int,
+            setCode: data['setCode'] as String,
+            rarity: data['rarity'] as String,
+            collectionNumber: data['collectionNumber'] as int,
+          );
+
+          if (existing == null) {
+            // 2. Doesn't exist locally: Insert
+            await db.into(db.collectionItems).insert(
+                  CollectionItemsCompanion.insert(
+                    cardId: data['cardId'] as int,
+                    setCode: data['setCode'] as String,
+                    rarity: data['rarity'] as String,
+                    collectionNumber: Value(data['collectionNumber'] as int),
+                    quantity: Value(data['quantity'] as int),
+                    condition: Value(data['condition'] as String),
+                    language: Value(data['language'] as String? ?? 'EN'),
+                    isFirstEdition: Value(data['isFirstEdition'] as bool? ?? false),
+                    priceAtPurchase: Value(data['priceAtPurchase'] != null ? (data['priceAtPurchase'] as num).toDouble() : null),
+                    notes: Value(data['notes'] as String?),
+                    updatedAt: Value(cloudUpdatedAt),
+                  ),
+                );
+          } else if (cloudUpdatedAt.isAfter(existing.updatedAt)) {
+            // 3. Exists but Cloud is newer: Update Local
+            await (db.update(db.collectionItems)..where((t) => t.id.equals(existing.id))).write(
+                  CollectionItemsCompanion(
+                    quantity: Value(data['quantity'] as int),
+                    condition: Value(data['condition'] as String),
+                    language: Value(data['language'] as String? ?? 'EN'),
+                    isFirstEdition: Value(data['isFirstEdition'] as bool? ?? false),
+                    priceAtPurchase: Value(data['priceAtPurchase'] != null ? (data['priceAtPurchase'] as num).toDouble() : null),
+                    notes: Value(data['notes'] as String?),
+                    updatedAt: Value(cloudUpdatedAt),
+                  ),
+                );
+          }
+          // 4. Local is newer (or same): Do nothing, local wins
         }
       });
     } catch (e) {

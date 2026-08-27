@@ -44,8 +44,10 @@ class AuthNotifier extends _$AuthNotifier {
 
   Future<void> signOut() async {
     state = const AsyncLoading();
-    // ✅ Clear local collection on logout to protect data privacy
-    await ref.read(databaseProvider).clearCollection();
+    // ✅ Clear local collection and skip flag on logout
+    final db = ref.read(databaseProvider);
+    await db.clearCollection();
+    await db.saveSetting('login_skipped', 'false');
     
     await ref.read(firebaseAuthProvider).signOut();
     await GoogleSignIn().signOut();

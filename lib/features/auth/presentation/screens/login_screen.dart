@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
+import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -83,6 +84,23 @@ class LoginScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 4,
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                if (!authState.isLoading)
+                  TextButton(
+                    onPressed: () async {
+                      // Save that we skipped login for this device
+                      await ref.read(databaseProvider).saveSetting('login_skipped', 'true');
+                      if (context.mounted) context.go('/splash');
+                    },
+                    child: const Text(
+                      'CONTINUE AS GUEST',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        letterSpacing: 1.2,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 24),
