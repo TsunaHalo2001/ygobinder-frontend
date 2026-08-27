@@ -130,12 +130,13 @@ class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> with 
           .map((line) => line.text)
           .toList();
 
-      // ✅ Debug Print identified text
+      /* ✅ Commented for Release: OCR Debugging
       debugPrint('--- IDENTIFIED TEXT ---');
       for (var i = 0; i < lines.length; i++) {
         debugPrint('Line $i: ${lines[i]}');
       }
       debugPrint('-----------------------');
+      */
 
       final repo = ref.read(cardRepositoryProvider);
       final int? cardId = await repo.identifyCardFromText(lines);

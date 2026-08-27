@@ -12,9 +12,24 @@ import 'package:ygobinder/features/auth/presentation/screens/login_screen.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  // ✅ Guard Firebase initialization: Only run on supported platforms
+  // (Android, iOS, macOS, Web). Linux and Windows require additional setup.
+  if (kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+    }
+  } else {
+    debugPrint('Firebase is not supported on this platform (${Platform.operatingSystem}). Skipping initialization.');
+  }
+
   runApp(const ProviderScope(child: MyApp()));
 }
 

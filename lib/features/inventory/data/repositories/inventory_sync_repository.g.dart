@@ -55,4 +55,4 @@ final class InventorySyncRepositoryProvider
 }
 
 String _$inventorySyncRepositoryHash() =>
-    r'3f5915c74487db4513c5ec0eb25f88416267ac6f';
+    r'7ac2ed3a552629bb967eb068060a980f27c9ff50';

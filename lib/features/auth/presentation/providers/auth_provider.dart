@@ -3,24 +3,42 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+
 part 'auth_provider.g.dart';
 
+bool _isFirebaseSupported() => kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
+
 @riverpod
-FirebaseAuth firebaseAuth(Ref ref) => FirebaseAuth.instance;
+FirebaseAuth? firebaseAuth(Ref ref) {
+  if (!_isFirebaseSupported()) return null;
+  return FirebaseAuth.instance;
+}
 
 @riverpod
 Stream<User?> authStateChanges(Ref ref) {
-  return ref.watch(firebaseAuthProvider).authStateChanges();
+  final auth = ref.watch(firebaseAuthProvider);
+  if (auth == null) return Stream.value(null);
+  return auth.authStateChanges();
 }
 
 @riverpod
 class AuthNotifier extends _$AuthNotifier {
   @override
   FutureOr<User?> build() {
-    return ref.read(firebaseAuthProvider).currentUser;
+    final auth = ref.read(firebaseAuthProvider);
+    if (auth == null) return null;
+    return auth.currentUser;
   }
 
   Future<void> signInWithGoogle() async {
+    final auth = ref.read(firebaseAuthProvider);
+    if (auth == null) {
+      debugPrint('Google Sign-In is not supported on this platform.');
+      return;
+    }
+
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       // ✅ Now using the stable v6.x API
@@ -37,20 +55,25 @@ class AuthNotifier extends _$AuthNotifier {
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await ref.read(firebaseAuthProvider).signInWithCredential(credential);
+      final UserCredential userCredential = await auth.signInWithCredential(credential);
       return userCredential.user;
     });
   }
 
   Future<void> signOut() async {
+    final auth = ref.read(firebaseAuthProvider);
     state = const AsyncLoading();
+    
     // ✅ Clear local collection and skip flag on logout
     final db = ref.read(databaseProvider);
     await db.clearCollection();
     await db.saveSetting('login_skipped', 'false');
     
-    await ref.read(firebaseAuthProvider).signOut();
-    await GoogleSignIn().signOut();
+    if (auth != null) {
+      await auth.signOut();
+      await GoogleSignIn().signOut();
+    }
+    
     state = const AsyncData(null);
   }
 }

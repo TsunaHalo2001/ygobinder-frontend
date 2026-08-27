@@ -15,11 +15,11 @@ final firestoreProvider = FirestoreProvider._();
 final class FirestoreProvider
     extends
         $FunctionalProvider<
-          FirebaseFirestore,
-          FirebaseFirestore,
-          FirebaseFirestore
+          FirebaseFirestore?,
+          FirebaseFirestore?,
+          FirebaseFirestore?
         >
-    with $Provider<FirebaseFirestore> {
+    with $Provider<FirebaseFirestore?> {
   FirestoreProvider._()
     : super(
         from: null,
@@ -36,22 +36,22 @@ final class FirestoreProvider
 
   @$internal
   @override
-  $ProviderElement<FirebaseFirestore> $createElement(
+  $ProviderElement<FirebaseFirestore?> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  FirebaseFirestore create(Ref ref) {
+  FirebaseFirestore? create(Ref ref) {
     return firestore(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(FirebaseFirestore value) {
+  Override overrideWithValue(FirebaseFirestore? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<FirebaseFirestore>(value),
+      providerOverride: $SyncValueProvider<FirebaseFirestore?>(value),
     );
   }
 }
 
-String _$firestoreHash() => r'597b1a9eb96f2fae51f5b578f4b5debe4f6d30c6';
+String _$firestoreHash() => r'e9c001b032d45ca13b6796f430e5a7c58aefafde';

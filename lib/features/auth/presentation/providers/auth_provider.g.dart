@@ -13,8 +13,8 @@ part of 'auth_provider.dart';
 final firebaseAuthProvider = FirebaseAuthProvider._();
 
 final class FirebaseAuthProvider
-    extends $FunctionalProvider<FirebaseAuth, FirebaseAuth, FirebaseAuth>
-    with $Provider<FirebaseAuth> {
+    extends $FunctionalProvider<FirebaseAuth?, FirebaseAuth?, FirebaseAuth?>
+    with $Provider<FirebaseAuth?> {
   FirebaseAuthProvider._()
     : super(
         from: null,
@@ -31,24 +31,24 @@ final class FirebaseAuthProvider
 
   @$internal
   @override
-  $ProviderElement<FirebaseAuth> $createElement($ProviderPointer pointer) =>
+  $ProviderElement<FirebaseAuth?> $createElement($ProviderPointer pointer) =>
       $ProviderElement(pointer);
 
   @override
-  FirebaseAuth create(Ref ref) {
+  FirebaseAuth? create(Ref ref) {
     return firebaseAuth(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(FirebaseAuth value) {
+  Override overrideWithValue(FirebaseAuth? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<FirebaseAuth>(value),
+      providerOverride: $SyncValueProvider<FirebaseAuth?>(value),
     );
   }
 }
 
-String _$firebaseAuthHash() => r'8f84097cccd00af817397c1715c5f537399ba780';
+String _$firebaseAuthHash() => r'38e8588489dbb10450ca16aace86818956d6e02d';
 
 @ProviderFor(authStateChanges)
 final authStateChangesProvider = AuthStateChangesProvider._();
@@ -81,7 +81,7 @@ final class AuthStateChangesProvider
   }
 }
 
-String _$authStateChangesHash() => r'7e2230d665098f97101510d80be5c9dd82d44903';
+String _$authStateChangesHash() => r'24a9f47ffca74f6bf49198e7052b132dde72c590';
 
 @ProviderFor(AuthNotifier)
 final authProvider = AuthNotifierProvider._();
@@ -107,7 +107,7 @@ final class AuthNotifierProvider
   AuthNotifier create() => AuthNotifier();
 }
 
-String _$authNotifierHash() => r'14508aeb9ce3ab4a15d3b6001760268784feed6f';
+String _$authNotifierHash() => r'005dcfeab3d0929aa06e76b66f07ce66679f5dc7';
 
 abstract class _$AuthNotifier extends $AsyncNotifier<User?> {
   FutureOr<User?> build();

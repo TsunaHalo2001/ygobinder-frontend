@@ -5,35 +5,38 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/firebase_providers.dart';
+import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 
 part 'inventory_sync_repository.g.dart';
 
 @riverpod
 InventorySyncRepository inventorySyncRepository(Ref ref) {
   final firestore = ref.watch(firestoreProvider);
-  return InventorySyncRepository(firestore, FirebaseAuth.instance);
+  final auth = ref.watch(firebaseAuthProvider); // ✅ Use the safe provider
+  return InventorySyncRepository(firestore, auth);
 }
 
 class InventorySyncRepository {
-  final FirebaseFirestore _firestore;
-  final FirebaseAuth _auth;
+  final FirebaseFirestore? _firestore;
+  final FirebaseAuth? _auth; // ✅ Make nullable
 
   InventorySyncRepository(this._firestore, this._auth);
 
-  String? get _uid => _auth.currentUser?.uid;
+  String? get _uid => _auth?.currentUser?.uid;
 
-  CollectionReference<Map<String, dynamic>> get _userCollection {
-    if (_uid == null) throw Exception('User not authenticated');
-    return _firestore.collection('users').doc(_uid).collection('inventory');
+  CollectionReference<Map<String, dynamic>>? get _userCollection {
+    if (_uid == null || _firestore == null) return null;
+    return _firestore!.collection('users').doc(_uid).collection('inventory');
   }
 
   /// Pushes a single local item to Firestore
   Future<void> syncItem(DriftCollectionItem item) async {
-    if (_uid == null) return;
+    final collection = _userCollection;
+    if (collection == null) return;
 
     final docId = '${item.cardId}_${item.setCode}_${item.rarity}_${item.collectionNumber}';
     
-    await _userCollection.doc(docId).set({
+    await collection.doc(docId).set({
       'cardId': item.cardId,
       'setCode': item.setCode,
       'rarity': item.rarity,
@@ -50,17 +53,19 @@ class InventorySyncRepository {
 
   /// Removes an item from Firestore
   Future<void> removeItem(DriftCollectionItem item) async {
-    if (_uid == null) return;
+    final collection = _userCollection;
+    if (collection == null) return;
     final docId = '${item.cardId}_${item.setCode}_${item.rarity}_${item.collectionNumber}';
-    await _userCollection.doc(docId).delete();
+    await collection.doc(docId).delete();
   }
 
   /// Pulls the entire collection from Firestore and merges it into the local database
   Future<void> fullSync(AppDatabase db) async {
-    if (_uid == null) return;
+    final collection = _userCollection;
+    if (collection == null) return;
 
     try {
-      final snapshot = await _userCollection.get();
+      final snapshot = await collection.get();
       if (snapshot.docs.isEmpty) return;
 
       await db.transaction(() async {
