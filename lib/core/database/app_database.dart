@@ -337,8 +337,14 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<SetStat>> watchTopSets(int limit) {
     final quantitySum = collectionItems.quantity.sum();
     
+    // ✅ Fix: Join on cardId, setCode, AND rarity to prevent duplicates in sets with multiple rarities (like RA04)
     final query = selectOnly(collectionItems).join([
-      innerJoin(cardSets, cardSets.setCode.equalsExp(collectionItems.setCode)),
+      innerJoin(
+        cardSets, 
+        cardSets.cardId.equalsExp(collectionItems.cardId) & 
+        cardSets.setCode.equalsExp(collectionItems.setCode) &
+        cardSets.setRarity.equalsExp(collectionItems.rarity)
+      ),
     ]);
 
     query
