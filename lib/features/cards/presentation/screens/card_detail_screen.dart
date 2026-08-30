@@ -45,20 +45,38 @@ class _CardDetailScaffold extends ConsumerWidget {
 
   const _CardDetailScaffold({required this.card});
 
-  Color _getCardColor() {
+  List<Color> _getCardColors() {
     final frame = card.frameType?.toLowerCase() ?? '';
-    if (frame.contains('trap')) return const Color(0xFFBC5A84);
-    if (frame.contains('spell')) return const Color(0xFF1D9B7F);
-    if (frame.contains('normal')) return const Color(0xFFFDE68A);
-    if (frame.contains('effect')) return const Color(0xFFFF8B53);
-    if (frame.contains('ritual')) return const Color(0xFF9DB5F2);
-    if (frame.contains('fusion')) return const Color(0xFFA086B7);
-    if (frame.contains('synchro')) return const Color(0xFFCCCCCC);
-    if (frame.contains('xyz')) return const Color(0xFF000000);
-    if (frame.contains('link')) return const Color(0xFF00008B);
-    if (frame.contains('token')) return const Color(0xFFC0C0C0);
-    if (frame.contains('pendulum')) return const Color(0xFF45A29E);
-    return const Color(0xFF1F2833);
+    final isPendulum = frame.contains('pendulum');
+    
+    Color baseColor;
+    if (frame.contains('trap')) {
+      baseColor = const Color(0xFFBC5A84);
+    } else if (frame.contains('spell')) {
+      baseColor = const Color(0xFF1D9B7F);
+    } else if (frame.contains('normal')) {
+      baseColor = const Color(0xFFFDE68A);
+    } else if (frame.contains('ritual')) {
+      baseColor = const Color(0xFF9DB5F2);
+    } else if (frame.contains('fusion')) {
+      baseColor = const Color(0xFFA086B7);
+    } else if (frame.contains('synchro')) {
+      baseColor = const Color(0xFFCCCCCC);
+    } else if (frame.contains('xyz')) {
+      baseColor = const Color(0xFF000000);
+    } else if (frame.contains('link')) {
+      baseColor = const Color(0xFF00008B);
+    } else if (frame.contains('token')) {
+      baseColor = const Color(0xFFC0C0C0);
+    } else {
+      baseColor = const Color(0xFFFF8B53); // Default Effect orange
+    }
+
+    if (isPendulum) {
+      // ✅ Hybrid Pendulum: Base color on top, Spell/Pendulum green on bottom
+      return [baseColor, const Color(0xFF1D9B7F)];
+    }
+    return [baseColor];
   }
 
   String? _getAttributeAsset() {
@@ -83,14 +101,14 @@ class _CardDetailScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cardColor = _getCardColor();
-    final isPendulum = card.frameType?.toLowerCase().contains('pendulum') ?? false;
-    final isDark = cardColor.computeLuminance() < 0.5;
+    final colors = _getCardColors();
+    final isHybrid = colors.length > 1;
+    final isDark = colors.first.computeLuminance() < 0.5;
     final foregroundColor = isDark ? Colors.white : Colors.black87;
     final attributeAsset = _getAttributeAsset();
 
     return Scaffold(
-      backgroundColor: isPendulum ? null : cardColor,
+      backgroundColor: isHybrid ? null : colors.first,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -116,16 +134,13 @@ class _CardDetailScaffold extends ConsumerWidget {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: isPendulum
-            ? const BoxDecoration(
+        decoration: isHybrid
+            ? BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFFF8B53), // Monster color (Effect) - Top in Details
-                    Color(0xFF1D9B7F), // Spell color - Bottom in Details
-                  ],
-                  stops: [0.2, 0.9],
+                  colors: colors,
+                  stops: const [0.2, 0.9],
                 ),
               )
             : null,

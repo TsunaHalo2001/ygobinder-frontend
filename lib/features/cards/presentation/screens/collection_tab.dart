@@ -21,7 +21,6 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
   @override
   void initState() {
     super.initState();
-    // Listen to scroll events to trigger loadMore
     _scrollController.addListener(_onScroll);
   }
 
@@ -33,7 +32,6 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
   }
 
   void _onScroll() {
-    // If we are near the bottom (within 200px), load more cards
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       ref.read(cardListProvider.notifier).loadMore();
@@ -57,7 +55,6 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search Bar + Camera Button
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -115,8 +112,6 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                 ],
               ),
             ),
-
-            // The Grid
             Expanded(
               child: cardsAsync.when(
                 loading: () => const Center(child: SpinningCardLoader(width: 40, height: 56)),
@@ -139,12 +134,13 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                     itemCount: state.hasMore ? cards.length + 1 : cards.length,
                     itemBuilder: (context, index) {
                       if (index == cards.length) {
-                        return const Center(child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: SpinningCardLoader(width: 30, height: 42),
-                        ));
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: SpinningCardLoader(width: 30, height: 42),
+                          ),
+                        );
                       }
-
                       return CardGridItem(card: cards[index]);
                     },
                   );
@@ -162,87 +158,77 @@ class CardGridItem extends ConsumerWidget {
   final YgoCard card;
   const CardGridItem({super.key, required this.card});
 
-  Color _getCardColor() {
+  List<Color> _getCardColors() {
     final frame = card.frameType?.toLowerCase() ?? '';
-    if (frame.contains('trap')) return const Color(0xFFBC5A84);
-    if (frame.contains('spell')) return const Color(0xFF1D9B7F);
-    if (frame.contains('normal')) return const Color(0xFFFDE68A);
-    if (frame.contains('effect')) return const Color(0xFFFF8B53);
-    if (frame.contains('ritual')) return const Color(0xFF9DB5F2);
-    if (frame.contains('fusion')) return const Color(0xFFA086B7);
-    if (frame.contains('synchro')) return const Color(0xFFCCCCCC);
-    if (frame.contains('xyz')) return const Color(0xFF000000);
-    if (frame.contains('link')) return const Color(0xFF00008B);
-    if (frame.contains('token')) return const Color(0xFFC0C0C0);
-    if (frame.contains('pendulum')) return const Color(0xFF45A29E); 
-    return const Color(0xFF1F2833); 
+    final isPendulum = frame.contains('pendulum');
+    
+    Color baseColor;
+    if (frame.contains('trap')) {
+      baseColor = const Color(0xFFBC5A84);
+    } else if (frame.contains('spell')) {
+      baseColor = const Color(0xFF1D9B7F);
+    } else if (frame.contains('normal')) {
+      baseColor = const Color(0xFFFDE68A);
+    } else if (frame.contains('ritual')) {
+      baseColor = const Color(0xFF9DB5F2);
+    } else if (frame.contains('fusion')) {
+      baseColor = const Color(0xFFA086B7);
+    } else if (frame.contains('synchro')) {
+      baseColor = const Color(0xFFCCCCCC);
+    } else if (frame.contains('xyz')) {
+      baseColor = const Color(0xFF000000);
+    } else if (frame.contains('link')) {
+      baseColor = const Color(0xFF00008B);
+    } else if (frame.contains('token')) {
+      baseColor = const Color(0xFFC0C0C0);
+    } else {
+      baseColor = const Color(0xFFFF8B53); // Default Effect orange
+    }
+
+    if (isPendulum) {
+      // ✅ Hybrid Pendulum Inverted for Grid: Spell green on top, Base color on bottom
+      return [const Color(0xFF1D9B7F), baseColor];
+    }
+    return [baseColor];
   }
 
   Widget _buildBanlistIndicators(BuildContext context) {
     final info = card.banlistInfo;
     if (info == null) return const SizedBox.shrink();
-
     final List<Widget> items = [];
-
     void addIcon(String? status, String label) {
       if (status == null) return;
       final String s = status.toLowerCase();
-      final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden';
-      final bool isLimited = s == 'limited';
-      final bool isSemiLimited = s == 'semi-limited' || s == 'semilimited';
-
-      if (isBanned || isLimited || isSemiLimited) {
+      if (s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == 'limited' || s == 'semi-limited' || s == 'semilimited') {
         IconData iconData = Icons.block;
         Color iconColor = Colors.redAccent;
-
-        if (isLimited) {
+        if (s == 'limited') {
           iconData = Icons.looks_one_outlined;
           iconColor = Colors.orangeAccent;
-        } else if (isSemiLimited) {
+        } else if (s.contains('semi')) {
           iconData = Icons.looks_two_outlined;
           iconColor = Colors.yellowAccent;
         }
-
-        final nameStyle = Theme.of(context).textTheme.bodySmall;
-
-        items.add(
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(iconData, color: iconColor, size: 48), 
-              Text(
-                label,
-                style: nameStyle?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: [
-                    const Shadow(blurRadius: 4.0, color: Colors.black),
-                    const Shadow(blurRadius: 2.0, color: Colors.black),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
+        items.add(Stack(alignment: Alignment.center, children: [
+          Icon(iconData, color: iconColor, size: 48),
+          Text(label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                shadows: [const Shadow(blurRadius: 4.0, color: Colors.black)],
+              )),
+        ]));
       }
     }
 
     addIcon(info.banTcg, 'TCG');
     addIcon(info.banOcg, 'OCG');
     addIcon(info.banGoat, 'GOAT');
-
     if (items.isEmpty) return const SizedBox.shrink();
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black26,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: items,
-      ),
+      decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: items),
     );
   }
 
@@ -250,32 +236,28 @@ class CardGridItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlCropped ?? '';
     final cacheManager = ref.watch(imageCacheManagerProvider);
-    final cardColor = _getCardColor();
+    final colors = _getCardColors();
+    final isHybrid = colors.length > 1;
 
-    final isPendulum = card.frameType?.toLowerCase().contains('pendulum') ?? false;
-    final textColor = cardColor.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
+    // ✅ Use the LAST color (bottom of the gradient) for text luminance check
+    // since the card name is located at the bottom of the tile.
+    final textColor = colors.last.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 4,
-      color: isPendulum ? Colors.transparent : cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: Colors.white10, width: 0.5),
-      ),
+      color: isHybrid ? Colors.transparent : colors.first,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Colors.white10, width: 0.5)),
       child: InkWell(
         onTap: () => context.push('/card/${card.id}'),
         child: Container(
-          decoration: isPendulum
-              ? const BoxDecoration(
+          decoration: isHybrid
+              ? BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF1D9B7F), 
-                      Color(0xFFFF8B53), 
-                    ],
-                    stops: [0.4, 0.9], 
+                    colors: colors,
+                    stops: const [0.4, 0.9],
                   ),
                 )
               : null,
@@ -311,11 +293,7 @@ class CardGridItem extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    Positioned(
-                      bottom: 4,
-                      right: 4,
-                      child: _buildBanlistIndicators(context),
-                    ),
+                    Positioned(bottom: 4, right: 4, child: _buildBanlistIndicators(context)),
                   ],
                 ),
               ),
@@ -328,10 +306,7 @@ class CardGridItem extends ConsumerWidget {
                       card.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: textColor),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -347,7 +322,6 @@ class CardGridItem extends ConsumerWidget {
 
 class _FilterBottomSheet extends ConsumerStatefulWidget {
   const _FilterBottomSheet({super.key});
-
   @override
   ConsumerState<_FilterBottomSheet> createState() => _FilterBottomSheetState();
 }
@@ -358,6 +332,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   String? _tempSubType;
   String? _tempFrame;
   int? _tempLevel;
+  int? _tempScale;
 
   @override
   void initState() {
@@ -367,14 +342,14 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     _tempSubType = ref.read(cardListProvider.notifier).currentSubTypeFilter;
     _tempFrame = ref.read(cardListProvider.notifier).currentFrameFilter;
     _tempLevel = ref.read(cardListProvider.notifier).currentLevelFilter;
+    _tempScale = ref.read(cardListProvider.notifier).currentScaleFilter;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85, 
+      height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -386,25 +361,14 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
         child: Column(
           children: [
             const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 8),
             TabBar(
               labelColor: theme.colorScheme.primary,
               unselectedLabelColor: Colors.white38,
               indicatorColor: theme.colorScheme.primary,
               dividerColor: Colors.transparent,
-              tabs: const [
-                Tab(text: 'MONSTER'),
-                Tab(text: 'MAGIC'),
-                Tab(text: 'TRAP'),
-              ],
+              tabs: const [Tab(text: 'MONSTER'), Tab(text: 'MAGIC'), Tab(text: 'TRAP')],
             ),
             Expanded(
               child: TabBarView(
@@ -416,11 +380,13 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     selectedSubType: _tempSubType,
                     selectedFrame: _tempFrame,
                     selectedLevel: _tempLevel,
+                    selectedScale: _tempScale,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
                     onFrameSelected: (frame) => setState(() => _tempFrame = frame),
                     onLevelChanged: (level) => setState(() => _tempLevel = level),
+                    onScaleChanged: (scale) => setState(() => _tempScale = scale),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -448,11 +414,13 @@ class _FilterTabContent extends ConsumerWidget {
   final String? selectedSubType;
   final String? selectedFrame;
   final int? selectedLevel;
+  final int? selectedScale;
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
   final ValueChanged<String?>? onSubTypeSelected;
   final ValueChanged<String?>? onFrameSelected;
   final ValueChanged<int?>? onLevelChanged;
+  final ValueChanged<int?>? onScaleChanged;
 
   const _FilterTabContent({
     required this.type,
@@ -461,11 +429,13 @@ class _FilterTabContent extends ConsumerWidget {
     this.selectedSubType,
     this.selectedFrame,
     this.selectedLevel,
+    this.selectedScale,
     this.onAttributeSelected,
     this.onRaceSelected,
     this.onSubTypeSelected,
     this.onFrameSelected,
     this.onLevelChanged,
+    this.onScaleChanged,
     super.key,
   });
 
@@ -473,7 +443,6 @@ class _FilterTabContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isMonster = type == 'Monster';
-
     final attributes = [
       {'name': 'DARK', 'asset': 'assets/images/attributes/dark.webp'},
       {'name': 'EARTH', 'asset': 'assets/images/attributes/earth.png'},
@@ -483,7 +452,6 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'WIND', 'asset': 'assets/images/attributes/wind.webp'},
       {'name': 'DIVINE', 'asset': 'assets/images/attributes/divine.webp'},
     ];
-
     final races = [
       {'name': 'Aqua', 'asset': 'assets/images/races/aqua.png'},
       {'name': 'Beast', 'asset': 'assets/images/races/beast.png'},
@@ -511,7 +479,6 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'Wyrm', 'asset': 'assets/images/races/wyrm.png'},
       {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
     ];
-
     final frames = [
       {'name': 'normal', 'label': 'NORMAL', 'color': const Color(0xFFFDE68A)},
       {'name': 'effect', 'label': 'EFFECT', 'color': const Color(0xFFFF8B53)},
@@ -523,7 +490,6 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'pendulum', 'label': 'PENDULUM', 'color': const Color(0xFF45A29E)},
       {'name': 'token', 'label': 'TOKEN', 'color': const Color(0xFFC0C0C0)},
     ];
-
     final subTypes = ['Flip', 'Toon', 'Spirit', 'Union', 'Gemini', 'Tuner'];
 
     return SingleChildScrollView(
@@ -532,58 +498,11 @@ class _FilterTabContent extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isMonster) ...[
-            const Text(
-              'LEVEL / RANK:',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    final current = selectedLevel ?? 0;
-                    if (current > 0) onLevelChanged?.call(current - 1);
-                  },
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-                Container(
-                  width: 60,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.colorScheme.primary),
-                    borderRadius: BorderRadius.circular(8),
-                    color: selectedLevel != null ? theme.colorScheme.primary.withValues(alpha: 0.1) : null,
-                  ),
-                  child: Text(
-                    selectedLevel?.toString() ?? 'ANY',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: selectedLevel != null ? theme.colorScheme.primary : Colors.white24,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    final current = selectedLevel ?? 0;
-                    if (current < 13) onLevelChanged?.call(current + 1);
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-                if (selectedLevel != null)
-                  IconButton(
-                    onPressed: () => onLevelChanged?.call(null),
-                    icon: const Icon(Icons.clear, size: 20),
-                    tooltip: 'Clear Level',
-                  ),
-              ],
-            ),
+            _buildNumericSelector('PENDULUM SCALE:', selectedScale, (val) => onScaleChanged?.call(val), theme, Colors.tealAccent),
             const SizedBox(height: 32),
-            const Text(
-              'SELECT CARD TYPE:',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
-            ),
+            _buildNumericSelector('LEVEL / RANK:', selectedLevel, (val) => onLevelChanged?.call(val), theme, theme.colorScheme.primary),
+            const SizedBox(height: 32),
+            const Text('SELECT CARD TYPE:', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -592,41 +511,28 @@ class _FilterTabContent extends ConsumerWidget {
               children: frames.map((f) {
                 final isSelected = selectedFrame == f['name'];
                 final Color frameColor = f['color'] as Color;
-                final bool isVeryDark = frameColor.computeLuminance() < 0.1; 
+                final bool isVeryDark = frameColor.computeLuminance() < 0.1;
                 final bool isDark = frameColor.computeLuminance() < 0.5;
-
                 return ChoiceChip(
                   label: Text(f['label'] as String),
                   selected: isSelected,
-                  onSelected: (selected) {
-                    onFrameSelected?.call(selected ? f['name'] as String : null);
-                  },
+                  onSelected: (selected) => onFrameSelected?.call(selected ? f['name'] as String : null),
                   selectedColor: frameColor,
                   backgroundColor: isVeryDark ? Colors.white10 : frameColor.withValues(alpha: 0.1),
                   labelStyle: TextStyle(
-                    color: isSelected 
-                        ? (isDark ? Colors.white : Colors.black87)
-                        : (isVeryDark ? Colors.white60 : frameColor.withValues(alpha: 0.8)),
+                    color: isSelected ? (isDark ? Colors.white : Colors.black87) : (isVeryDark ? Colors.white60 : frameColor.withValues(alpha: 0.8)),
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(
-                      color: isSelected 
-                          ? Colors.white 
-                          : (isVeryDark ? Colors.white24 : frameColor.withValues(alpha: 0.4)),
-                      width: 1,
-                    ),
+                    side: BorderSide(color: isSelected ? Colors.white : (isVeryDark ? Colors.white24 : frameColor.withValues(alpha: 0.4)), width: 1),
                   ),
                 );
               }).toList(),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'SELECT ATTRIBUTE:',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
-            ),
+            const Text('SELECT ATTRIBUTE:', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
@@ -635,33 +541,21 @@ class _FilterTabContent extends ConsumerWidget {
               children: attributes.map((attr) {
                 final isSelected = selectedAttribute == attr['name'];
                 return InkWell(
-                  onTap: () {
-                    onAttributeSelected?.call(isSelected ? null : attr['name']!);
-                  },
+                  onTap: () => onAttributeSelected?.call(isSelected ? null : attr['name']!),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-                        width: 2,
-                      ),
+                      border: Border.all(color: isSelected ? theme.colorScheme.primary : Colors.transparent, width: 2),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Image.asset(attr['asset']!, width: 32, height: 32),
                         const SizedBox(height: 4),
-                        Text(
-                          attr['name']!,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? theme.colorScheme.primary : Colors.white38,
-                          ),
-                        ),
+                        Text(attr['name']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? theme.colorScheme.primary : Colors.white38)),
                       ],
                     ),
                   ),
@@ -669,10 +563,7 @@ class _FilterTabContent extends ConsumerWidget {
               }).toList(),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'SELECT MONSTER RACE:',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
-            ),
+            const Text('SELECT MONSTER RACE:', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
@@ -681,33 +572,21 @@ class _FilterTabContent extends ConsumerWidget {
               children: races.map((race) {
                 final isSelected = selectedRace == race['name'];
                 return InkWell(
-                  onTap: () {
-                    onRaceSelected?.call(isSelected ? null : race['name']!);
-                  },
+                  onTap: () => onRaceSelected?.call(isSelected ? null : race['name']!),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-                        width: 2,
-                      ),
+                      border: Border.all(color: isSelected ? theme.colorScheme.primary : Colors.transparent, width: 2),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Image.asset(race['asset']!, width: 32, height: 32),
                         const SizedBox(height: 4),
-                        Text(
-                          race['name']!.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? theme.colorScheme.primary : Colors.white38,
-                          ),
-                        ),
+                        Text(race['name']!.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? theme.colorScheme.primary : Colors.white38)),
                       ],
                     ),
                   ),
@@ -715,10 +594,7 @@ class _FilterTabContent extends ConsumerWidget {
               }).toList(),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'SELECT ABILITY / CATEGORY:',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
-            ),
+            const Text('SELECT ABILITY / CATEGORY:', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -729,35 +605,27 @@ class _FilterTabContent extends ConsumerWidget {
                 return ChoiceChip(
                   label: Text(st.toUpperCase()),
                   selected: isSelected,
-                  onSelected: (selected) {
-                    onSubTypeSelected?.call(selected ? st : null);
-                  },
+                  onSelected: (selected) => onSubTypeSelected?.call(selected ? st : null),
                   selectedColor: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  labelStyle: TextStyle(
-                    color: isSelected ? theme.colorScheme.primary : Colors.white38,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
+                  labelStyle: TextStyle(color: isSelected ? theme.colorScheme.primary : Colors.white38, fontWeight: FontWeight.bold, fontSize: 12),
                 );
               }).toList(),
             ),
             const SizedBox(height: 32),
           ],
-          const Text(
-            'Filter by this type?',
-            style: TextStyle(color: Colors.white70),
-          ),
+          const Text('Filter by this type?', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
               ref.read(cardListProvider.notifier).applyFilters(
-                type: type,
-                attribute: isMonster ? selectedAttribute : null,
-                race: isMonster ? selectedRace : null,
-                subType: isMonster ? selectedSubType : null,
-                frame: isMonster ? selectedFrame : null,
-                level: isMonster ? selectedLevel : null,
-              );
+                    type: type,
+                    attribute: isMonster ? selectedAttribute : null,
+                    race: isMonster ? selectedRace : null,
+                    subType: isMonster ? selectedSubType : null,
+                    frame: isMonster ? selectedFrame : null,
+                    level: isMonster ? selectedLevel : null,
+                    scale: isMonster ? selectedScale : null,
+                  );
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -778,6 +646,52 @@ class _FilterTabContent extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNumericSelector(String label, int? value, ValueChanged<int?> onChanged, ThemeData theme, Color accentColor) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: () {
+                final c = value ?? 0;
+                if (c > 0) onChanged(c - 1);
+              },
+              icon: const Icon(Icons.remove_circle_outline),
+            ),
+            Container(
+              width: 60,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: accentColor),
+                borderRadius: BorderRadius.circular(8),
+                color: value != null ? accentColor.withValues(alpha: 0.1) : null,
+              ),
+              child: Text(
+                value?.toString() ?? 'ANY',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: value != null ? accentColor : Colors.white24,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                final c = value ?? 0;
+                if (c < 13) onChanged(c + 1);
+              },
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+            if (value != null) IconButton(onPressed: () => onChanged(null), icon: const Icon(Icons.clear, size: 20)),
+          ],
+        ),
+      ],
     );
   }
 }

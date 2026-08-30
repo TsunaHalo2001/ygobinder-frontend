@@ -481,6 +481,7 @@ class AppDatabase extends _$AppDatabase {
     String? subTypeFilter, // ✅ Added sub-type filter
     String? frameFilter, // ✅ Added frame filter
     int? levelFilter, // ✅ Added level filter
+    int? scaleFilter, // ✅ Added scale filter
   }) {
     var query = select(cards);
 
@@ -521,7 +522,8 @@ class AppDatabase extends _$AppDatabase {
     }
 
     if (frameFilter != null && frameFilter.isNotEmpty) {
-      query = query..where((t) => t.frameType.equals(frameFilter));
+      // ✅ Use LIKE to include hybrids (e.g. 'fusion' matches 'fusion_pendulum')
+      query = query..where((t) => t.frameType.like('%$frameFilter%'));
     }
 
     if (levelFilter != null) {
@@ -531,6 +533,10 @@ class AppDatabase extends _$AppDatabase {
       } else {
         query = query..where((t) => t.level.equals(levelFilter));
       }
+    }
+
+    if (scaleFilter != null) {
+      query = query..where((t) => t.scale.equals(scaleFilter));
     }
 
     // Order by name so pagination is consistent
