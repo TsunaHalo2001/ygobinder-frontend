@@ -477,7 +477,8 @@ class AppDatabase extends _$AppDatabase {
     String? searchQuery,
     String? typeFilter,
     String? attributeFilter,
-    String? raceFilter, // ✅ Added race filter
+    String? raceFilter,
+    String? subTypeFilter, // ✅ Added sub-type filter
   }) {
     var query = select(cards);
 
@@ -511,6 +512,10 @@ class AppDatabase extends _$AppDatabase {
 
     if (raceFilter != null && raceFilter.isNotEmpty) {
       query = query..where((t) => t.race.equals(raceFilter));
+    }
+
+    if (subTypeFilter != null && subTypeFilter.isNotEmpty) {
+      query = query..where((t) => t.type.like('%$subTypeFilter%'));
     }
 
     // Order by name so pagination is consistent

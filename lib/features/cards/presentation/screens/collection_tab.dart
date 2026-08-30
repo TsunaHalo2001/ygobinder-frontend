@@ -359,6 +359,7 @@ class _FilterBottomSheet extends ConsumerStatefulWidget {
 class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   String? _tempAttribute;
   String? _tempRace;
+  String? _tempSubType; // ✅ Added sub-type
 
   @override
   void initState() {
@@ -366,6 +367,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     // Initialize with current filter state
     _tempAttribute = ref.read(cardListProvider.notifier).currentAttributeFilter;
     _tempRace = ref.read(cardListProvider.notifier).currentRaceFilter;
+    _tempSubType = ref.read(cardListProvider.notifier).currentSubTypeFilter;
   }
 
   @override
@@ -373,7 +375,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     final theme = Theme.of(context);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7, // ✅ Increased height for extra selector
+      height: MediaQuery.of(context).size.height * 0.8, // ✅ Increased height for extra selector
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -412,8 +414,10 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     type: 'Monster',
                     selectedAttribute: _tempAttribute,
                     selectedRace: _tempRace,
+                    selectedSubType: _tempSubType,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
+                    onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -438,15 +442,19 @@ class _FilterTabContent extends ConsumerWidget {
   final String type;
   final String? selectedAttribute;
   final String? selectedRace;
+  final String? selectedSubType; // ✅ Added sub-type
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
+  final ValueChanged<String?>? onSubTypeSelected; // ✅ Added sub-type
 
   const _FilterTabContent({
     required this.type,
     this.selectedAttribute,
     this.selectedRace,
+    this.selectedSubType,
     this.onAttributeSelected,
     this.onRaceSelected,
+    this.onSubTypeSelected,
     super.key,
   });
 
@@ -492,6 +500,8 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'Wyrm', 'asset': 'assets/images/races/wyrm.png'},
       {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
     ];
+
+    final subTypes = ['Flip', 'Toon', 'Spirit', 'Union', 'Gemini', 'Tuner'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -546,7 +556,7 @@ class _FilterTabContent extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
             const Text(
-              'SELECT MONSTER TYPE:',
+              'SELECT MONSTER RACE:',
               style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
             ),
             const SizedBox(height: 16),
@@ -591,6 +601,33 @@ class _FilterTabContent extends ConsumerWidget {
               }).toList(),
             ),
             const SizedBox(height: 32),
+            const Text(
+              'SELECT ABILITY / CATEGORY:',
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: subTypes.map((st) {
+                final isSelected = selectedSubType == st;
+                return ChoiceChip(
+                  label: Text(st.toUpperCase()),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    onSubTypeSelected?.call(selected ? st : null);
+                  },
+                  selectedColor: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  labelStyle: TextStyle(
+                    color: isSelected ? theme.colorScheme.primary : Colors.white38,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
           ],
           const Text(
             'Filter by this type?',
@@ -603,6 +640,7 @@ class _FilterTabContent extends ConsumerWidget {
                 type: type,
                 attribute: isMonster ? selectedAttribute : null,
                 race: isMonster ? selectedRace : null,
+                subType: isMonster ? selectedSubType : null,
               );
               Navigator.pop(context);
             },

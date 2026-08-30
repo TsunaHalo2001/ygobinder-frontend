@@ -120,7 +120,8 @@ class CardRepository {
     String? searchQuery,
     String? typeFilter,
     String? attributeFilter,
-    String? raceFilter, // ✅ Added race filter
+    String? raceFilter,
+    String? subTypeFilter, // ✅ Added sub-type filter
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
@@ -128,7 +129,8 @@ class CardRepository {
       searchQuery: searchQuery,
       typeFilter: typeFilter,
       attributeFilter: attributeFilter,
-      raceFilter: raceFilter, // ✅ Passed race filter
+      raceFilter: raceFilter,
+      subTypeFilter: subTypeFilter, // ✅ Passed sub-type filter
     );
 
     if (driftCards.isEmpty) return [];
