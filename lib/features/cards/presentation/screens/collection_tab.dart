@@ -359,7 +359,8 @@ class _FilterBottomSheet extends ConsumerStatefulWidget {
 class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   String? _tempAttribute;
   String? _tempRace;
-  String? _tempSubType; // ✅ Added sub-type
+  String? _tempSubType;
+  String? _tempFrame; // ✅ Added frame
 
   @override
   void initState() {
@@ -368,6 +369,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     _tempAttribute = ref.read(cardListProvider.notifier).currentAttributeFilter;
     _tempRace = ref.read(cardListProvider.notifier).currentRaceFilter;
     _tempSubType = ref.read(cardListProvider.notifier).currentSubTypeFilter;
+    _tempFrame = ref.read(cardListProvider.notifier).currentFrameFilter;
   }
 
   @override
@@ -375,7 +377,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     final theme = Theme.of(context);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8, // ✅ Increased height for extra selector
+      height: MediaQuery.of(context).size.height * 0.85, // ✅ Increased height
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -415,9 +417,11 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     selectedAttribute: _tempAttribute,
                     selectedRace: _tempRace,
                     selectedSubType: _tempSubType,
+                    selectedFrame: _tempFrame,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
+                    onFrameSelected: (frame) => setState(() => _tempFrame = frame),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -442,19 +446,23 @@ class _FilterTabContent extends ConsumerWidget {
   final String type;
   final String? selectedAttribute;
   final String? selectedRace;
-  final String? selectedSubType; // ✅ Added sub-type
+  final String? selectedSubType;
+  final String? selectedFrame; // ✅ Added frame
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
-  final ValueChanged<String?>? onSubTypeSelected; // ✅ Added sub-type
+  final ValueChanged<String?>? onSubTypeSelected;
+  final ValueChanged<String?>? onFrameSelected; // ✅ Added frame
 
   const _FilterTabContent({
     required this.type,
     this.selectedAttribute,
     this.selectedRace,
     this.selectedSubType,
+    this.selectedFrame,
     this.onAttributeSelected,
     this.onRaceSelected,
     this.onSubTypeSelected,
+    this.onFrameSelected,
     super.key,
   });
 
@@ -501,6 +509,18 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
     ];
 
+    final frames = [
+      {'name': 'normal', 'label': 'NORMAL', 'color': const Color(0xFFFDE68A)},
+      {'name': 'effect', 'label': 'EFFECT', 'color': const Color(0xFFFF8B53)},
+      {'name': 'ritual', 'label': 'RITUAL', 'color': const Color(0xFF9DB5F2)},
+      {'name': 'fusion', 'label': 'FUSION', 'color': const Color(0xFFA086B7)},
+      {'name': 'synchro', 'label': 'SYNCHRO', 'color': const Color(0xFFCCCCCC)},
+      {'name': 'xyz', 'label': 'XYZ', 'color': const Color(0xFF000000)},
+      {'name': 'link', 'label': 'LINK', 'color': const Color(0xFF00008B)},
+      {'name': 'pendulum', 'label': 'PENDULUM', 'color': const Color(0xFF45A29E)},
+      {'name': 'token', 'label': 'TOKEN', 'color': const Color(0xFFC0C0C0)},
+    ];
+
     final subTypes = ['Flip', 'Toon', 'Spirit', 'Union', 'Gemini', 'Tuner'];
 
     return SingleChildScrollView(
@@ -509,6 +529,50 @@ class _FilterTabContent extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isMonster) ...[
+            const Text(
+              'SELECT CARD TYPE:',
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: frames.map((f) {
+                final isSelected = selectedFrame == f['name'];
+                final Color frameColor = f['color'] as Color;
+                final bool isVeryDark = frameColor.computeLuminance() < 0.1; // ✅ Specifically check for Black/Dark Blue
+                final bool isDark = frameColor.computeLuminance() < 0.5;
+
+                return ChoiceChip(
+                  label: Text(f['label'] as String),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    onFrameSelected?.call(selected ? f['name'] as String : null);
+                  },
+                  selectedColor: frameColor,
+                  // ✅ Ensure background isn't completely invisible for dark types
+                  backgroundColor: isVeryDark ? Colors.white10 : frameColor.withValues(alpha: 0.1),
+                  labelStyle: TextStyle(
+                    color: isSelected 
+                        ? (isDark ? Colors.white : Colors.black87)
+                        : (isVeryDark ? Colors.white60 : frameColor.withValues(alpha: 0.8)), // ✅ Fallback text color
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: isSelected 
+                          ? Colors.white 
+                          : (isVeryDark ? Colors.white24 : frameColor.withValues(alpha: 0.4)), // ✅ Fallback border color
+                      width: 1,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
             const Text(
               'SELECT ATTRIBUTE:',
               style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
@@ -641,6 +705,7 @@ class _FilterTabContent extends ConsumerWidget {
                 attribute: isMonster ? selectedAttribute : null,
                 race: isMonster ? selectedRace : null,
                 subType: isMonster ? selectedSubType : null,
+                frame: isMonster ? selectedFrame : null,
               );
               Navigator.pop(context);
             },

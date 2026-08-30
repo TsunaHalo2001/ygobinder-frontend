@@ -33,7 +33,7 @@ final class CardListProvider
   CardList create() => CardList();
 }
 
-String _$cardListHash() => r'99f82d55d5993408fe41e62b102f3b24d405e477';
+String _$cardListHash() => r'a6eb56daf4702b37ac57679a3ee67645b24c7a62';
 
 abstract class _$CardList extends $AsyncNotifier<CardListState> {
   FutureOr<CardListState> build();

@@ -37,6 +37,7 @@ class CardList extends _$CardList {
   String? _currentAttributeFilter;
   String? _currentRaceFilter;
   String? _currentSubTypeFilter;
+  String? _currentFrameFilter;
 
   @override
   Future<CardListState> build() async {
@@ -46,6 +47,7 @@ class CardList extends _$CardList {
     _currentAttributeFilter = null;
     _currentRaceFilter = null;
     _currentSubTypeFilter = null;
+    _currentFrameFilter = null;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -66,6 +68,7 @@ class CardList extends _$CardList {
       attributeFilter: _currentAttributeFilter,
       raceFilter: _currentRaceFilter,
       subTypeFilter: _currentSubTypeFilter,
+      frameFilter: _currentFrameFilter,
     );
   }
 
@@ -73,12 +76,14 @@ class CardList extends _$CardList {
       _currentTypeFilter != null || 
       _currentAttributeFilter != null || 
       _currentRaceFilter != null || 
-      _currentSubTypeFilter != null;
+      _currentSubTypeFilter != null ||
+      _currentFrameFilter != null;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
   String? get currentRaceFilter => _currentRaceFilter;
   String? get currentSubTypeFilter => _currentSubTypeFilter;
+  String? get currentFrameFilter => _currentFrameFilter;
 
   Future<void> loadMore() async {
     final currentState = state.value;
@@ -128,6 +133,7 @@ class CardList extends _$CardList {
       _currentAttributeFilter = null;
       _currentRaceFilter = null;
       _currentSubTypeFilter = null;
+      _currentFrameFilter = null;
     }
     _offset = 0;
 
@@ -144,16 +150,24 @@ class CardList extends _$CardList {
     }
   }
 
-  Future<void> applyFilters({String? type, String? attribute, String? race, String? subType}) async {
+  Future<void> applyFilters({
+    String? type, 
+    String? attribute, 
+    String? race, 
+    String? subType,
+    String? frame,
+  }) async {
     if (_currentTypeFilter == type && 
         _currentAttributeFilter == attribute && 
         _currentRaceFilter == race && 
-        _currentSubTypeFilter == subType) return;
+        _currentSubTypeFilter == subType &&
+        _currentFrameFilter == frame) return;
 
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
     _currentRaceFilter = race;
     _currentSubTypeFilter = subType;
+    _currentFrameFilter = frame;
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -174,6 +188,7 @@ class CardList extends _$CardList {
     _currentAttributeFilter = null;
     _currentRaceFilter = null;
     _currentSubTypeFilter = null;
+    _currentFrameFilter = null;
     _offset = 0;
 
     state = const AsyncValue.loading();

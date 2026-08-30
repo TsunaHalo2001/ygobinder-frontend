@@ -479,6 +479,7 @@ class AppDatabase extends _$AppDatabase {
     String? attributeFilter,
     String? raceFilter,
     String? subTypeFilter, // ✅ Added sub-type filter
+    String? frameFilter, // ✅ Added frame filter
   }) {
     var query = select(cards);
 
@@ -516,6 +517,10 @@ class AppDatabase extends _$AppDatabase {
 
     if (subTypeFilter != null && subTypeFilter.isNotEmpty) {
       query = query..where((t) => t.type.like('%$subTypeFilter%'));
+    }
+
+    if (frameFilter != null && frameFilter.isNotEmpty) {
+      query = query..where((t) => t.frameType.equals(frameFilter));
     }
 
     // Order by name so pagination is consistent
