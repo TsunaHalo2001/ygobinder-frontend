@@ -480,6 +480,7 @@ class AppDatabase extends _$AppDatabase {
     String? raceFilter,
     String? subTypeFilter, // ✅ Added sub-type filter
     String? frameFilter, // ✅ Added frame filter
+    int? levelFilter, // ✅ Added level filter
   }) {
     var query = select(cards);
 
@@ -521,6 +522,15 @@ class AppDatabase extends _$AppDatabase {
 
     if (frameFilter != null && frameFilter.isNotEmpty) {
       query = query..where((t) => t.frameType.equals(frameFilter));
+    }
+
+    if (levelFilter != null) {
+      if (levelFilter == 0) {
+        // ✅ If level is 0, exclude Link monsters (which technically have no level)
+        query = query..where((t) => t.level.equals(0) & t.type.like('%Link%').not());
+      } else {
+        query = query..where((t) => t.level.equals(levelFilter));
+      }
     }
 
     // Order by name so pagination is consistent

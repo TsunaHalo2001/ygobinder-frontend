@@ -90,7 +90,7 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                     icon: const Icon(Icons.filter_list_rounded),
                     style: IconButton.styleFrom(
                       backgroundColor: ref.watch(cardListProvider.notifier).isFiltered
-                          ? Theme.of(context).colorScheme.primary // ✅ Changed color when filtered
+                          ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).colorScheme.secondary.withValues(alpha: 0.8),
                       foregroundColor: ref.watch(cardListProvider.notifier).isFiltered
                           ? Colors.black
@@ -174,8 +174,8 @@ class CardGridItem extends ConsumerWidget {
     if (frame.contains('xyz')) return const Color(0xFF000000);
     if (frame.contains('link')) return const Color(0xFF00008B);
     if (frame.contains('token')) return const Color(0xFFC0C0C0);
-    if (frame.contains('pendulum')) return const Color(0xFF45A29E); // Teal/Gold mix
-    return const Color(0xFF1F2833); // Default Slate
+    if (frame.contains('pendulum')) return const Color(0xFF45A29E); 
+    return const Color(0xFF1F2833); 
   }
 
   Widget _buildBanlistIndicators(BuildContext context) {
@@ -209,7 +209,7 @@ class CardGridItem extends ConsumerWidget {
           Stack(
             alignment: Alignment.center,
             children: [
-              Icon(iconData, color: iconColor, size: 48), // Large enough to act as a frame
+              Icon(iconData, color: iconColor, size: 48), 
               Text(
                 label,
                 style: nameStyle?.copyWith(
@@ -253,14 +253,11 @@ class CardGridItem extends ConsumerWidget {
     final cardColor = _getCardColor();
 
     final isPendulum = card.frameType?.toLowerCase().contains('pendulum') ?? false;
-
-    // Calculate if the background is light or dark to pick the right text color
     final textColor = cardColor.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 4,
-      // If Pendulum, the Card background will be transparent because we use a Gradient in the Container below
       color: isPendulum ? Colors.transparent : cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
@@ -275,10 +272,10 @@ class CardGridItem extends ConsumerWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFF1D9B7F), // Spell color
-                      Color(0xFFFF8B53), // Monster color (Effect)
+                      Color(0xFF1D9B7F), 
+                      Color(0xFFFF8B53), 
                     ],
-                    stops: [0.4, 0.9], // Start transition after the image area
+                    stops: [0.4, 0.9], 
                   ),
                 )
               : null,
@@ -314,7 +311,6 @@ class CardGridItem extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    // ✅ Banlist Indicators in bottom right
                     Positioned(
                       bottom: 4,
                       right: 4,
@@ -360,16 +356,17 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   String? _tempAttribute;
   String? _tempRace;
   String? _tempSubType;
-  String? _tempFrame; // ✅ Added frame
+  String? _tempFrame;
+  int? _tempLevel;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current filter state
     _tempAttribute = ref.read(cardListProvider.notifier).currentAttributeFilter;
     _tempRace = ref.read(cardListProvider.notifier).currentRaceFilter;
     _tempSubType = ref.read(cardListProvider.notifier).currentSubTypeFilter;
     _tempFrame = ref.read(cardListProvider.notifier).currentFrameFilter;
+    _tempLevel = ref.read(cardListProvider.notifier).currentLevelFilter;
   }
 
   @override
@@ -377,7 +374,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     final theme = Theme.of(context);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85, // ✅ Increased height
+      height: MediaQuery.of(context).size.height * 0.85, 
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -418,10 +415,12 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     selectedRace: _tempRace,
                     selectedSubType: _tempSubType,
                     selectedFrame: _tempFrame,
+                    selectedLevel: _tempLevel,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
                     onFrameSelected: (frame) => setState(() => _tempFrame = frame),
+                    onLevelChanged: (level) => setState(() => _tempLevel = level),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -447,11 +446,13 @@ class _FilterTabContent extends ConsumerWidget {
   final String? selectedAttribute;
   final String? selectedRace;
   final String? selectedSubType;
-  final String? selectedFrame; // ✅ Added frame
+  final String? selectedFrame;
+  final int? selectedLevel;
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
   final ValueChanged<String?>? onSubTypeSelected;
-  final ValueChanged<String?>? onFrameSelected; // ✅ Added frame
+  final ValueChanged<String?>? onFrameSelected;
+  final ValueChanged<int?>? onLevelChanged;
 
   const _FilterTabContent({
     required this.type,
@@ -459,10 +460,12 @@ class _FilterTabContent extends ConsumerWidget {
     this.selectedRace,
     this.selectedSubType,
     this.selectedFrame,
+    this.selectedLevel,
     this.onAttributeSelected,
     this.onRaceSelected,
     this.onSubTypeSelected,
     this.onFrameSelected,
+    this.onLevelChanged,
     super.key,
   });
 
@@ -530,6 +533,54 @@ class _FilterTabContent extends ConsumerWidget {
         children: [
           if (isMonster) ...[
             const Text(
+              'LEVEL / RANK:',
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    final current = selectedLevel ?? 0;
+                    if (current > 0) onLevelChanged?.call(current - 1);
+                  },
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                Container(
+                  width: 60,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.primary),
+                    borderRadius: BorderRadius.circular(8),
+                    color: selectedLevel != null ? theme.colorScheme.primary.withValues(alpha: 0.1) : null,
+                  ),
+                  child: Text(
+                    selectedLevel?.toString() ?? 'ANY',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: selectedLevel != null ? theme.colorScheme.primary : Colors.white24,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    final current = selectedLevel ?? 0;
+                    if (current < 13) onLevelChanged?.call(current + 1);
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+                if (selectedLevel != null)
+                  IconButton(
+                    onPressed: () => onLevelChanged?.call(null),
+                    icon: const Icon(Icons.clear, size: 20),
+                    tooltip: 'Clear Level',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            const Text(
               'SELECT CARD TYPE:',
               style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
             ),
@@ -541,7 +592,7 @@ class _FilterTabContent extends ConsumerWidget {
               children: frames.map((f) {
                 final isSelected = selectedFrame == f['name'];
                 final Color frameColor = f['color'] as Color;
-                final bool isVeryDark = frameColor.computeLuminance() < 0.1; // ✅ Specifically check for Black/Dark Blue
+                final bool isVeryDark = frameColor.computeLuminance() < 0.1; 
                 final bool isDark = frameColor.computeLuminance() < 0.5;
 
                 return ChoiceChip(
@@ -551,12 +602,11 @@ class _FilterTabContent extends ConsumerWidget {
                     onFrameSelected?.call(selected ? f['name'] as String : null);
                   },
                   selectedColor: frameColor,
-                  // ✅ Ensure background isn't completely invisible for dark types
                   backgroundColor: isVeryDark ? Colors.white10 : frameColor.withValues(alpha: 0.1),
                   labelStyle: TextStyle(
                     color: isSelected 
                         ? (isDark ? Colors.white : Colors.black87)
-                        : (isVeryDark ? Colors.white60 : frameColor.withValues(alpha: 0.8)), // ✅ Fallback text color
+                        : (isVeryDark ? Colors.white60 : frameColor.withValues(alpha: 0.8)),
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
                   ),
@@ -565,7 +615,7 @@ class _FilterTabContent extends ConsumerWidget {
                     side: BorderSide(
                       color: isSelected 
                           ? Colors.white 
-                          : (isVeryDark ? Colors.white24 : frameColor.withValues(alpha: 0.4)), // ✅ Fallback border color
+                          : (isVeryDark ? Colors.white24 : frameColor.withValues(alpha: 0.4)),
                       width: 1,
                     ),
                   ),
@@ -706,6 +756,7 @@ class _FilterTabContent extends ConsumerWidget {
                 race: isMonster ? selectedRace : null,
                 subType: isMonster ? selectedSubType : null,
                 frame: isMonster ? selectedFrame : null,
+                level: isMonster ? selectedLevel : null,
               );
               Navigator.pop(context);
             },

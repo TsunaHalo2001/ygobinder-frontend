@@ -38,6 +38,7 @@ class CardList extends _$CardList {
   String? _currentRaceFilter;
   String? _currentSubTypeFilter;
   String? _currentFrameFilter;
+  int? _currentLevelFilter;
 
   @override
   Future<CardListState> build() async {
@@ -48,6 +49,7 @@ class CardList extends _$CardList {
     _currentRaceFilter = null;
     _currentSubTypeFilter = null;
     _currentFrameFilter = null;
+    _currentLevelFilter = null;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -69,6 +71,7 @@ class CardList extends _$CardList {
       raceFilter: _currentRaceFilter,
       subTypeFilter: _currentSubTypeFilter,
       frameFilter: _currentFrameFilter,
+      levelFilter: _currentLevelFilter,
     );
   }
 
@@ -77,13 +80,15 @@ class CardList extends _$CardList {
       _currentAttributeFilter != null || 
       _currentRaceFilter != null || 
       _currentSubTypeFilter != null ||
-      _currentFrameFilter != null;
+      _currentFrameFilter != null ||
+      _currentLevelFilter != null;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
   String? get currentRaceFilter => _currentRaceFilter;
   String? get currentSubTypeFilter => _currentSubTypeFilter;
   String? get currentFrameFilter => _currentFrameFilter;
+  int? get currentLevelFilter => _currentLevelFilter;
 
   Future<void> loadMore() async {
     final currentState = state.value;
@@ -134,7 +139,28 @@ class CardList extends _$CardList {
       _currentRaceFilter = null;
       _currentSubTypeFilter = null;
       _currentFrameFilter = null;
+      _currentLevelFilter = null;
     }
+    _offset = 0;
+
+    state = const AsyncValue.loading();
+    try {
+      final initialCards = await _fetchPage(0);
+      state = AsyncValue.data(CardListState(
+        cards: initialCards,
+        hasMore: initialCards.length >= _pageSize,
+      ));
+      _offset = initialCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> setAttributeFilter(String? attribute) async {
+    if (_currentAttributeFilter == attribute) return;
+
+    _currentAttributeFilter = attribute;
+    _currentTypeFilter = 'Monster';
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -156,18 +182,21 @@ class CardList extends _$CardList {
     String? race, 
     String? subType,
     String? frame,
+    int? level,
   }) async {
     if (_currentTypeFilter == type && 
         _currentAttributeFilter == attribute && 
         _currentRaceFilter == race && 
         _currentSubTypeFilter == subType &&
-        _currentFrameFilter == frame) return;
+        _currentFrameFilter == frame &&
+        _currentLevelFilter == level) return;
 
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
     _currentRaceFilter = race;
     _currentSubTypeFilter = subType;
     _currentFrameFilter = frame;
+    _currentLevelFilter = level;
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -189,6 +218,7 @@ class CardList extends _$CardList {
     _currentRaceFilter = null;
     _currentSubTypeFilter = null;
     _currentFrameFilter = null;
+    _currentLevelFilter = null;
     _offset = 0;
 
     state = const AsyncValue.loading();
