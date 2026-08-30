@@ -475,6 +475,8 @@ class AppDatabase extends _$AppDatabase {
     required int offset,
     required int limit,
     String? searchQuery,
+    String? typeFilter,
+    String? attributeFilter, // ✅ Added attribute filter
   }) {
     var query = select(cards);
 
@@ -488,7 +490,6 @@ class AppDatabase extends _$AppDatabase {
         final archetypeMatch = t.archetype.like(safeQuery);
         
         // 3. Matches Set Code (LOB-001, etc.)
-        // Using isInQuery is efficient and handles the "duplicate" problem automatically
         final setCodeMatch = t.id.isInQuery(
           selectOnly(cardSets)
             ..addColumns([cardSets.cardId])
@@ -497,6 +498,14 @@ class AppDatabase extends _$AppDatabase {
 
         return nameMatch | archetypeMatch | setCodeMatch;
       });
+    }
+
+    if (typeFilter != null && typeFilter.isNotEmpty) {
+      query = query..where((t) => t.type.like('%$typeFilter%'));
+    }
+
+    if (attributeFilter != null && attributeFilter.isNotEmpty) {
+      query = query..where((t) => t.attribute.equals(attributeFilter));
     }
 
     // Order by name so pagination is consistent

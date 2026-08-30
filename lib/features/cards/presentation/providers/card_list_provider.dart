@@ -33,11 +33,15 @@ class CardList extends _$CardList {
   int _offset = 0;
   final int _pageSize = 50;
   String _currentSearch = '';
+  String? _currentTypeFilter;
+  String? _currentAttributeFilter;
 
   @override
   Future<CardListState> build() async {
     _offset = 0;
     _currentSearch = '';
+    _currentTypeFilter = null;
+    _currentAttributeFilter = null;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -54,8 +58,15 @@ class CardList extends _$CardList {
       offset: offset,
       limit: _pageSize,
       searchQuery: _currentSearch,
+      typeFilter: _currentTypeFilter,
+      attributeFilter: _currentAttributeFilter,
     );
   }
+
+  bool get isFiltered => _currentTypeFilter != null || _currentAttributeFilter != null;
+
+  String? get currentTypeFilter => _currentTypeFilter;
+  String? get currentAttributeFilter => _currentAttributeFilter;
 
   Future<void> loadMore() async {
     final currentState = state.value;
@@ -82,6 +93,86 @@ class CardList extends _$CardList {
     if (_currentSearch == query) return;
 
     _currentSearch = query;
+    _offset = 0;
+
+    state = const AsyncValue.loading();
+    try {
+      final initialCards = await _fetchPage(0);
+      state = AsyncValue.data(CardListState(
+        cards: initialCards,
+        hasMore: initialCards.length >= _pageSize,
+      ));
+      _offset = initialCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> setTypeFilter(String? type) async {
+    if (_currentTypeFilter == type) return;
+
+    _currentTypeFilter = type;
+    if (type != 'Monster') {
+      _currentAttributeFilter = null;
+    }
+    _offset = 0;
+
+    state = const AsyncValue.loading();
+    try {
+      final initialCards = await _fetchPage(0);
+      state = AsyncValue.data(CardListState(
+        cards: initialCards,
+        hasMore: initialCards.length >= _pageSize,
+      ));
+      _offset = initialCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> setAttributeFilter(String? attribute) async {
+    if (_currentAttributeFilter == attribute) return;
+
+    _currentAttributeFilter = attribute;
+    _currentTypeFilter = 'Monster';
+    _offset = 0;
+
+    state = const AsyncValue.loading();
+    try {
+      final initialCards = await _fetchPage(0);
+      state = AsyncValue.data(CardListState(
+        cards: initialCards,
+        hasMore: initialCards.length >= _pageSize,
+      ));
+      _offset = initialCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> applyFilters({String? type, String? attribute}) async {
+    if (_currentTypeFilter == type && _currentAttributeFilter == attribute) return;
+
+    _currentTypeFilter = type;
+    _currentAttributeFilter = attribute;
+    _offset = 0;
+
+    state = const AsyncValue.loading();
+    try {
+      final initialCards = await _fetchPage(0);
+      state = AsyncValue.data(CardListState(
+        cards: initialCards,
+        hasMore: initialCards.length >= _pageSize,
+      ));
+      _offset = initialCards.length;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> clearFilters() async {
+    _currentTypeFilter = null;
+    _currentAttributeFilter = null;
     _offset = 0;
 
     state = const AsyncValue.loading();

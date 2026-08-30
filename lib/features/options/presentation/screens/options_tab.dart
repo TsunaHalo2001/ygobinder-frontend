@@ -6,6 +6,36 @@ import 'package:go_router/go_router.dart';
 class OptionsTab extends ConsumerWidget {
   const OptionsTab({super.key});
 
+  void _showSyncConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Re-fetch Card Data?'),
+        content: const Text(
+          'This will redownload all Yu-Gi-Oh! card data from the server. '
+          'It may take a few minutes depending on your internet connection.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.go('/sync'); // Reuse the initial sync screen
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+            child: const Text('RE-FETCH'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
@@ -46,7 +76,7 @@ class OptionsTab extends ConsumerWidget {
                     icon: const Icon(Icons.logout),
                     label: const Text('LOGOUT'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent.withOpacity(0.1),
+                      backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                       foregroundColor: Colors.redAccent,
                       side: const BorderSide(color: Colors.redAccent),
                     ),
@@ -54,12 +84,41 @@ class OptionsTab extends ConsumerWidget {
                 ],
               ),
             ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                'Settings coming soon...',
-                style: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic),
-              ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              children: [
+                const SizedBox(height: 8),
+                const Text(
+                  'DATABASE MANAGEMENT',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white38,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.refresh_rounded, color: Colors.blueAccent),
+                  title: const Text('Re-fetch Card Data'),
+                  subtitle: const Text('Redownload all card info and sets from the server.'),
+                  trailing: const Icon(Icons.chevron_right),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                  ),
+                  tileColor: Colors.white.withValues(alpha: 0.05),
+                  onTap: () => _showSyncConfirmation(context),
+                ),
+                const SizedBox(height: 24),
+                const Center(
+                  child: Text(
+                    'More settings coming soon...',
+                    style: TextStyle(color: Colors.white24, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
             ),
           ),
           // Credits and Version at the bottom

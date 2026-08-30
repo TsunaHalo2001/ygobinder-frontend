@@ -40,6 +40,15 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
     }
   }
 
+  void _showFilterMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _FilterBottomSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(cardListProvider);
@@ -73,6 +82,22 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                       onChanged: (value) {
                         ref.read(cardListProvider.notifier).search(value);
                       },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: () => _showFilterMenu(context),
+                    icon: const Icon(Icons.filter_list_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: ref.watch(cardListProvider.notifier).isFiltered
+                          ? Theme.of(context).colorScheme.primary // ✅ Changed color when filtered
+                          : Theme.of(context).colorScheme.secondary.withValues(alpha: 0.8),
+                      foregroundColor: ref.watch(cardListProvider.notifier).isFiltered
+                          ? Colors.black
+                          : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -133,7 +158,6 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
   }
 }
 
-// (Keep your existing CardGridItem widget here)
 class CardGridItem extends ConsumerWidget {
   final YgoCard card;
   const CardGridItem({super.key, required this.card});
@@ -320,6 +344,202 @@ class CardGridItem extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FilterBottomSheet extends ConsumerStatefulWidget {
+  const _FilterBottomSheet({super.key});
+
+  @override
+  ConsumerState<_FilterBottomSheet> createState() => _FilterBottomSheetState();
+}
+
+class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
+  String? _tempAttribute;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with current filter state
+    _tempAttribute = ref.read(cardListProvider.notifier).currentAttributeFilter;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.45,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1),
+      ),
+      child: DefaultTabController(
+        length: 3,
+        initialIndex: _getInitialTabIndex(),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TabBar(
+              labelColor: theme.colorScheme.primary,
+              unselectedLabelColor: Colors.white38,
+              indicatorColor: theme.colorScheme.primary,
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: 'MONSTER'),
+                Tab(text: 'MAGIC'),
+                Tab(text: 'TRAP'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _FilterTabContent(
+                    type: 'Monster',
+                    selectedAttribute: _tempAttribute,
+                    onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
+                  ),
+                  const _FilterTabContent(type: 'Spell'),
+                  const _FilterTabContent(type: 'Trap'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _getInitialTabIndex() {
+    final currentType = ref.read(cardListProvider.notifier).currentTypeFilter;
+    if (currentType == 'Spell') return 1;
+    if (currentType == 'Trap') return 2;
+    return 0;
+  }
+}
+
+class _FilterTabContent extends ConsumerWidget {
+  final String type;
+  final String? selectedAttribute;
+  final ValueChanged<String?>? onAttributeSelected;
+
+  const _FilterTabContent({
+    required this.type,
+    this.selectedAttribute,
+    this.onAttributeSelected,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isMonster = type == 'Monster';
+
+    final attributes = [
+      {'name': 'DARK', 'asset': 'assets/images/attributes/dark.webp'},
+      {'name': 'EARTH', 'asset': 'assets/images/attributes/earth.png'},
+      {'name': 'FIRE', 'asset': 'assets/images/attributes/fire.webp'},
+      {'name': 'LIGHT', 'asset': 'assets/images/attributes/light.png'},
+      {'name': 'WATER', 'asset': 'assets/images/attributes/water.png'},
+      {'name': 'WIND', 'asset': 'assets/images/attributes/wind.webp'},
+      {'name': 'DIVINE', 'asset': 'assets/images/attributes/divine.webp'},
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isMonster) ...[
+            const Text(
+              'SELECT ATTRIBUTE:',
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: attributes.map((attr) {
+                final isSelected = selectedAttribute == attr['name'];
+                return InkWell(
+                  onTap: () {
+                    onAttributeSelected?.call(isSelected ? null : attr['name']!);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(attr['asset']!, width: 32, height: 32),
+                        const SizedBox(height: 4),
+                        Text(
+                          attr['name']!,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? theme.colorScheme.primary : Colors.white38,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+          const Text(
+            'Filter by this type?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(cardListProvider.notifier).applyFilters(
+                type: type,
+                attribute: isMonster ? selectedAttribute : null,
+              );
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: Colors.black,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('FILTER', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () {
+              ref.read(cardListProvider.notifier).clearFilters();
+              Navigator.pop(context);
+            },
+            child: const Text('CLEAR ALL FILTERS', style: TextStyle(color: Colors.white38)),
+          ),
+        ],
       ),
     );
   }
