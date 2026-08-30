@@ -35,6 +35,7 @@ class CardList extends _$CardList {
   String _currentSearch = '';
   String? _currentTypeFilter;
   String? _currentAttributeFilter;
+  String? _currentRaceFilter;
 
   @override
   Future<CardListState> build() async {
@@ -42,6 +43,7 @@ class CardList extends _$CardList {
     _currentSearch = '';
     _currentTypeFilter = null;
     _currentAttributeFilter = null;
+    _currentRaceFilter = null;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -60,13 +62,15 @@ class CardList extends _$CardList {
       searchQuery: _currentSearch,
       typeFilter: _currentTypeFilter,
       attributeFilter: _currentAttributeFilter,
+      raceFilter: _currentRaceFilter,
     );
   }
 
-  bool get isFiltered => _currentTypeFilter != null || _currentAttributeFilter != null;
+  bool get isFiltered => _currentTypeFilter != null || _currentAttributeFilter != null || _currentRaceFilter != null;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
+  String? get currentRaceFilter => _currentRaceFilter;
 
   Future<void> loadMore() async {
     final currentState = state.value;
@@ -114,6 +118,7 @@ class CardList extends _$CardList {
     _currentTypeFilter = type;
     if (type != 'Monster') {
       _currentAttributeFilter = null;
+      _currentRaceFilter = null;
     }
     _offset = 0;
 
@@ -150,11 +155,12 @@ class CardList extends _$CardList {
     }
   }
 
-  Future<void> applyFilters({String? type, String? attribute}) async {
-    if (_currentTypeFilter == type && _currentAttributeFilter == attribute) return;
+  Future<void> applyFilters({String? type, String? attribute, String? race}) async {
+    if (_currentTypeFilter == type && _currentAttributeFilter == attribute && _currentRaceFilter == race) return;
 
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
+    _currentRaceFilter = race;
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -173,6 +179,7 @@ class CardList extends _$CardList {
   Future<void> clearFilters() async {
     _currentTypeFilter = null;
     _currentAttributeFilter = null;
+    _currentRaceFilter = null;
     _offset = 0;
 
     state = const AsyncValue.loading();

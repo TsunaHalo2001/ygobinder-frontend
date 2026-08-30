@@ -90,6 +90,7 @@ flutter:
     - assets/images/attributes/
     - assets/images/arrows/
     - assets/images/icon/
+    - assets/images/races/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

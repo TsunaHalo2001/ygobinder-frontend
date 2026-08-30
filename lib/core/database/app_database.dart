@@ -476,7 +476,8 @@ class AppDatabase extends _$AppDatabase {
     required int limit,
     String? searchQuery,
     String? typeFilter,
-    String? attributeFilter, // ✅ Added attribute filter
+    String? attributeFilter,
+    String? raceFilter, // ✅ Added race filter
   }) {
     var query = select(cards);
 
@@ -506,6 +507,10 @@ class AppDatabase extends _$AppDatabase {
 
     if (attributeFilter != null && attributeFilter.isNotEmpty) {
       query = query..where((t) => t.attribute.equals(attributeFilter));
+    }
+
+    if (raceFilter != null && raceFilter.isNotEmpty) {
+      query = query..where((t) => t.race.equals(raceFilter));
     }
 
     // Order by name so pagination is consistent

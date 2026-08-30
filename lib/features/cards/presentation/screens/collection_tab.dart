@@ -358,12 +358,14 @@ class _FilterBottomSheet extends ConsumerStatefulWidget {
 
 class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   String? _tempAttribute;
+  String? _tempRace;
 
   @override
   void initState() {
     super.initState();
     // Initialize with current filter state
     _tempAttribute = ref.read(cardListProvider.notifier).currentAttributeFilter;
+    _tempRace = ref.read(cardListProvider.notifier).currentRaceFilter;
   }
 
   @override
@@ -371,7 +373,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     final theme = Theme.of(context);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.45,
+      height: MediaQuery.of(context).size.height * 0.7, // ✅ Increased height for extra selector
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -409,7 +411,9 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                   _FilterTabContent(
                     type: 'Monster',
                     selectedAttribute: _tempAttribute,
+                    selectedRace: _tempRace,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
+                    onRaceSelected: (race) => setState(() => _tempRace = race),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -433,12 +437,16 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
 class _FilterTabContent extends ConsumerWidget {
   final String type;
   final String? selectedAttribute;
+  final String? selectedRace;
   final ValueChanged<String?>? onAttributeSelected;
+  final ValueChanged<String?>? onRaceSelected;
 
   const _FilterTabContent({
     required this.type,
     this.selectedAttribute,
+    this.selectedRace,
     this.onAttributeSelected,
+    this.onRaceSelected,
     super.key,
   });
 
@@ -455,6 +463,34 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'WATER', 'asset': 'assets/images/attributes/water.png'},
       {'name': 'WIND', 'asset': 'assets/images/attributes/wind.webp'},
       {'name': 'DIVINE', 'asset': 'assets/images/attributes/divine.webp'},
+    ];
+
+    final races = [
+      {'name': 'Aqua', 'asset': 'assets/images/races/aqua.png'},
+      {'name': 'Beast', 'asset': 'assets/images/races/beast.png'},
+      {'name': 'Beast-Warrior', 'asset': 'assets/images/races/beast_warrior.png'},
+      {'name': 'Cyberse', 'asset': 'assets/images/races/cyberse.png'},
+      {'name': 'Dinosaur', 'asset': 'assets/images/races/dinosaur.png'},
+      {'name': 'Divine-Beast', 'asset': 'assets/images/races/divine_beast.png'},
+      {'name': 'Dragon', 'asset': 'assets/images/races/dragon.png'},
+      {'name': 'Fairy', 'asset': 'assets/images/races/fairy.png'},
+      {'name': 'Fiend', 'asset': 'assets/images/races/demon.png'},
+      {'name': 'Fish', 'asset': 'assets/images/races/fish.png'},
+      {'name': 'Illusion', 'asset': 'assets/images/races/illusion.png'},
+      {'name': 'Insect', 'asset': 'assets/images/races/insect.png'},
+      {'name': 'Machine', 'asset': 'assets/images/races/machine.png'},
+      {'name': 'Plant', 'asset': 'assets/images/races/plant.png'},
+      {'name': 'Psychic', 'asset': 'assets/images/races/psychic.png'},
+      {'name': 'Pyro', 'asset': 'assets/images/races/pyro.png'},
+      {'name': 'Reptile', 'asset': 'assets/images/races/reptile.png'},
+      {'name': 'Rock', 'asset': 'assets/images/races/rock.png'},
+      {'name': 'Sea Serpent', 'asset': 'assets/images/races/sea_serpent.png'},
+      {'name': 'Spellcaster', 'asset': 'assets/images/races/spellcaster.png'},
+      {'name': 'Thunder', 'asset': 'assets/images/races/thunder.png'},
+      {'name': 'Warrior', 'asset': 'assets/images/races/warrior.png'},
+      {'name': 'Winged Beast', 'asset': 'assets/images/races/winged_beast.png'},
+      {'name': 'Wyrm', 'asset': 'assets/images/races/wyrm.png'},
+      {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
     ];
 
     return SingleChildScrollView(
@@ -508,7 +544,53 @@ class _FilterTabContent extends ConsumerWidget {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
+            const Text(
+              'SELECT MONSTER TYPE:',
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: races.map((race) {
+                final isSelected = selectedRace == race['name'];
+                return InkWell(
+                  onTap: () {
+                    onRaceSelected?.call(isSelected ? null : race['name']!);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(race['asset']!, width: 32, height: 32),
+                        const SizedBox(height: 4),
+                        Text(
+                          race['name']!.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? theme.colorScheme.primary : Colors.white38,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
           ],
           const Text(
             'Filter by this type?',
@@ -520,6 +602,7 @@ class _FilterTabContent extends ConsumerWidget {
               ref.read(cardListProvider.notifier).applyFilters(
                 type: type,
                 attribute: isMonster ? selectedAttribute : null,
+                race: isMonster ? selectedRace : null,
               );
               Navigator.pop(context);
             },
