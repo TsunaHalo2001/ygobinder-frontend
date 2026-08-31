@@ -392,7 +392,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
               unselectedLabelColor: Colors.white38,
               indicatorColor: theme.colorScheme.primary,
               dividerColor: Colors.transparent,
-              tabs: const [Tab(text: 'MONSTER'), Tab(text: 'MAGIC'), Tab(text: 'TRAP')],
+              tabs: const [Tab(text: 'MONSTER'), Tab(text: 'SPELL'), Tab(text: 'TRAP')],
             ),
             Expanded(
               child: TabBarView(
@@ -424,8 +424,16 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     onDefOperatorChanged: (op) => setState(() => _tempDefOperator = op),
                     onDefShowQuestionMarkChanged: (show) => setState(() => _tempDefShowQuestionMark = show),
                   ),
-                  const _FilterTabContent(type: 'Spell'),
-                  const _FilterTabContent(type: 'Trap'),
+                  _FilterTabContent(
+                    type: 'Spell',
+                    selectedRace: _tempRace,
+                    onRaceSelected: (race) => setState(() => _tempRace = race),
+                  ),
+                  _FilterTabContent(
+                    type: 'Trap',
+                    selectedRace: _tempRace,
+                    onRaceSelected: (race) => setState(() => _tempRace = race),
+                  ),
                 ],
               ),
             ),
@@ -504,6 +512,9 @@ class _FilterTabContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isMonster = type == 'Monster';
+    final isSpell = type == 'Spell';
+    final isTrap = type == 'Trap';
+
     final attributes = [
       {'name': 'DARK', 'asset': 'assets/images/attributes/dark.webp'},
       {'name': 'EARTH', 'asset': 'assets/images/attributes/earth.png'},
@@ -513,7 +524,8 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'WIND', 'asset': 'assets/images/attributes/wind.webp'},
       {'name': 'DIVINE', 'asset': 'assets/images/attributes/divine.webp'},
     ];
-    final races = [
+
+    final monsterRaces = [
       {'name': 'Aqua', 'asset': 'assets/images/races/aqua.png'},
       {'name': 'Beast', 'asset': 'assets/images/races/beast.png'},
       {'name': 'Beast-Warrior', 'asset': 'assets/images/races/beast_warrior.png'},
@@ -540,6 +552,22 @@ class _FilterTabContent extends ConsumerWidget {
       {'name': 'Wyrm', 'asset': 'assets/images/races/wyrm.png'},
       {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
     ];
+
+    final spellRaces = [
+      {'name': 'Normal', 'asset': null},
+      {'name': 'Continuous', 'asset': 'assets/images/attributes/continuous.png'},
+      {'name': 'Equip', 'asset': 'assets/images/attributes/equip.webp'},
+      {'name': 'Field', 'asset': 'assets/images/attributes/field.png'},
+      {'name': 'Quick-Play', 'asset': 'assets/images/attributes/quickplay.webp'},
+      {'name': 'Ritual', 'asset': 'assets/images/attributes/ritual.webp'},
+    ];
+
+    final trapRaces = [
+      {'name': 'Normal', 'asset': null},
+      {'name': 'Continuous', 'asset': 'assets/images/attributes/continuous.png'},
+      {'name': 'Counter', 'asset': 'assets/images/attributes/counter.webp'},
+    ];
+
     final frames = [
       {'name': 'normal', 'label': 'NORMAL', 'color': const Color(0xFFFDE68A)},
       {'name': 'effect', 'label': 'EFFECT', 'color': const Color(0xFFFF8B53)},
@@ -644,7 +672,7 @@ class _FilterTabContent extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: races.map((race) {
+              children: monsterRaces.map((race) {
                 final isSelected = selectedRace == race['name'];
                 return InkWell(
                   onTap: () => onRaceSelected?.call(isSelected ? null : race['name']!),
@@ -688,6 +716,59 @@ class _FilterTabContent extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
           ],
+
+          if (isSpell || isTrap) ...[
+            Text(
+              'SELECT ${type.toUpperCase()} TYPE:',
+              style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: (isSpell ? spellRaces : trapRaces).map((race) {
+                final isSelected = selectedRace == race['name'];
+                return InkWell(
+                  onTap: () {
+                    onRaceSelected?.call(isSelected ? null : race['name'] as String);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (race['asset'] != null)
+                          Image.asset(race['asset'] as String, width: 24, height: 24)
+                        else
+                          const SizedBox(width: 24, height: 24), 
+                        const SizedBox(height: 8),
+                        Text(
+                          (race['name'] as String).toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? theme.colorScheme.primary : Colors.white38,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+          ],
+
           const Text('Filter by this type?', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -695,7 +776,7 @@ class _FilterTabContent extends ConsumerWidget {
               ref.read(cardListProvider.notifier).applyFilters(
                     type: type,
                     attribute: isMonster ? selectedAttribute : null,
-                    race: isMonster ? selectedRace : null,
+                    race: (isSpell || isTrap || isMonster) ? selectedRace : null,
                     subType: isMonster ? selectedSubType : null,
                     frame: isMonster ? selectedFrame : null,
                     level: isMonster ? selectedLevel : null,
