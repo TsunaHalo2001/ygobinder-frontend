@@ -489,6 +489,8 @@ class AppDatabase extends _$AppDatabase {
     int? defFilter,
     String? defOperator,
     bool? defShowQuestionMark, // ✅ Added
+    String? sortBy, // ✅ Added sort field
+    bool sortDescending = false, // ✅ Added sort direction
   }) {
     var query = select(cards);
 
@@ -586,8 +588,22 @@ class AppDatabase extends _$AppDatabase {
       }
     }
 
-    // Order by name so pagination is consistent
-    query = query..orderBy([(t) => OrderingTerm.asc(t.name)]);
+    // ✅ Dynamic Ordering
+    query = query..orderBy([
+      (t) {
+        final mode = sortDescending ? OrderingMode.desc : OrderingMode.asc;
+        switch (sortBy) {
+          case 'atk':
+            // Monsters with stats first, then sort by value, Spells/Traps last
+            return OrderingTerm(expression: t.atk, mode: mode, nulls: NullsOrder.last);
+          case 'def':
+            return OrderingTerm(expression: t.def, mode: mode, nulls: NullsOrder.last);
+          case 'name':
+          default:
+            return OrderingTerm(expression: t.name, mode: mode);
+        }
+      }
+    ]);
 
     // LIMIT X OFFSET Y is the magic of pagination
     query.limit(limit, offset: offset);

@@ -131,7 +131,9 @@ class CardRepository {
     bool? atkShowQuestionMark, // ✅ Added
     int? defFilter,
     String? defOperator,
-    bool? defShowQuestionMark, // ✅ Added
+    bool? defShowQuestionMark,
+    String? sortBy, // ✅ Added sort field
+    bool sortDescending = false, // ✅ Added sort direction
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
@@ -151,6 +153,8 @@ class CardRepository {
       defFilter: defFilter,
       defOperator: defOperator,
       defShowQuestionMark: defShowQuestionMark,
+      sortBy: sortBy, // ✅ Passed sortBy
+      sortDescending: sortDescending, // ✅ Passed sortDescending
     );
 
     if (driftCards.isEmpty) return [];

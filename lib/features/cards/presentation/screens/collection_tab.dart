@@ -47,6 +47,14 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
     );
   }
 
+  void _showSortMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _SortBottomSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cardsAsync = ref.watch(cardListProvider);
@@ -83,8 +91,21 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    onPressed: () => _showFilterMenu(context),
+                    onPressed: () => _showSortMenu(context),
                     icon: const Icon(Icons.filter_list_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
+                      foregroundColor: Theme.of(context).colorScheme.secondary,
+                      side: BorderSide(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: () => _showFilterMenu(context),
+                    icon: const Icon(Icons.tune_rounded),
                     style: IconButton.styleFrom(
                       backgroundColor: ref.watch(cardListProvider.notifier).isFiltered
                           ? Theme.of(context).colorScheme.primary
@@ -448,6 +469,111 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     if (currentType == 'Spell') return 1;
     if (currentType == 'Trap') return 2;
     return 0;
+  }
+}
+
+class _SortBottomSheet extends ConsumerWidget {
+  const _SortBottomSheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final notifier = ref.read(cardListProvider.notifier);
+    final sortBy = notifier.currentSortBy;
+    final descending = notifier.currentSortDescending;
+
+    final options = [
+      {'label': 'A-Z', 'field': 'name', 'desc': false, 'icon': Icons.sort_by_alpha_rounded},
+      {'label': 'Z-A', 'field': 'name', 'desc': true, 'icon': Icons.sort_by_alpha_rounded},
+      {'label': 'ATK ASC', 'field': 'atk', 'desc': false, 'icon': Icons.trending_up_rounded},
+      {'label': 'ATK DESC', 'field': 'atk', 'desc': true, 'icon': Icons.trending_down_rounded},
+      {'label': 'DEF ASC', 'field': 'def', 'desc': false, 'icon': Icons.trending_up_rounded},
+      {'label': 'DEF DESC', 'field': 'def', 'desc': true, 'icon': Icons.trending_down_rounded},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'ORDER BY',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisExtent: 60,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: options.length,
+            itemBuilder: (context, index) {
+              final opt = options[index];
+              final isSelected = sortBy == opt['field'] && descending == opt['desc'];
+              
+              return InkWell(
+                onTap: () {
+                  ref.read(cardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
+                  Navigator.pop(context);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? theme.colorScheme.primary : Colors.white10,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        opt['icon'] as IconData,
+                        size: 18,
+                        color: isSelected ? theme.colorScheme.primary : Colors.white38,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        opt['label'] as String,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isSelected ? theme.colorScheme.primary : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
   }
 }
 
