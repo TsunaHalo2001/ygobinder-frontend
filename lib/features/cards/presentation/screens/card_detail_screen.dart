@@ -494,11 +494,12 @@ class _CardInfo extends ConsumerWidget {
     void addStatus(String? status, String label) {
       if (status == null) return;
       final String s = status.toLowerCase();
-      final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden';
-      final bool isLimited = s == 'limited';
-      final bool isSemiLimited = s == 'semi-limited' || s == 'semilimited';
+      final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0';
+      final bool isLimited = s == 'limited' || s == '1';
+      final bool isSemiLimited = s == 'semi-limited' || s == 'semilimited' || s == '2';
+      final bool isEdisonUnlimited = label == 'EDI' && (s == 'unlimited' || s == '3');
 
-      if (isBanned || isLimited || isSemiLimited) {
+      if (isBanned || isLimited || isSemiLimited || isEdisonUnlimited) {
         IconData iconData = Icons.block;
         Color iconColor = Colors.redAccent;
 
@@ -508,6 +509,9 @@ class _CardInfo extends ConsumerWidget {
         } else if (isSemiLimited) {
           iconData = Icons.looks_two_outlined;
           iconColor = Colors.yellowAccent;
+        } else if (isEdisonUnlimited) {
+          iconData = Icons.looks_3_outlined; // ✅ Visual for 3 copies in Edison
+          iconColor = Colors.greenAccent;
         }
 
         items.add(
@@ -551,27 +555,27 @@ class _CardInfo extends ConsumerWidget {
     
     // ✅ Edison Status
     if (info.banEdison != null) {
-      addStatus(info.banEdison, 'EDISON');
+      addStatus(info.banEdison, 'EDI');
     }
 
     if (items.isEmpty) {
-      // ✅ Special indicator if available in Edison
+      // ✅ Special indicator if available in Edison (Now Green with "EDI")
       if (info.banEdison != null) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.blue.withValues(alpha: 0.2),
+            color: Colors.green.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.blueAccent),
+            border: Border.all(color: Colors.greenAccent),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
-              Icon(Icons.bolt_rounded, color: Colors.blueAccent, size: 18),
+              Icon(Icons.verified_rounded, color: Colors.greenAccent, size: 18),
               SizedBox(width: 8),
               Text(
-                'EDISON LEGAL',
-                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                'EDI',
+                style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold),
               ),
             ],
           ),
