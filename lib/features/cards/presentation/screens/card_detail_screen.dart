@@ -548,8 +548,37 @@ class _CardInfo extends ConsumerWidget {
     addStatus(info.banTcg, 'TCG');
     addStatus(info.banOcg, 'OCG');
     addStatus(info.banGoat, 'GOAT');
+    
+    // ✅ Edison Status
+    if (info.banEdison != null) {
+      addStatus(info.banEdison, 'EDISON');
+    }
 
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (items.isEmpty) {
+      // ✅ Special indicator if available in Edison
+      if (info.banEdison != null) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.blue.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.blueAccent),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.bolt_rounded, color: Colors.blueAccent, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'EDISON LEGAL',
+                style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
 
     return Wrap(
       spacing: 24,

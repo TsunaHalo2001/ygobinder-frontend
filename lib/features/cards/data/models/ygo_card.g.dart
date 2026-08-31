@@ -58,6 +58,7 @@ _BanlistInfo _$BanlistInfoFromJson(Map<String, dynamic> json) => _BanlistInfo(
   banTcg: json['ban_tcg'] as String?,
   banOcg: json['ban_ocg'] as String?,
   banGoat: json['ban_goat'] as String?,
+  banEdison: json['ban_edison'] as String?,
 );
 
 Map<String, dynamic> _$BanlistInfoToJson(_BanlistInfo instance) =>
@@ -65,7 +66,18 @@ Map<String, dynamic> _$BanlistInfoToJson(_BanlistInfo instance) =>
       'ban_tcg': instance.banTcg,
       'ban_ocg': instance.banOcg,
       'ban_goat': instance.banGoat,
+      'ban_edison': instance.banEdison,
     };
+
+_MiscInfo _$MiscInfoFromJson(Map<String, dynamic> json) => _MiscInfo(
+  tcgDate: json['tcg_date'] as String?,
+  ocgDate: json['ocg_date'] as String?,
+);
+
+Map<String, dynamic> _$MiscInfoToJson(_MiscInfo instance) => <String, dynamic>{
+  'tcg_date': instance.tcgDate,
+  'ocg_date': instance.ocgDate,
+};
 
 _YgoCard _$YgoCardFromJson(Map<String, dynamic> json) => _YgoCard(
   id: _parseRequiredInt(json['id']),
@@ -103,6 +115,9 @@ _YgoCard _$YgoCardFromJson(Map<String, dynamic> json) => _YgoCard(
   cardPrices: (json['card_prices'] as List<dynamic>?)
       ?.map((e) => CardPrice.fromJson(e as Map<String, dynamic>))
       .toList(),
+  miscInfo: (json['misc_info'] as List<dynamic>?)
+      ?.map((e) => MiscInfo.fromJson(e as Map<String, dynamic>))
+      .toList(),
 );
 
 Map<String, dynamic> _$YgoCardToJson(_YgoCard instance) => <String, dynamic>{
@@ -129,4 +144,5 @@ Map<String, dynamic> _$YgoCardToJson(_YgoCard instance) => <String, dynamic>{
   'banlist_info': instance.banlistInfo,
   'card_images': instance.cardImages,
   'card_prices': instance.cardPrices,
+  'misc_info': instance.miscInfo,
 };

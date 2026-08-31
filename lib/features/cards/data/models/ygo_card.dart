@@ -83,9 +83,21 @@ abstract class BanlistInfo with _$BanlistInfo {
     @JsonKey(name: 'ban_tcg') String? banTcg,
     @JsonKey(name: 'ban_ocg') String? banOcg,
     @JsonKey(name: 'ban_goat') String? banGoat,
+    @JsonKey(name: 'ban_edison') String? banEdison, // ✅ Added Edison
   }) = _BanlistInfo;
 
   factory BanlistInfo.fromJson(Map<String, dynamic> json) => _$BanlistInfoFromJson(json);
+}
+
+// Misc Info
+@freezed
+abstract class MiscInfo with _$MiscInfo {
+  const factory MiscInfo({
+    @JsonKey(name: 'tcg_date') String? tcgDate,
+    @JsonKey(name: 'ocg_date') String? ocgDate,
+  }) = _MiscInfo;
+
+  factory MiscInfo.fromJson(Map<String, dynamic> json) => _$MiscInfoFromJson(json);
 }
 
 // Card
@@ -117,6 +129,7 @@ abstract class YgoCard with _$YgoCard {
     @JsonKey(name: 'banlist_info') BanlistInfo? banlistInfo,
     @JsonKey(name: 'card_images') List<CardImage>? cardImages,
     @JsonKey(name: 'card_prices') List<CardPrice>? cardPrices,
+    @JsonKey(name: 'misc_info') List<MiscInfo>? miscInfo, // ✅ Added misc_info
   }) = _YgoCard;
 
   factory YgoCard.fromJson(Map<String, dynamic> json) => _$YgoCardFromJson(json);

@@ -29,6 +29,12 @@ class CardMapper {
       monsterDesc: Value(card.monsterDesc),
       typeLineJson: Value(card.typeLine != null ? jsonEncode(card.typeLine) : null),
       linkMarkersJson: Value(card.linkMarkers != null ? jsonEncode(card.linkMarkers) : null),
+      tcgDate: Value(card.miscInfo != null && card.miscInfo!.isNotEmpty 
+          ? DateTime.tryParse(card.miscInfo!.first.tcgDate ?? '') 
+          : null),
+      ocgDate: Value(card.miscInfo != null && card.miscInfo!.isNotEmpty 
+          ? DateTime.tryParse(card.miscInfo!.first.ocgDate ?? '') 
+          : null),
     );
   }
 
@@ -91,6 +97,7 @@ class CardMapper {
       banTcg: Value(banlist.banTcg),
       banOcg: Value(banlist.banOcg),
       banGoat: Value(banlist.banGoat),
+      banEdison: Value(banlist.banEdison),
     );
   }
 
@@ -129,6 +136,14 @@ class CardMapper {
       cardPrices: prices.map(_toCardPrice).toList(),
       cardSets: sets.map(_toCardSet).toList(),
       banlistInfo: banlist != null ? _toBanlistInfo(banlist) : null,
+      miscInfo: (card.tcgDate != null || card.ocgDate != null)
+          ? [
+              MiscInfo(
+                tcgDate: card.tcgDate?.toIso8601String().split('T').first,
+                ocgDate: card.ocgDate?.toIso8601String().split('T').first,
+              )
+            ]
+          : null,
     );
   }
 
@@ -183,6 +198,7 @@ class CardMapper {
       banTcg: banlist.banTcg,
       banOcg: banlist.banOcg,
       banGoat: banlist.banGoat,
+      banEdison: banlist.banEdison,
     );
   }
 }

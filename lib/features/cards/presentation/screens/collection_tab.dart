@@ -244,7 +244,23 @@ class CardGridItem extends ConsumerWidget {
     addIcon(info.banTcg, 'TCG');
     addIcon(info.banOcg, 'OCG');
     addIcon(info.banGoat, 'GOAT');
-    if (items.isEmpty) return const SizedBox.shrink();
+    
+    // ✅ Edison Banlist Icon
+    if (info.banEdison != null) {
+      addIcon(info.banEdison, 'EDI');
+    }
+
+    if (items.isEmpty) {
+      // ✅ Special Icon for cards available in Edison
+      if (info.banEdison != null) {
+        return Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.3), shape: BoxShape.circle),
+          child: const Text('E', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+        );
+      }
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)),
@@ -485,6 +501,8 @@ class _SortBottomSheet extends ConsumerWidget {
     final options = [
       {'label': 'A-Z', 'field': 'name', 'desc': false, 'icon': Icons.sort_by_alpha_rounded},
       {'label': 'Z-A', 'field': 'name', 'desc': true, 'icon': Icons.sort_by_alpha_rounded},
+      {'label': 'DATE ASC', 'field': 'tcgDate', 'desc': false, 'icon': Icons.calendar_today_rounded},
+      {'label': 'DATE DESC', 'field': 'tcgDate', 'desc': true, 'icon': Icons.calendar_today_rounded},
       {'label': 'ATK ASC', 'field': 'atk', 'desc': false, 'icon': Icons.trending_up_rounded},
       {'label': 'ATK DESC', 'field': 'atk', 'desc': true, 'icon': Icons.trending_down_rounded},
       {'label': 'DEF ASC', 'field': 'def', 'desc': false, 'icon': Icons.trending_up_rounded},

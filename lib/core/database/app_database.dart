@@ -40,6 +40,8 @@ class Cards extends Table {
   TextColumn get monsterDesc => text().nullable()();
   TextColumn get typeLineJson => text().nullable()();
   TextColumn get linkMarkersJson => text().nullable()();
+  DateTimeColumn get tcgDate => dateTime().nullable()();
+  DateTimeColumn get ocgDate => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -83,6 +85,7 @@ class BanlistInfos extends Table {
   TextColumn get banTcg => text().nullable()();
   TextColumn get banOcg => text().nullable()();
   TextColumn get banGoat => text().nullable()();
+  TextColumn get banEdison => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {cardId};
@@ -129,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -156,6 +159,15 @@ class AppDatabase extends _$AppDatabase {
         // Add indexes for the new columns using raw SQL for simplicity
         await customStatement('CREATE INDEX IF NOT EXISTS collection_items_col_num_idx ON collection_items (collection_number)');
         await customStatement('CREATE INDEX IF NOT EXISTS collection_items_print_idx ON collection_items (card_id, set_code, rarity)');
+      }
+      if (from < 5) {
+        // Ensure columns exist with correct DateTime type (Handles both v4 and v5)
+        await m.addColumn(cards, cards.tcgDate);
+        await m.addColumn(cards, cards.ocgDate);
+      }
+      if (from < 6) {
+        // Add Edison banlist to BanlistInfos table
+        await m.addColumn(banlistInfos, banlistInfos.banEdison);
       }
     },
     beforeOpen: (details) async {
@@ -598,6 +610,8 @@ class AppDatabase extends _$AppDatabase {
             return OrderingTerm(expression: t.atk, mode: mode, nulls: NullsOrder.last);
           case 'def':
             return OrderingTerm(expression: t.def, mode: mode, nulls: NullsOrder.last);
+          case 'tcgDate':
+            return OrderingTerm(expression: t.tcgDate, mode: mode, nulls: NullsOrder.last);
           case 'name':
           default:
             return OrderingTerm(expression: t.name, mode: mode);

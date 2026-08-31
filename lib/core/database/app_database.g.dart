@@ -199,6 +199,28 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, DriftCard> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tcgDateMeta = const VerificationMeta(
+    'tcgDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> tcgDate = GeneratedColumn<DateTime>(
+    'tcg_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ocgDateMeta = const VerificationMeta(
+    'ocgDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> ocgDate = GeneratedColumn<DateTime>(
+    'ocg_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -220,6 +242,8 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, DriftCard> {
     monsterDesc,
     typeLineJson,
     linkMarkersJson,
+    tcgDate,
+    ocgDate,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -369,6 +393,18 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, DriftCard> {
         ),
       );
     }
+    if (data.containsKey('tcg_date')) {
+      context.handle(
+        _tcgDateMeta,
+        tcgDate.isAcceptableOrUnknown(data['tcg_date']!, _tcgDateMeta),
+      );
+    }
+    if (data.containsKey('ocg_date')) {
+      context.handle(
+        _ocgDateMeta,
+        ocgDate.isAcceptableOrUnknown(data['ocg_date']!, _ocgDateMeta),
+      );
+    }
     return context;
   }
 
@@ -454,6 +490,14 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, DriftCard> {
         DriftSqlType.string,
         data['${effectivePrefix}link_markers_json'],
       ),
+      tcgDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}tcg_date'],
+      ),
+      ocgDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ocg_date'],
+      ),
     );
   }
 
@@ -483,6 +527,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
   final String? monsterDesc;
   final String? typeLineJson;
   final String? linkMarkersJson;
+  final DateTime? tcgDate;
+  final DateTime? ocgDate;
   const DriftCard({
     required this.id,
     required this.name,
@@ -503,6 +549,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
     this.monsterDesc,
     this.typeLineJson,
     this.linkMarkersJson,
+    this.tcgDate,
+    this.ocgDate,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -552,6 +600,12 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
     if (!nullToAbsent || linkMarkersJson != null) {
       map['link_markers_json'] = Variable<String>(linkMarkersJson);
     }
+    if (!nullToAbsent || tcgDate != null) {
+      map['tcg_date'] = Variable<DateTime>(tcgDate);
+    }
+    if (!nullToAbsent || ocgDate != null) {
+      map['ocg_date'] = Variable<DateTime>(ocgDate);
+    }
     return map;
   }
 
@@ -598,6 +652,12 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
       linkMarkersJson: linkMarkersJson == null && nullToAbsent
           ? const Value.absent()
           : Value(linkMarkersJson),
+      tcgDate: tcgDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tcgDate),
+      ocgDate: ocgDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ocgDate),
     );
   }
 
@@ -628,6 +688,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
       monsterDesc: serializer.fromJson<String?>(json['monsterDesc']),
       typeLineJson: serializer.fromJson<String?>(json['typeLineJson']),
       linkMarkersJson: serializer.fromJson<String?>(json['linkMarkersJson']),
+      tcgDate: serializer.fromJson<DateTime?>(json['tcgDate']),
+      ocgDate: serializer.fromJson<DateTime?>(json['ocgDate']),
     );
   }
   @override
@@ -655,6 +717,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
       'monsterDesc': serializer.toJson<String?>(monsterDesc),
       'typeLineJson': serializer.toJson<String?>(typeLineJson),
       'linkMarkersJson': serializer.toJson<String?>(linkMarkersJson),
+      'tcgDate': serializer.toJson<DateTime?>(tcgDate),
+      'ocgDate': serializer.toJson<DateTime?>(ocgDate),
     };
   }
 
@@ -678,6 +742,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
     Value<String?> monsterDesc = const Value.absent(),
     Value<String?> typeLineJson = const Value.absent(),
     Value<String?> linkMarkersJson = const Value.absent(),
+    Value<DateTime?> tcgDate = const Value.absent(),
+    Value<DateTime?> ocgDate = const Value.absent(),
   }) => DriftCard(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -702,6 +768,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
     linkMarkersJson: linkMarkersJson.present
         ? linkMarkersJson.value
         : this.linkMarkersJson,
+    tcgDate: tcgDate.present ? tcgDate.value : this.tcgDate,
+    ocgDate: ocgDate.present ? ocgDate.value : this.ocgDate,
   );
   DriftCard copyWithCompanion(CardsCompanion data) {
     return DriftCard(
@@ -734,6 +802,8 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
       linkMarkersJson: data.linkMarkersJson.present
           ? data.linkMarkersJson.value
           : this.linkMarkersJson,
+      tcgDate: data.tcgDate.present ? data.tcgDate.value : this.tcgDate,
+      ocgDate: data.ocgDate.present ? data.ocgDate.value : this.ocgDate,
     );
   }
 
@@ -758,13 +828,15 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
           ..write('pendDesc: $pendDesc, ')
           ..write('monsterDesc: $monsterDesc, ')
           ..write('typeLineJson: $typeLineJson, ')
-          ..write('linkMarkersJson: $linkMarkersJson')
+          ..write('linkMarkersJson: $linkMarkersJson, ')
+          ..write('tcgDate: $tcgDate, ')
+          ..write('ocgDate: $ocgDate')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     name,
     type,
@@ -784,7 +856,9 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
     monsterDesc,
     typeLineJson,
     linkMarkersJson,
-  );
+    tcgDate,
+    ocgDate,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -807,7 +881,9 @@ class DriftCard extends DataClass implements Insertable<DriftCard> {
           other.pendDesc == this.pendDesc &&
           other.monsterDesc == this.monsterDesc &&
           other.typeLineJson == this.typeLineJson &&
-          other.linkMarkersJson == this.linkMarkersJson);
+          other.linkMarkersJson == this.linkMarkersJson &&
+          other.tcgDate == this.tcgDate &&
+          other.ocgDate == this.ocgDate);
 }
 
 class CardsCompanion extends UpdateCompanion<DriftCard> {
@@ -830,6 +906,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
   final Value<String?> monsterDesc;
   final Value<String?> typeLineJson;
   final Value<String?> linkMarkersJson;
+  final Value<DateTime?> tcgDate;
+  final Value<DateTime?> ocgDate;
   const CardsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -850,6 +928,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
     this.monsterDesc = const Value.absent(),
     this.typeLineJson = const Value.absent(),
     this.linkMarkersJson = const Value.absent(),
+    this.tcgDate = const Value.absent(),
+    this.ocgDate = const Value.absent(),
   });
   CardsCompanion.insert({
     this.id = const Value.absent(),
@@ -871,6 +951,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
     this.monsterDesc = const Value.absent(),
     this.typeLineJson = const Value.absent(),
     this.linkMarkersJson = const Value.absent(),
+    this.tcgDate = const Value.absent(),
+    this.ocgDate = const Value.absent(),
   }) : name = Value(name),
        type = Value(type),
        desc = Value(desc),
@@ -896,6 +978,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
     Expression<String>? monsterDesc,
     Expression<String>? typeLineJson,
     Expression<String>? linkMarkersJson,
+    Expression<DateTime>? tcgDate,
+    Expression<DateTime>? ocgDate,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -918,6 +1002,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
       if (monsterDesc != null) 'monster_desc': monsterDesc,
       if (typeLineJson != null) 'type_line_json': typeLineJson,
       if (linkMarkersJson != null) 'link_markers_json': linkMarkersJson,
+      if (tcgDate != null) 'tcg_date': tcgDate,
+      if (ocgDate != null) 'ocg_date': ocgDate,
     });
   }
 
@@ -941,6 +1027,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
     Value<String?>? monsterDesc,
     Value<String?>? typeLineJson,
     Value<String?>? linkMarkersJson,
+    Value<DateTime?>? tcgDate,
+    Value<DateTime?>? ocgDate,
   }) {
     return CardsCompanion(
       id: id ?? this.id,
@@ -963,6 +1051,8 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
       monsterDesc: monsterDesc ?? this.monsterDesc,
       typeLineJson: typeLineJson ?? this.typeLineJson,
       linkMarkersJson: linkMarkersJson ?? this.linkMarkersJson,
+      tcgDate: tcgDate ?? this.tcgDate,
+      ocgDate: ocgDate ?? this.ocgDate,
     );
   }
 
@@ -1028,6 +1118,12 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
     if (linkMarkersJson.present) {
       map['link_markers_json'] = Variable<String>(linkMarkersJson.value);
     }
+    if (tcgDate.present) {
+      map['tcg_date'] = Variable<DateTime>(tcgDate.value);
+    }
+    if (ocgDate.present) {
+      map['ocg_date'] = Variable<DateTime>(ocgDate.value);
+    }
     return map;
   }
 
@@ -1052,7 +1148,9 @@ class CardsCompanion extends UpdateCompanion<DriftCard> {
           ..write('pendDesc: $pendDesc, ')
           ..write('monsterDesc: $monsterDesc, ')
           ..write('typeLineJson: $typeLineJson, ')
-          ..write('linkMarkersJson: $linkMarkersJson')
+          ..write('linkMarkersJson: $linkMarkersJson, ')
+          ..write('tcgDate: $tcgDate, ')
+          ..write('ocgDate: $ocgDate')
           ..write(')'))
         .toString();
   }
@@ -2472,8 +2570,25 @@ class $BanlistInfosTable extends BanlistInfos
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _banEdisonMeta = const VerificationMeta(
+    'banEdison',
+  );
   @override
-  List<GeneratedColumn> get $columns => [cardId, banTcg, banOcg, banGoat];
+  late final GeneratedColumn<String> banEdison = GeneratedColumn<String>(
+    'ban_edison',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    cardId,
+    banTcg,
+    banOcg,
+    banGoat,
+    banEdison,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2510,6 +2625,12 @@ class $BanlistInfosTable extends BanlistInfos
         banGoat.isAcceptableOrUnknown(data['ban_goat']!, _banGoatMeta),
       );
     }
+    if (data.containsKey('ban_edison')) {
+      context.handle(
+        _banEdisonMeta,
+        banEdison.isAcceptableOrUnknown(data['ban_edison']!, _banEdisonMeta),
+      );
+    }
     return context;
   }
 
@@ -2535,6 +2656,10 @@ class $BanlistInfosTable extends BanlistInfos
         DriftSqlType.string,
         data['${effectivePrefix}ban_goat'],
       ),
+      banEdison: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ban_edison'],
+      ),
     );
   }
 
@@ -2550,11 +2675,13 @@ class DriftBanlistInfo extends DataClass
   final String? banTcg;
   final String? banOcg;
   final String? banGoat;
+  final String? banEdison;
   const DriftBanlistInfo({
     required this.cardId,
     this.banTcg,
     this.banOcg,
     this.banGoat,
+    this.banEdison,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2568,6 +2695,9 @@ class DriftBanlistInfo extends DataClass
     }
     if (!nullToAbsent || banGoat != null) {
       map['ban_goat'] = Variable<String>(banGoat);
+    }
+    if (!nullToAbsent || banEdison != null) {
+      map['ban_edison'] = Variable<String>(banEdison);
     }
     return map;
   }
@@ -2584,6 +2714,9 @@ class DriftBanlistInfo extends DataClass
       banGoat: banGoat == null && nullToAbsent
           ? const Value.absent()
           : Value(banGoat),
+      banEdison: banEdison == null && nullToAbsent
+          ? const Value.absent()
+          : Value(banEdison),
     );
   }
 
@@ -2597,6 +2730,7 @@ class DriftBanlistInfo extends DataClass
       banTcg: serializer.fromJson<String?>(json['banTcg']),
       banOcg: serializer.fromJson<String?>(json['banOcg']),
       banGoat: serializer.fromJson<String?>(json['banGoat']),
+      banEdison: serializer.fromJson<String?>(json['banEdison']),
     );
   }
   @override
@@ -2607,6 +2741,7 @@ class DriftBanlistInfo extends DataClass
       'banTcg': serializer.toJson<String?>(banTcg),
       'banOcg': serializer.toJson<String?>(banOcg),
       'banGoat': serializer.toJson<String?>(banGoat),
+      'banEdison': serializer.toJson<String?>(banEdison),
     };
   }
 
@@ -2615,11 +2750,13 @@ class DriftBanlistInfo extends DataClass
     Value<String?> banTcg = const Value.absent(),
     Value<String?> banOcg = const Value.absent(),
     Value<String?> banGoat = const Value.absent(),
+    Value<String?> banEdison = const Value.absent(),
   }) => DriftBanlistInfo(
     cardId: cardId ?? this.cardId,
     banTcg: banTcg.present ? banTcg.value : this.banTcg,
     banOcg: banOcg.present ? banOcg.value : this.banOcg,
     banGoat: banGoat.present ? banGoat.value : this.banGoat,
+    banEdison: banEdison.present ? banEdison.value : this.banEdison,
   );
   DriftBanlistInfo copyWithCompanion(BanlistInfosCompanion data) {
     return DriftBanlistInfo(
@@ -2627,6 +2764,7 @@ class DriftBanlistInfo extends DataClass
       banTcg: data.banTcg.present ? data.banTcg.value : this.banTcg,
       banOcg: data.banOcg.present ? data.banOcg.value : this.banOcg,
       banGoat: data.banGoat.present ? data.banGoat.value : this.banGoat,
+      banEdison: data.banEdison.present ? data.banEdison.value : this.banEdison,
     );
   }
 
@@ -2636,13 +2774,14 @@ class DriftBanlistInfo extends DataClass
           ..write('cardId: $cardId, ')
           ..write('banTcg: $banTcg, ')
           ..write('banOcg: $banOcg, ')
-          ..write('banGoat: $banGoat')
+          ..write('banGoat: $banGoat, ')
+          ..write('banEdison: $banEdison')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(cardId, banTcg, banOcg, banGoat);
+  int get hashCode => Object.hash(cardId, banTcg, banOcg, banGoat, banEdison);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2650,7 +2789,8 @@ class DriftBanlistInfo extends DataClass
           other.cardId == this.cardId &&
           other.banTcg == this.banTcg &&
           other.banOcg == this.banOcg &&
-          other.banGoat == this.banGoat);
+          other.banGoat == this.banGoat &&
+          other.banEdison == this.banEdison);
 }
 
 class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
@@ -2658,29 +2798,34 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
   final Value<String?> banTcg;
   final Value<String?> banOcg;
   final Value<String?> banGoat;
+  final Value<String?> banEdison;
   const BanlistInfosCompanion({
     this.cardId = const Value.absent(),
     this.banTcg = const Value.absent(),
     this.banOcg = const Value.absent(),
     this.banGoat = const Value.absent(),
+    this.banEdison = const Value.absent(),
   });
   BanlistInfosCompanion.insert({
     this.cardId = const Value.absent(),
     this.banTcg = const Value.absent(),
     this.banOcg = const Value.absent(),
     this.banGoat = const Value.absent(),
+    this.banEdison = const Value.absent(),
   });
   static Insertable<DriftBanlistInfo> custom({
     Expression<int>? cardId,
     Expression<String>? banTcg,
     Expression<String>? banOcg,
     Expression<String>? banGoat,
+    Expression<String>? banEdison,
   }) {
     return RawValuesInsertable({
       if (cardId != null) 'card_id': cardId,
       if (banTcg != null) 'ban_tcg': banTcg,
       if (banOcg != null) 'ban_ocg': banOcg,
       if (banGoat != null) 'ban_goat': banGoat,
+      if (banEdison != null) 'ban_edison': banEdison,
     });
   }
 
@@ -2689,12 +2834,14 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
     Value<String?>? banTcg,
     Value<String?>? banOcg,
     Value<String?>? banGoat,
+    Value<String?>? banEdison,
   }) {
     return BanlistInfosCompanion(
       cardId: cardId ?? this.cardId,
       banTcg: banTcg ?? this.banTcg,
       banOcg: banOcg ?? this.banOcg,
       banGoat: banGoat ?? this.banGoat,
+      banEdison: banEdison ?? this.banEdison,
     );
   }
 
@@ -2713,6 +2860,9 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
     if (banGoat.present) {
       map['ban_goat'] = Variable<String>(banGoat.value);
     }
+    if (banEdison.present) {
+      map['ban_edison'] = Variable<String>(banEdison.value);
+    }
     return map;
   }
 
@@ -2722,7 +2872,8 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
           ..write('cardId: $cardId, ')
           ..write('banTcg: $banTcg, ')
           ..write('banOcg: $banOcg, ')
-          ..write('banGoat: $banGoat')
+          ..write('banGoat: $banGoat, ')
+          ..write('banEdison: $banEdison')
           ..write(')'))
         .toString();
   }
@@ -3751,6 +3902,8 @@ typedef $$CardsTableCreateCompanionBuilder = CardsCompanion Function({
   Value<String?> monsterDesc,
   Value<String?> typeLineJson,
   Value<String?> linkMarkersJson,
+  Value<DateTime?> tcgDate,
+  Value<DateTime?> ocgDate,
 });
 typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<int> id,
@@ -3772,6 +3925,8 @@ typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<String?> monsterDesc,
   Value<String?> typeLineJson,
   Value<String?> linkMarkersJson,
+  Value<DateTime?> tcgDate,
+  Value<DateTime?> ocgDate,
 });
 
 final class $$CardsTableReferences
@@ -3971,6 +4126,16 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
 
   ColumnFilters<String> get linkMarkersJson => $composableBuilder(
     column: $table.linkMarkersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get tcgDate => $composableBuilder(
+    column: $table.tcgDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get ocgDate => $composableBuilder(
+    column: $table.ocgDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4203,6 +4368,16 @@ class $$CardsTableOrderingComposer
     column: $table.linkMarkersJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get tcgDate => $composableBuilder(
+    column: $table.tcgDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get ocgDate => $composableBuilder(
+    column: $table.ocgDate,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CardsTableAnnotationComposer
@@ -4280,6 +4455,12 @@ class $$CardsTableAnnotationComposer
     column: $table.linkMarkersJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get tcgDate =>
+      $composableBuilder(column: $table.tcgDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get ocgDate =>
+      $composableBuilder(column: $table.ocgDate, builder: (column) => column);
 
   Expression<T> cardImagesRefs<T extends Object>(
     Expression<T> Function($$CardImagesTableAnnotationComposer a) f,
@@ -4460,6 +4641,8 @@ class $$CardsTableTableManager
                 Value<String?> monsterDesc = const Value.absent(),
                 Value<String?> typeLineJson = const Value.absent(),
                 Value<String?> linkMarkersJson = const Value.absent(),
+                Value<DateTime?> tcgDate = const Value.absent(),
+                Value<DateTime?> ocgDate = const Value.absent(),
               }) => CardsCompanion(
                 id: id,
                 name: name,
@@ -4480,6 +4663,8 @@ class $$CardsTableTableManager
                 monsterDesc: monsterDesc,
                 typeLineJson: typeLineJson,
                 linkMarkersJson: linkMarkersJson,
+                tcgDate: tcgDate,
+                ocgDate: ocgDate,
               ),
           createCompanionCallback:
               ({
@@ -4502,6 +4687,8 @@ class $$CardsTableTableManager
                 Value<String?> monsterDesc = const Value.absent(),
                 Value<String?> typeLineJson = const Value.absent(),
                 Value<String?> linkMarkersJson = const Value.absent(),
+                Value<DateTime?> tcgDate = const Value.absent(),
+                Value<DateTime?> ocgDate = const Value.absent(),
               }) => CardsCompanion.insert(
                 id: id,
                 name: name,
@@ -4522,6 +4709,8 @@ class $$CardsTableTableManager
                 monsterDesc: monsterDesc,
                 typeLineJson: typeLineJson,
                 linkMarkersJson: linkMarkersJson,
+                tcgDate: tcgDate,
+                ocgDate: ocgDate,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -5719,6 +5908,7 @@ typedef $$BanlistInfosTableCreateCompanionBuilder =
       Value<String?> banTcg,
       Value<String?> banOcg,
       Value<String?> banGoat,
+      Value<String?> banEdison,
     });
 typedef $$BanlistInfosTableUpdateCompanionBuilder =
     BanlistInfosCompanion Function({
@@ -5726,6 +5916,7 @@ typedef $$BanlistInfosTableUpdateCompanionBuilder =
       Value<String?> banTcg,
       Value<String?> banOcg,
       Value<String?> banGoat,
+      Value<String?> banEdison,
     });
 
 final class $$BanlistInfosTableReferences
@@ -5772,6 +5963,11 @@ class $$BanlistInfosTableFilterComposer
 
   ColumnFilters<String> get banGoat => $composableBuilder(
     column: $table.banGoat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get banEdison => $composableBuilder(
+    column: $table.banEdison,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5823,6 +6019,11 @@ class $$BanlistInfosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get banEdison => $composableBuilder(
+    column: $table.banEdison,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CardsTableOrderingComposer get cardId {
     final $$CardsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5864,6 +6065,9 @@ class $$BanlistInfosTableAnnotationComposer
 
   GeneratedColumn<String> get banGoat =>
       $composableBuilder(column: $table.banGoat, builder: (column) => column);
+
+  GeneratedColumn<String> get banEdison =>
+      $composableBuilder(column: $table.banEdison, builder: (column) => column);
 
   $$CardsTableAnnotationComposer get cardId {
     final $$CardsTableAnnotationComposer composer = $composerBuilder(
@@ -5921,11 +6125,13 @@ class $$BanlistInfosTableTableManager
                 Value<String?> banTcg = const Value.absent(),
                 Value<String?> banOcg = const Value.absent(),
                 Value<String?> banGoat = const Value.absent(),
+                Value<String?> banEdison = const Value.absent(),
               }) => BanlistInfosCompanion(
                 cardId: cardId,
                 banTcg: banTcg,
                 banOcg: banOcg,
                 banGoat: banGoat,
+                banEdison: banEdison,
               ),
           createCompanionCallback:
               ({
@@ -5933,11 +6139,13 @@ class $$BanlistInfosTableTableManager
                 Value<String?> banTcg = const Value.absent(),
                 Value<String?> banOcg = const Value.absent(),
                 Value<String?> banGoat = const Value.absent(),
+                Value<String?> banEdison = const Value.absent(),
               }) => BanlistInfosCompanion.insert(
                 cardId: cardId,
                 banTcg: banTcg,
                 banOcg: banOcg,
                 banGoat: banGoat,
+                banEdison: banEdison,
               ),
           withReferenceMapper: (p0) => p0
               .map(
