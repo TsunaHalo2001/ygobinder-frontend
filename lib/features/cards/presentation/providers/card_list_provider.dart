@@ -40,6 +40,7 @@ class CardList extends _$CardList {
   String? _currentFrameFilter;
   int? _currentLevelFilter;
   int? _currentScaleFilter;
+  int? _currentLinkValFilter;
 
   @override
   Future<CardListState> build() async {
@@ -52,6 +53,7 @@ class CardList extends _$CardList {
     _currentFrameFilter = null;
     _currentLevelFilter = null;
     _currentScaleFilter = null;
+    _currentLinkValFilter = null;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -75,6 +77,7 @@ class CardList extends _$CardList {
       frameFilter: _currentFrameFilter,
       levelFilter: _currentLevelFilter,
       scaleFilter: _currentScaleFilter,
+      linkValFilter: _currentLinkValFilter,
     );
   }
 
@@ -85,7 +88,8 @@ class CardList extends _$CardList {
       _currentSubTypeFilter != null ||
       _currentFrameFilter != null ||
       _currentLevelFilter != null ||
-      _currentScaleFilter != null;
+      _currentScaleFilter != null ||
+      _currentLinkValFilter != null;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
@@ -94,6 +98,7 @@ class CardList extends _$CardList {
   String? get currentFrameFilter => _currentFrameFilter;
   int? get currentLevelFilter => _currentLevelFilter;
   int? get currentScaleFilter => _currentScaleFilter;
+  int? get currentLinkValFilter => _currentLinkValFilter;
 
   Future<void> loadMore() async {
     final currentState = state.value;
@@ -146,6 +151,7 @@ class CardList extends _$CardList {
       _currentFrameFilter = null;
       _currentLevelFilter = null;
       _currentScaleFilter = null;
+      _currentLinkValFilter = null;
     }
     _offset = 0;
 
@@ -190,6 +196,7 @@ class CardList extends _$CardList {
     String? frame,
     int? level,
     int? scale,
+    int? linkVal,
   }) async {
     if (_currentTypeFilter == type && 
         _currentAttributeFilter == attribute && 
@@ -197,7 +204,8 @@ class CardList extends _$CardList {
         _currentSubTypeFilter == subType &&
         _currentFrameFilter == frame &&
         _currentLevelFilter == level &&
-        _currentScaleFilter == scale) return;
+        _currentScaleFilter == scale &&
+        _currentLinkValFilter == linkVal) return;
 
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
@@ -206,6 +214,7 @@ class CardList extends _$CardList {
     _currentFrameFilter = frame;
     _currentLevelFilter = level;
     _currentScaleFilter = scale;
+    _currentLinkValFilter = linkVal;
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -229,6 +238,7 @@ class CardList extends _$CardList {
     _currentFrameFilter = null;
     _currentLevelFilter = null;
     _currentScaleFilter = null;
+    _currentLinkValFilter = null;
     _offset = 0;
 
     state = const AsyncValue.loading();

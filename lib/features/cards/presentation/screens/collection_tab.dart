@@ -182,11 +182,10 @@ class CardGridItem extends ConsumerWidget {
     } else if (frame.contains('token')) {
       baseColor = const Color(0xFFC0C0C0);
     } else {
-      baseColor = const Color(0xFFFF8B53); // Default Effect orange
+      baseColor = const Color(0xFFFF8B53); 
     }
 
     if (isPendulum) {
-      // ✅ Hybrid Pendulum Inverted for Grid: Spell green on top, Base color on bottom
       return [const Color(0xFF1D9B7F), baseColor];
     }
     return [baseColor];
@@ -238,9 +237,6 @@ class CardGridItem extends ConsumerWidget {
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final colors = _getCardColors();
     final isHybrid = colors.length > 1;
-
-    // ✅ Use the LAST color (bottom of the gradient) for text luminance check
-    // since the card name is located at the bottom of the tile.
     final textColor = colors.last.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
 
     return Card(
@@ -333,16 +329,19 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   String? _tempFrame;
   int? _tempLevel;
   int? _tempScale;
+  int? _tempLinkVal;
 
   @override
   void initState() {
     super.initState();
-    _tempAttribute = ref.read(cardListProvider.notifier).currentAttributeFilter;
-    _tempRace = ref.read(cardListProvider.notifier).currentRaceFilter;
-    _tempSubType = ref.read(cardListProvider.notifier).currentSubTypeFilter;
-    _tempFrame = ref.read(cardListProvider.notifier).currentFrameFilter;
-    _tempLevel = ref.read(cardListProvider.notifier).currentLevelFilter;
-    _tempScale = ref.read(cardListProvider.notifier).currentScaleFilter;
+    final notifier = ref.read(cardListProvider.notifier);
+    _tempAttribute = notifier.currentAttributeFilter;
+    _tempRace = notifier.currentRaceFilter;
+    _tempSubType = notifier.currentSubTypeFilter;
+    _tempFrame = notifier.currentFrameFilter;
+    _tempLevel = notifier.currentLevelFilter;
+    _tempScale = notifier.currentScaleFilter;
+    _tempLinkVal = notifier.currentLinkValFilter;
   }
 
   @override
@@ -381,12 +380,14 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     selectedFrame: _tempFrame,
                     selectedLevel: _tempLevel,
                     selectedScale: _tempScale,
+                    selectedLinkVal: _tempLinkVal,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
                     onFrameSelected: (frame) => setState(() => _tempFrame = frame),
                     onLevelChanged: (level) => setState(() => _tempLevel = level),
                     onScaleChanged: (scale) => setState(() => _tempScale = scale),
+                    onLinkValChanged: (linkVal) => setState(() => _tempLinkVal = linkVal),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -415,12 +416,14 @@ class _FilterTabContent extends ConsumerWidget {
   final String? selectedFrame;
   final int? selectedLevel;
   final int? selectedScale;
+  final int? selectedLinkVal;
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
   final ValueChanged<String?>? onSubTypeSelected;
   final ValueChanged<String?>? onFrameSelected;
   final ValueChanged<int?>? onLevelChanged;
   final ValueChanged<int?>? onScaleChanged;
+  final ValueChanged<int?>? onLinkValChanged;
 
   const _FilterTabContent({
     required this.type,
@@ -430,12 +433,14 @@ class _FilterTabContent extends ConsumerWidget {
     this.selectedFrame,
     this.selectedLevel,
     this.selectedScale,
+    this.selectedLinkVal,
     this.onAttributeSelected,
     this.onRaceSelected,
     this.onSubTypeSelected,
     this.onFrameSelected,
     this.onLevelChanged,
     this.onScaleChanged,
+    this.onLinkValChanged,
     super.key,
   });
 
@@ -498,9 +503,11 @@ class _FilterTabContent extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isMonster) ...[
-            _buildNumericSelector('PENDULUM SCALE:', selectedScale, (val) => onScaleChanged?.call(val), theme, Colors.tealAccent),
+            _buildNumericSelector('PENDULUM SCALE:', selectedScale, (val) => onScaleChanged?.call(val), theme, Colors.tealAccent, 0, 13),
             const SizedBox(height: 32),
-            _buildNumericSelector('LEVEL / RANK:', selectedLevel, (val) => onLevelChanged?.call(val), theme, theme.colorScheme.primary),
+            _buildNumericSelector('LEVEL / RANK:', selectedLevel, (val) => onLevelChanged?.call(val), theme, theme.colorScheme.primary, 0, 13),
+            const SizedBox(height: 32),
+            _buildNumericSelector('LINK VALUE:', selectedLinkVal, (val) => onLinkValChanged?.call(val), theme, Colors.blueAccent, 1, 6),
             const SizedBox(height: 32),
             const Text('SELECT CARD TYPE:', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
             const SizedBox(height: 16),
@@ -625,6 +632,7 @@ class _FilterTabContent extends ConsumerWidget {
                     frame: isMonster ? selectedFrame : null,
                     level: isMonster ? selectedLevel : null,
                     scale: isMonster ? selectedScale : null,
+                    linkVal: isMonster ? selectedLinkVal : null,
                   );
               Navigator.pop(context);
             },
@@ -649,7 +657,7 @@ class _FilterTabContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildNumericSelector(String label, int? value, ValueChanged<int?> onChanged, ThemeData theme, Color accentColor) {
+  Widget _buildNumericSelector(String label, int? value, ValueChanged<int?> onChanged, ThemeData theme, Color accentColor, int min, int max) {
     return Column(
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
@@ -659,8 +667,8 @@ class _FilterTabContent extends ConsumerWidget {
           children: [
             IconButton(
               onPressed: () {
-                final c = value ?? 0;
-                if (c > 0) onChanged(c - 1);
+                final current = value ?? min;
+                if (current > min) onChanged(current - 1);
               },
               icon: const Icon(Icons.remove_circle_outline),
             ),
@@ -683,12 +691,16 @@ class _FilterTabContent extends ConsumerWidget {
             ),
             IconButton(
               onPressed: () {
-                final c = value ?? 0;
-                if (c < 13) onChanged(c + 1);
+                final current = value ?? min;
+                if (current < max) onChanged(current + 1);
               },
               icon: const Icon(Icons.add_circle_outline),
             ),
-            if (value != null) IconButton(onPressed: () => onChanged(null), icon: const Icon(Icons.clear, size: 20)),
+            if (value != null)
+              IconButton(
+                onPressed: () => onChanged(null),
+                icon: const Icon(Icons.clear, size: 20),
+              ),
           ],
         ),
       ],

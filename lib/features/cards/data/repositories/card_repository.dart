@@ -124,7 +124,8 @@ class CardRepository {
     String? subTypeFilter,
     String? frameFilter,
     int? levelFilter,
-    int? scaleFilter, // ✅ Added scale filter
+    int? scaleFilter,
+    int? linkValFilter, // ✅ Added link val filter
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
@@ -136,7 +137,8 @@ class CardRepository {
       subTypeFilter: subTypeFilter,
       frameFilter: frameFilter,
       levelFilter: levelFilter,
-      scaleFilter: scaleFilter, // ✅ Passed scale filter
+      scaleFilter: scaleFilter,
+      linkValFilter: linkValFilter, // ✅ Passed link val filter
     );
 
     if (driftCards.isEmpty) return [];

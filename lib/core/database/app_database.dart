@@ -482,6 +482,7 @@ class AppDatabase extends _$AppDatabase {
     String? frameFilter, // ✅ Added frame filter
     int? levelFilter, // ✅ Added level filter
     int? scaleFilter, // ✅ Added scale filter
+    int? linkValFilter, // ✅ Added link val filter
   }) {
     var query = select(cards);
 
@@ -537,6 +538,10 @@ class AppDatabase extends _$AppDatabase {
 
     if (scaleFilter != null) {
       query = query..where((t) => t.scale.equals(scaleFilter));
+    }
+
+    if (linkValFilter != null) {
+      query = query..where((t) => t.linkVal.equals(linkValFilter));
     }
 
     // Order by name so pagination is consistent
