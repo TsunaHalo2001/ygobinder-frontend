@@ -125,7 +125,13 @@ class CardRepository {
     String? frameFilter,
     int? levelFilter,
     int? scaleFilter,
-    int? linkValFilter, // ✅ Added link val filter
+    int? linkValFilter,
+    int? atkFilter,
+    String? atkOperator,
+    bool? atkShowQuestionMark, // ✅ Added
+    int? defFilter,
+    String? defOperator,
+    bool? defShowQuestionMark, // ✅ Added
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
@@ -138,7 +144,13 @@ class CardRepository {
       frameFilter: frameFilter,
       levelFilter: levelFilter,
       scaleFilter: scaleFilter,
-      linkValFilter: linkValFilter, // ✅ Passed link val filter
+      linkValFilter: linkValFilter,
+      atkFilter: atkFilter,
+      atkOperator: atkOperator,
+      atkShowQuestionMark: atkShowQuestionMark,
+      defFilter: defFilter,
+      defOperator: defOperator,
+      defShowQuestionMark: defShowQuestionMark,
     );
 
     if (driftCards.isEmpty) return [];

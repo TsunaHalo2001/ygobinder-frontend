@@ -483,6 +483,12 @@ class AppDatabase extends _$AppDatabase {
     int? levelFilter, // ✅ Added level filter
     int? scaleFilter, // ✅ Added scale filter
     int? linkValFilter, // ✅ Added link val filter
+    int? atkFilter,
+    String? atkOperator,
+    bool? atkShowQuestionMark, // ✅ Added
+    int? defFilter,
+    String? defOperator,
+    bool? defShowQuestionMark, // ✅ Added
   }) {
     var query = select(cards);
 
@@ -542,6 +548,42 @@ class AppDatabase extends _$AppDatabase {
 
     if (linkValFilter != null) {
       query = query..where((t) => t.linkVal.equals(linkValFilter));
+    }
+
+    if (atkFilter != null) {
+      if (atkOperator == '>=') {
+        query = query..where((t) => t.atk.isBiggerOrEqualValue(atkFilter));
+      } else if (atkOperator == '<=') {
+        query = query..where((t) => t.atk.isSmallerOrEqualValue(atkFilter));
+      } else {
+        query = query..where((t) => t.atk.equals(atkFilter));
+      }
+    }
+
+    if (atkShowQuestionMark != null) {
+      if (atkShowQuestionMark) {
+        query = query..where((t) => t.atk.equals(-1));
+      } else {
+        query = query..where((t) => t.atk.equals(-1).not());
+      }
+    }
+
+    if (defFilter != null) {
+      if (defOperator == '>=') {
+        query = query..where((t) => t.def.isBiggerOrEqualValue(defFilter));
+      } else if (defOperator == '<=') {
+        query = query..where((t) => t.def.isSmallerOrEqualValue(defFilter));
+      } else {
+        query = query..where((t) => t.def.equals(defFilter));
+      }
+    }
+
+    if (defShowQuestionMark != null) {
+      if (defShowQuestionMark) {
+        query = query..where((t) => t.def.equals(-1));
+      } else {
+        query = query..where((t) => t.def.equals(-1).not());
+      }
     }
 
     // Order by name so pagination is consistent

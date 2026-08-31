@@ -330,6 +330,15 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   int? _tempLevel;
   int? _tempScale;
   int? _tempLinkVal;
+  int? _tempAtk;
+  String? _tempAtkOperator;
+  bool? _tempAtkShowQuestionMark;
+  int? _tempDef;
+  String? _tempDefOperator;
+  bool? _tempDefShowQuestionMark;
+
+  final TextEditingController _atkController = TextEditingController();
+  final TextEditingController _defController = TextEditingController();
 
   @override
   void initState() {
@@ -342,6 +351,22 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     _tempLevel = notifier.currentLevelFilter;
     _tempScale = notifier.currentScaleFilter;
     _tempLinkVal = notifier.currentLinkValFilter;
+    _tempAtk = notifier.currentAtkFilter;
+    _tempAtkOperator = notifier.currentAtkOperator;
+    _tempAtkShowQuestionMark = notifier.currentAtkShowQuestionMark;
+    _tempDef = notifier.currentDefFilter;
+    _tempDefOperator = notifier.currentDefOperator;
+    _tempDefShowQuestionMark = notifier.currentDefShowQuestionMark;
+
+    _atkController.text = _tempAtk?.toString() ?? '';
+    _defController.text = _tempDef?.toString() ?? '';
+  }
+
+  @override
+  void dispose() {
+    _atkController.dispose();
+    _defController.dispose();
+    super.dispose();
   }
 
   @override
@@ -381,6 +406,12 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     selectedLevel: _tempLevel,
                     selectedScale: _tempScale,
                     selectedLinkVal: _tempLinkVal,
+                    atkController: _atkController,
+                    selectedAtkOperator: _tempAtkOperator,
+                    selectedAtkShowQuestionMark: _tempAtkShowQuestionMark,
+                    defController: _defController,
+                    selectedDefOperator: _tempDefOperator,
+                    selectedDefShowQuestionMark: _tempDefShowQuestionMark,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
@@ -388,6 +419,10 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
                     onLevelChanged: (level) => setState(() => _tempLevel = level),
                     onScaleChanged: (scale) => setState(() => _tempScale = scale),
                     onLinkValChanged: (linkVal) => setState(() => _tempLinkVal = linkVal),
+                    onAtkOperatorChanged: (op) => setState(() => _tempAtkOperator = op),
+                    onAtkShowQuestionMarkChanged: (show) => setState(() => _tempAtkShowQuestionMark = show),
+                    onDefOperatorChanged: (op) => setState(() => _tempDefOperator = op),
+                    onDefShowQuestionMarkChanged: (show) => setState(() => _tempDefShowQuestionMark = show),
                   ),
                   const _FilterTabContent(type: 'Spell'),
                   const _FilterTabContent(type: 'Trap'),
@@ -417,6 +452,13 @@ class _FilterTabContent extends ConsumerWidget {
   final int? selectedLevel;
   final int? selectedScale;
   final int? selectedLinkVal;
+  final TextEditingController? atkController;
+  final String? selectedAtkOperator;
+  final bool? selectedAtkShowQuestionMark;
+  final TextEditingController? defController;
+  final String? selectedDefOperator;
+  final bool? selectedDefShowQuestionMark;
+
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
   final ValueChanged<String?>? onSubTypeSelected;
@@ -424,6 +466,10 @@ class _FilterTabContent extends ConsumerWidget {
   final ValueChanged<int?>? onLevelChanged;
   final ValueChanged<int?>? onScaleChanged;
   final ValueChanged<int?>? onLinkValChanged;
+  final ValueChanged<String?>? onAtkOperatorChanged;
+  final ValueChanged<bool?>? onAtkShowQuestionMarkChanged;
+  final ValueChanged<String?>? onDefOperatorChanged;
+  final ValueChanged<bool?>? onDefShowQuestionMarkChanged;
 
   const _FilterTabContent({
     required this.type,
@@ -434,6 +480,12 @@ class _FilterTabContent extends ConsumerWidget {
     this.selectedLevel,
     this.selectedScale,
     this.selectedLinkVal,
+    this.atkController,
+    this.selectedAtkOperator,
+    this.selectedAtkShowQuestionMark,
+    this.defController,
+    this.selectedDefOperator,
+    this.selectedDefShowQuestionMark,
     this.onAttributeSelected,
     this.onRaceSelected,
     this.onSubTypeSelected,
@@ -441,6 +493,10 @@ class _FilterTabContent extends ConsumerWidget {
     this.onLevelChanged,
     this.onScaleChanged,
     this.onLinkValChanged,
+    this.onAtkOperatorChanged,
+    this.onAtkShowQuestionMarkChanged,
+    this.onDefOperatorChanged,
+    this.onDefShowQuestionMarkChanged,
     super.key,
   });
 
@@ -503,6 +559,18 @@ class _FilterTabContent extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isMonster) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatSelector('ATK', atkController!, selectedAtkOperator, selectedAtkShowQuestionMark, onAtkOperatorChanged!, onAtkShowQuestionMarkChanged!, theme),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatSelector('DEF', defController!, selectedDefOperator, selectedDefShowQuestionMark, onDefOperatorChanged!, onDefShowQuestionMarkChanged!, theme),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
             _buildNumericSelector('PENDULUM SCALE:', selectedScale, (val) => onScaleChanged?.call(val), theme, Colors.tealAccent, 0, 13),
             const SizedBox(height: 32),
             _buildNumericSelector('LEVEL / RANK:', selectedLevel, (val) => onLevelChanged?.call(val), theme, theme.colorScheme.primary, 0, 13),
@@ -633,6 +701,12 @@ class _FilterTabContent extends ConsumerWidget {
                     level: isMonster ? selectedLevel : null,
                     scale: isMonster ? selectedScale : null,
                     linkVal: isMonster ? selectedLinkVal : null,
+                    atk: isMonster ? int.tryParse(atkController?.text ?? '') : null,
+                    atkOperator: isMonster ? selectedAtkOperator : null,
+                    atkShowQuestionMark: isMonster ? selectedAtkShowQuestionMark : null,
+                    def: isMonster ? int.tryParse(defController?.text ?? '') : null,
+                    defOperator: isMonster ? selectedDefOperator : null,
+                    defShowQuestionMark: isMonster ? selectedDefShowQuestionMark : null,
                   );
               Navigator.pop(context);
             },
@@ -654,6 +728,53 @@ class _FilterTabContent extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatSelector(String label, TextEditingController controller, String? operator, bool? showQuestionMark, ValueChanged<String?> onOperatorChanged, ValueChanged<bool?> onShowQuestionMarkChanged, ThemeData theme) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.white38)),
+        const SizedBox(height: 12),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            hintText: 'Any',
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: () => onOperatorChanged(operator == '>=' ? null : '>='),
+              icon: const Icon(Icons.arrow_upward_rounded),
+              color: operator == '>=' ? theme.colorScheme.primary : Colors.white24,
+            ),
+            IconButton(
+              onPressed: () => onOperatorChanged(operator == '<=' ? null : '<='),
+              icon: const Icon(Icons.arrow_downward_rounded),
+              color: operator == '<=' ? theme.colorScheme.primary : Colors.white24,
+            ),
+            IconButton(
+              onPressed: () => onShowQuestionMarkChanged(showQuestionMark == true ? null : true),
+              icon: Text(
+                '?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: showQuestionMark == true ? theme.colorScheme.primary : Colors.white24,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

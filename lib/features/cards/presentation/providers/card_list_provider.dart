@@ -41,6 +41,12 @@ class CardList extends _$CardList {
   int? _currentLevelFilter;
   int? _currentScaleFilter;
   int? _currentLinkValFilter;
+  int? _currentAtkFilter;
+  String? _currentAtkOperator;
+  bool? _currentAtkShowQuestionMark;
+  int? _currentDefFilter;
+  String? _currentDefOperator;
+  bool? _currentDefShowQuestionMark;
 
   @override
   Future<CardListState> build() async {
@@ -54,6 +60,12 @@ class CardList extends _$CardList {
     _currentLevelFilter = null;
     _currentScaleFilter = null;
     _currentLinkValFilter = null;
+    _currentAtkFilter = null;
+    _currentAtkOperator = null;
+    _currentAtkShowQuestionMark = null;
+    _currentDefFilter = null;
+    _currentDefOperator = null;
+    _currentDefShowQuestionMark = null;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -78,6 +90,12 @@ class CardList extends _$CardList {
       levelFilter: _currentLevelFilter,
       scaleFilter: _currentScaleFilter,
       linkValFilter: _currentLinkValFilter,
+      atkFilter: _currentAtkFilter,
+      atkOperator: _currentAtkOperator,
+      atkShowQuestionMark: _currentAtkShowQuestionMark,
+      defFilter: _currentDefFilter,
+      defOperator: _currentDefOperator,
+      defShowQuestionMark: _currentDefShowQuestionMark,
     );
   }
 
@@ -89,7 +107,11 @@ class CardList extends _$CardList {
       _currentFrameFilter != null ||
       _currentLevelFilter != null ||
       _currentScaleFilter != null ||
-      _currentLinkValFilter != null;
+      _currentLinkValFilter != null ||
+      _currentAtkFilter != null ||
+      _currentAtkShowQuestionMark != null ||
+      _currentDefFilter != null ||
+      _currentDefShowQuestionMark != null;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
@@ -99,6 +121,12 @@ class CardList extends _$CardList {
   int? get currentLevelFilter => _currentLevelFilter;
   int? get currentScaleFilter => _currentScaleFilter;
   int? get currentLinkValFilter => _currentLinkValFilter;
+  int? get currentAtkFilter => _currentAtkFilter;
+  String? get currentAtkOperator => _currentAtkOperator;
+  bool? get currentAtkShowQuestionMark => _currentAtkShowQuestionMark;
+  int? get currentDefFilter => _currentDefFilter;
+  String? get currentDefOperator => _currentDefOperator;
+  bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
 
   Future<void> loadMore() async {
     final currentState = state.value;
@@ -152,6 +180,12 @@ class CardList extends _$CardList {
       _currentLevelFilter = null;
       _currentScaleFilter = null;
       _currentLinkValFilter = null;
+      _currentAtkFilter = null;
+      _currentAtkOperator = null;
+      _currentAtkShowQuestionMark = null;
+      _currentDefFilter = null;
+      _currentDefOperator = null;
+      _currentDefShowQuestionMark = null;
     }
     _offset = 0;
 
@@ -197,6 +231,12 @@ class CardList extends _$CardList {
     int? level,
     int? scale,
     int? linkVal,
+    int? atk,
+    String? atkOperator,
+    bool? atkShowQuestionMark,
+    int? def,
+    String? defOperator,
+    bool? defShowQuestionMark,
   }) async {
     if (_currentTypeFilter == type && 
         _currentAttributeFilter == attribute && 
@@ -205,7 +245,13 @@ class CardList extends _$CardList {
         _currentFrameFilter == frame &&
         _currentLevelFilter == level &&
         _currentScaleFilter == scale &&
-        _currentLinkValFilter == linkVal) return;
+        _currentLinkValFilter == linkVal &&
+        _currentAtkFilter == atk &&
+        _currentAtkOperator == atkOperator &&
+        _currentAtkShowQuestionMark == atkShowQuestionMark &&
+        _currentDefFilter == def &&
+        _currentDefOperator == defOperator &&
+        _currentDefShowQuestionMark == defShowQuestionMark) return;
 
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
@@ -215,6 +261,12 @@ class CardList extends _$CardList {
     _currentLevelFilter = level;
     _currentScaleFilter = scale;
     _currentLinkValFilter = linkVal;
+    _currentAtkFilter = atk;
+    _currentAtkOperator = atkOperator;
+    _currentAtkShowQuestionMark = atkShowQuestionMark;
+    _currentDefFilter = def;
+    _currentDefOperator = defOperator;
+    _currentDefShowQuestionMark = defShowQuestionMark;
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -239,6 +291,12 @@ class CardList extends _$CardList {
     _currentLevelFilter = null;
     _currentScaleFilter = null;
     _currentLinkValFilter = null;
+    _currentAtkFilter = null;
+    _currentAtkOperator = null;
+    _currentAtkShowQuestionMark = null;
+    _currentDefFilter = null;
+    _currentDefOperator = null;
+    _currentDefShowQuestionMark = null;
     _offset = 0;
 
     state = const AsyncValue.loading();
