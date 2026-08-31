@@ -219,8 +219,9 @@ class CardGridItem extends ConsumerWidget {
         if (s == 'limited' || s == '1') { iconData = Icons.looks_one_outlined; iconColor = Colors.orangeAccent; }
         else if (s.contains('semi') || s == '2') { iconData = Icons.looks_two_outlined; iconColor = Colors.yellowAccent; }
         items.add(Stack(alignment: Alignment.center, children: [
-          Icon(iconData, color: iconColor, size: 48),
+          Icon(iconData, color: iconColor, size: 32), // ✅ Reduced size for grid thumbnails
           Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 8, // ✅ Smaller font for smaller icons
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 shadows: [const Shadow(blurRadius: 4.0, color: Colors.black)],
@@ -230,16 +231,33 @@ class CardGridItem extends ConsumerWidget {
     }
     addIcon(info.banTcg, 'TCG'); addIcon(info.banOcg, 'OCG'); addIcon(info.banGoat, 'GOAT');
     if (info.banEdison != null) addIcon(info.banEdison, 'EDI');
+    
     if (items.isEmpty) {
       if (info.banEdison != null) {
-        return Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
-          child: const Text('E', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)));
+        return Container(
+          padding: const EdgeInsets.all(4),
+          decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
+          child: const Text('E', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+        );
       }
       return const SizedBox.shrink();
     }
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: items));
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 120), // ✅ Limit max width to avoid overflow
+        child: FittedBox(
+          fit: BoxFit.scaleDown, // ✅ Scale down if content is too wide
+          alignment: Alignment.centerRight,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: items,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
