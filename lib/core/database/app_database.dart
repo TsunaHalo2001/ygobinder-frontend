@@ -503,6 +503,7 @@ class AppDatabase extends _$AppDatabase {
     bool? defShowQuestionMark, // ✅ Added
     String? sortBy, // ✅ Added sort field
     bool sortDescending = false, // ✅ Added sort direction
+    bool onlyEdison = false, // ✅ Added only Edison filter
   }) {
     var query = select(cards);
 
@@ -598,6 +599,17 @@ class AppDatabase extends _$AppDatabase {
       } else {
         query = query..where((t) => t.def.equals(-1).not());
       }
+    }
+
+    if (onlyEdison) {
+      // ✅ Filter for cards available in Edison
+      query = query..where((t) {
+        return t.id.isInQuery(
+          selectOnly(banlistInfos)
+            ..addColumns([banlistInfos.cardId])
+            ..where(banlistInfos.banEdison.isNotNull())
+        );
+      });
     }
 
     // ✅ Dynamic Ordering

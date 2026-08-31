@@ -32,7 +32,8 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       ref.read(cardListProvider.notifier).loadMore();
     }
   }
@@ -212,11 +213,11 @@ class CardGridItem extends ConsumerWidget {
     void addIcon(String? status, String label) {
       if (status == null) return;
       final String s = status.toLowerCase();
-      if (s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == 'limited' || s == 'semi-limited' || s == 'semilimited') {
+      if (s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == 'limited' || s == 'semi-limited' || s == 'semilimited' || s == '0' || s == '1' || s == '2') {
         IconData iconData = Icons.block;
         Color iconColor = Colors.redAccent;
-        if (s == 'limited') { iconData = Icons.looks_one_outlined; iconColor = Colors.orangeAccent; }
-        else if (s.contains('semi')) { iconData = Icons.looks_two_outlined; iconColor = Colors.yellowAccent; }
+        if (s == 'limited' || s == '1') { iconData = Icons.looks_one_outlined; iconColor = Colors.orangeAccent; }
+        else if (s.contains('semi') || s == '2') { iconData = Icons.looks_two_outlined; iconColor = Colors.yellowAccent; }
         items.add(Stack(alignment: Alignment.center, children: [
           Icon(iconData, color: iconColor, size: 48),
           Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -284,6 +285,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
   int? _tempDef;
   String? _tempDefOperator;
   bool? _tempDefShowQuestionMark;
+  bool _tempOnlyEdison = false;
 
   final TextEditingController _atkController = TextEditingController();
   final TextEditingController _defController = TextEditingController();
@@ -305,6 +307,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
     _tempDef = notifier.currentDefFilter;
     _tempDefOperator = notifier.currentDefOperator;
     _tempDefShowQuestionMark = notifier.currentDefShowQuestionMark;
+    _tempOnlyEdison = notifier.currentOnlyEdisonFilter;
 
     _atkController.text = _tempAtk?.toString() ?? '';
     _defController.text = _tempDef?.toString() ?? '';
@@ -334,14 +337,15 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
               type: 'Monster', selectedAttribute: _tempAttribute, selectedRace: _tempRace, selectedSubType: _tempSubType, selectedFrame: _tempFrame, selectedLevel: _tempLevel, selectedScale: _tempScale, selectedLinkVal: _tempLinkVal,
               atkController: _atkController, selectedAtkOperator: _tempAtkOperator, selectedAtkShowQuestionMark: _tempAtkShowQuestionMark,
               defController: _defController, selectedDefOperator: _tempDefOperator, selectedDefShowQuestionMark: _tempDefShowQuestionMark,
+              onlyEdison: _tempOnlyEdison,
               onAttributeSelected: (attr) => setState(() => _tempAttribute = attr), onRaceSelected: (race) => setState(() => _tempRace = race),
               onSubTypeSelected: (subType) => setState(() => _tempSubType = subType), onFrameSelected: (frame) => setState(() => _tempFrame = frame),
               onLevelChanged: (level) => setState(() => _tempLevel = level), onScaleChanged: (scale) => setState(() => _tempScale = scale),
               onLinkValChanged: (linkVal) => setState(() => _tempLinkVal = linkVal), onAtkOperatorChanged: (op) => setState(() => _tempAtkOperator = op),
               onAtkShowQuestionMarkChanged: (show) => setState(() => _tempAtkShowQuestionMark = show), onDefOperatorChanged: (op) => setState(() => _tempDefOperator = op),
-              onDefShowQuestionMarkChanged: (show) => setState(() => _tempDefShowQuestionMark = show)),
-            _FilterTabContent(type: 'Spell', selectedRace: _tempRace, onRaceSelected: (race) => setState(() => _tempRace = race)),
-            _FilterTabContent(type: 'Trap', selectedRace: _tempRace, onRaceSelected: (race) => setState(() => _tempRace = race))]))])));
+              onDefShowQuestionMarkChanged: (show) => setState(() => _tempDefShowQuestionMark = show), onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val)),
+            _FilterTabContent(type: 'Spell', selectedRace: _tempRace, onlyEdison: _tempOnlyEdison, onRaceSelected: (race) => setState(() => _tempRace = race), onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val)),
+            _FilterTabContent(type: 'Trap', selectedRace: _tempRace, onlyEdison: _tempOnlyEdison, onRaceSelected: (race) => setState(() => _tempRace = race), onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val))]))])));
   }
 
   int _getInitialTabIndex() {
@@ -401,6 +405,7 @@ class _FilterTabContent extends ConsumerWidget {
   final TextEditingController? defController;
   final String? selectedDefOperator;
   final bool? selectedDefShowQuestionMark;
+  final bool onlyEdison;
 
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
@@ -413,8 +418,9 @@ class _FilterTabContent extends ConsumerWidget {
   final ValueChanged<bool?>? onAtkShowQuestionMarkChanged;
   final ValueChanged<String?>? onDefOperatorChanged;
   final ValueChanged<bool?>? onDefShowQuestionMarkChanged;
+  final ValueChanged<bool>? onOnlyEdisonChanged;
 
-  const _FilterTabContent({required this.type, this.selectedAttribute, this.selectedRace, this.selectedSubType, this.selectedFrame, this.selectedLevel, this.selectedScale, this.selectedLinkVal, this.atkController, this.selectedAtkOperator, this.selectedAtkShowQuestionMark, this.defController, this.selectedDefOperator, this.selectedDefShowQuestionMark, this.onAttributeSelected, this.onRaceSelected, this.onSubTypeSelected, this.onFrameSelected, this.onLevelChanged, this.onScaleChanged, this.onLinkValChanged, this.onAtkOperatorChanged, this.onAtkShowQuestionMarkChanged, this.onDefOperatorChanged, this.onDefShowQuestionMarkChanged, super.key});
+  const _FilterTabContent({required this.type, this.selectedAttribute, this.selectedRace, this.selectedSubType, this.selectedFrame, this.selectedLevel, this.selectedScale, this.selectedLinkVal, this.atkController, this.selectedAtkOperator, this.selectedAtkShowQuestionMark, this.defController, this.selectedDefOperator, this.selectedDefShowQuestionMark, this.onlyEdison = false, this.onAttributeSelected, this.onRaceSelected, this.onSubTypeSelected, this.onFrameSelected, this.onLevelChanged, this.onScaleChanged, this.onLinkValChanged, this.onAtkOperatorChanged, this.onAtkShowQuestionMarkChanged, this.onDefOperatorChanged, this.onDefShowQuestionMarkChanged, this.onOnlyEdisonChanged, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -517,10 +523,22 @@ class _FilterTabContent extends ConsumerWidget {
         }).toList()),
         const SizedBox(height: 32),
       ],
+      Material(
+        color: Colors.transparent,
+        child: SwitchListTile(
+          title: const Text('ONLY EDISON FORMAT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
+          subtitle: const Text('Hide cards not legal in Edison', style: TextStyle(fontSize: 12, color: Colors.white38)),
+          value: onlyEdison,
+          onChanged: onOnlyEdisonChanged,
+          activeColor: Colors.blueAccent,
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+      const SizedBox(height: 24),
       const Text('Filter by this type?', style: TextStyle(color: Colors.white70)),
       const SizedBox(height: 16),
       ElevatedButton(onPressed: () {
-        ref.read(cardListProvider.notifier).applyFilters(type: type, attribute: isMonster ? selectedAttribute : null, race: (isSpell || isTrap || isMonster) ? selectedRace : null, subType: isMonster ? selectedSubType : null, frame: isMonster ? selectedFrame : null, level: isMonster ? selectedLevel : null, scale: isMonster ? selectedScale : null, linkVal: isMonster ? selectedLinkVal : null, atk: isMonster ? int.tryParse(atkController?.text ?? '') : null, atkOperator: isMonster ? selectedAtkOperator : null, atkShowQuestionMark: isMonster ? selectedAtkShowQuestionMark : null, def: isMonster ? int.tryParse(defController?.text ?? '') : null, defOperator: isMonster ? selectedDefOperator : null, defShowQuestionMark: isMonster ? selectedDefShowQuestionMark : null);
+        ref.read(cardListProvider.notifier).applyFilters(type: type, attribute: isMonster ? selectedAttribute : null, race: (isSpell || isTrap || isMonster) ? selectedRace : null, subType: isMonster ? selectedSubType : null, frame: isMonster ? selectedFrame : null, level: isMonster ? selectedLevel : null, scale: isMonster ? selectedScale : null, linkVal: isMonster ? selectedLinkVal : null, atk: isMonster ? int.tryParse(atkController?.text ?? '') : null, atkOperator: isMonster ? selectedAtkOperator : null, atkShowQuestionMark: isMonster ? selectedAtkShowQuestionMark : null, def: isMonster ? int.tryParse(defController?.text ?? '') : null, defOperator: isMonster ? selectedDefOperator : null, defShowQuestionMark: isMonster ? selectedDefShowQuestionMark : null, onlyEdison: onlyEdison);
         Navigator.pop(context);
       }, style: ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.primary, foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         child: const Text('FILTER', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2))),

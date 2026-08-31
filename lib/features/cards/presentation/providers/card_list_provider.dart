@@ -48,8 +48,9 @@ class CardList extends _$CardList {
   String? _currentDefOperator;
   bool? _currentDefShowQuestionMark;
   
-  String _currentSortBy = 'name'; // ✅ Added sort field
-  bool _currentSortDescending = false; // ✅ Added sort direction
+  String _currentSortBy = 'name';
+  bool _currentSortDescending = false;
+  bool _currentOnlyEdisonFilter = false;
 
   @override
   Future<CardListState> build() async {
@@ -71,6 +72,7 @@ class CardList extends _$CardList {
     _currentDefShowQuestionMark = null;
     _currentSortBy = 'name';
     _currentSortDescending = false;
+    _currentOnlyEdisonFilter = false;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -103,6 +105,7 @@ class CardList extends _$CardList {
       defShowQuestionMark: _currentDefShowQuestionMark,
       sortBy: _currentSortBy,
       sortDescending: _currentSortDescending,
+      onlyEdison: _currentOnlyEdisonFilter,
     );
   }
 
@@ -118,7 +121,8 @@ class CardList extends _$CardList {
       _currentAtkFilter != null ||
       _currentAtkShowQuestionMark != null ||
       _currentDefFilter != null ||
-      _currentDefShowQuestionMark != null;
+      _currentDefShowQuestionMark != null ||
+      _currentOnlyEdisonFilter;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
@@ -134,6 +138,7 @@ class CardList extends _$CardList {
   int? get currentDefFilter => _currentDefFilter;
   String? get currentDefOperator => _currentDefOperator;
   bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
+  bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
   
   String get currentSortBy => _currentSortBy;
   bool get currentSortDescending => _currentSortDescending;
@@ -247,22 +252,8 @@ class CardList extends _$CardList {
     int? def,
     String? defOperator,
     bool? defShowQuestionMark,
+    bool? onlyEdison,
   }) async {
-    if (_currentTypeFilter == type && 
-        _currentAttributeFilter == attribute && 
-        _currentRaceFilter == race && 
-        _currentSubTypeFilter == subType &&
-        _currentFrameFilter == frame &&
-        _currentLevelFilter == level &&
-        _currentScaleFilter == scale &&
-        _currentLinkValFilter == linkVal &&
-        _currentAtkFilter == atk &&
-        _currentAtkOperator == atkOperator &&
-        _currentAtkShowQuestionMark == atkShowQuestionMark &&
-        _currentDefFilter == def &&
-        _currentDefOperator == defOperator &&
-        _currentDefShowQuestionMark == defShowQuestionMark) return;
-
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
     _currentRaceFilter = race;
@@ -277,6 +268,7 @@ class CardList extends _$CardList {
     _currentDefFilter = def;
     _currentDefOperator = defOperator;
     _currentDefShowQuestionMark = defShowQuestionMark;
+    if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
     _offset = 0;
 
     state = const AsyncValue.loading();
@@ -327,6 +319,7 @@ class CardList extends _$CardList {
     _currentDefFilter = null;
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
+    _currentOnlyEdisonFilter = false;
     _offset = 0;
 
     state = const AsyncValue.loading();
