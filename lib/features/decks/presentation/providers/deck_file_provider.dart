@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -171,16 +173,12 @@ class DeckFileContent extends _$DeckFileContent {
       );
     } else {
       // Desktop/Web fallback: Save As dialog
-      final result = await FilePicker.platform.saveFile(
+      final result = await FilePicker.saveFile(
         dialogTitle: 'Export Deck',
         fileName: fileName,
         type: FileType.any,
+        bytes: Uint8List.fromList(utf8.encode(state.content)),
       );
-
-      if (result != null) {
-        final file = File(result);
-        await file.writeAsString(state.content);
-      }
     }
   }
 }
@@ -189,9 +187,13 @@ final savedDecksProvider = StreamProvider<List<DriftDeck>>((ref) {
   return ref.watch(databaseProvider).watchAllDecks();
 });
 
-final userInventoryIdsProvider = StreamProvider<Set<int>>((ref) {
+final userInventoryIdsProvider = StreamProvider<Map<int, int>>((ref) {
   return ref.watch(databaseProvider).watchCollection().map((items) {
-    return items.map((item) => item.card.id).toSet();
+    final inventory = <int, int>{};
+    for (final item in items) {
+      inventory[item.card.id] = (inventory[item.card.id] ?? 0) + item.collectionItem.quantity;
+    }
+    return inventory;
   });
 });
 

@@ -41,7 +41,7 @@ final class DeckFileContentProvider
   }
 }
 
-String _$deckFileContentHash() => r'4d0af7a2cc782a9764206ce19369890f87f0242f';
+String _$deckFileContentHash() => r'2e059070b6a39e780f9353b16ed3711d54e0f256';
 
 abstract class _$DeckFileContent extends $Notifier<DeckState> {
   DeckState build();

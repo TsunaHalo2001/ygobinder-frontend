@@ -29,16 +29,21 @@ $CardPriceCopyWith<CardPrice> get copyWith => _$CardPriceCopyWithImpl<CardPrice>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardPrice&&(identical(other.cardMarketPrice, cardMarketPrice) || other.cardMarketPrice == cardMarketPrice)&&(identical(other.tcgPlayerPrice, tcgPlayerPrice) || other.tcgPlayerPrice == tcgPlayerPrice)&&(identical(other.ebayPrice, ebayPrice) || other.ebayPrice == ebayPrice)&&(identical(other.amazonPrice, amazonPrice) || other.amazonPrice == amazonPrice)&&(identical(other.coolStuffIncPrice, coolStuffIncPrice) || other.coolStuffIncPrice == coolStuffIncPrice));
+  final _this = this as CardPrice;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardPrice&&(identical(other.cardMarketPrice, _this.cardMarketPrice) || other.cardMarketPrice == _this.cardMarketPrice)&&(identical(other.tcgPlayerPrice, _this.tcgPlayerPrice) || other.tcgPlayerPrice == _this.tcgPlayerPrice)&&(identical(other.ebayPrice, _this.ebayPrice) || other.ebayPrice == _this.ebayPrice)&&(identical(other.amazonPrice, _this.amazonPrice) || other.amazonPrice == _this.amazonPrice)&&(identical(other.coolStuffIncPrice, _this.coolStuffIncPrice) || other.coolStuffIncPrice == _this.coolStuffIncPrice));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,cardMarketPrice,tcgPlayerPrice,ebayPrice,amazonPrice,coolStuffIncPrice);
+int get hashCode {
+  final _this = this as CardPrice;
+  return Object.hash(runtimeType,_this.cardMarketPrice,_this.tcgPlayerPrice,_this.ebayPrice,_this.amazonPrice,_this.coolStuffIncPrice);
+}
 
 @override
 String toString() {
-  return 'CardPrice(cardMarketPrice: $cardMarketPrice, tcgPlayerPrice: $tcgPlayerPrice, ebayPrice: $ebayPrice, amazonPrice: $amazonPrice, coolStuffIncPrice: $coolStuffIncPrice)';
+  final _this = this as CardPrice;
+  return 'CardPrice(cardMarketPrice: ${_this.cardMarketPrice}, tcgPlayerPrice: ${_this.tcgPlayerPrice}, ebayPrice: ${_this.ebayPrice}, amazonPrice: ${_this.amazonPrice}, coolStuffIncPrice: ${_this.coolStuffIncPrice})';
 }
 
 
@@ -236,16 +241,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardPrice&&(identical(other.cardMarketPrice, cardMarketPrice) || other.cardMarketPrice == cardMarketPrice)&&(identical(other.tcgPlayerPrice, tcgPlayerPrice) || other.tcgPlayerPrice == tcgPlayerPrice)&&(identical(other.ebayPrice, ebayPrice) || other.ebayPrice == ebayPrice)&&(identical(other.amazonPrice, amazonPrice) || other.amazonPrice == amazonPrice)&&(identical(other.coolStuffIncPrice, coolStuffIncPrice) || other.coolStuffIncPrice == coolStuffIncPrice));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardPrice&&(identical(other.cardMarketPrice, cardMarketPrice) || other.cardMarketPrice == cardMarketPrice)&&(identical(other.tcgPlayerPrice, tcgPlayerPrice) || other.tcgPlayerPrice == tcgPlayerPrice)&&(identical(other.ebayPrice, ebayPrice) || other.ebayPrice == ebayPrice)&&(identical(other.amazonPrice, amazonPrice) || other.amazonPrice == amazonPrice)&&(identical(other.coolStuffIncPrice, coolStuffIncPrice) || other.coolStuffIncPrice == coolStuffIncPrice));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,cardMarketPrice,tcgPlayerPrice,ebayPrice,amazonPrice,coolStuffIncPrice);
+int get hashCode {
+    return Object.hash(runtimeType,cardMarketPrice,tcgPlayerPrice,ebayPrice,amazonPrice,coolStuffIncPrice);
+}
 
 @override
 String toString() {
-  return 'CardPrice(cardMarketPrice: $cardMarketPrice, tcgPlayerPrice: $tcgPlayerPrice, ebayPrice: $ebayPrice, amazonPrice: $amazonPrice, coolStuffIncPrice: $coolStuffIncPrice)';
+    return 'CardPrice(cardMarketPrice: $cardMarketPrice, tcgPlayerPrice: $tcgPlayerPrice, ebayPrice: $ebayPrice, amazonPrice: $amazonPrice, coolStuffIncPrice: $coolStuffIncPrice)';
 }
 
 
@@ -304,16 +311,21 @@ $CardImageCopyWith<CardImage> get copyWith => _$CardImageCopyWithImpl<CardImage>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardImage&&(identical(other.id, id) || other.id == id)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageUrlSmall, imageUrlSmall) || other.imageUrlSmall == imageUrlSmall)&&(identical(other.imageUrlCropped, imageUrlCropped) || other.imageUrlCropped == imageUrlCropped));
+  final _this = this as CardImage;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardImage&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.imageUrl, _this.imageUrl) || other.imageUrl == _this.imageUrl)&&(identical(other.imageUrlSmall, _this.imageUrlSmall) || other.imageUrlSmall == _this.imageUrlSmall)&&(identical(other.imageUrlCropped, _this.imageUrlCropped) || other.imageUrlCropped == _this.imageUrlCropped));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,imageUrl,imageUrlSmall,imageUrlCropped);
+int get hashCode {
+  final _this = this as CardImage;
+  return Object.hash(runtimeType,_this.id,_this.imageUrl,_this.imageUrlSmall,_this.imageUrlCropped);
+}
 
 @override
 String toString() {
-  return 'CardImage(id: $id, imageUrl: $imageUrl, imageUrlSmall: $imageUrlSmall, imageUrlCropped: $imageUrlCropped)';
+  final _this = this as CardImage;
+  return 'CardImage(id: ${_this.id}, imageUrl: ${_this.imageUrl}, imageUrlSmall: ${_this.imageUrlSmall}, imageUrlCropped: ${_this.imageUrlCropped})';
 }
 
 
@@ -509,16 +521,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardImage&&(identical(other.id, id) || other.id == id)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageUrlSmall, imageUrlSmall) || other.imageUrlSmall == imageUrlSmall)&&(identical(other.imageUrlCropped, imageUrlCropped) || other.imageUrlCropped == imageUrlCropped));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardImage&&(identical(other.id, id) || other.id == id)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.imageUrlSmall, imageUrlSmall) || other.imageUrlSmall == imageUrlSmall)&&(identical(other.imageUrlCropped, imageUrlCropped) || other.imageUrlCropped == imageUrlCropped));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,imageUrl,imageUrlSmall,imageUrlCropped);
+int get hashCode {
+    return Object.hash(runtimeType,id,imageUrl,imageUrlSmall,imageUrlCropped);
+}
 
 @override
 String toString() {
-  return 'CardImage(id: $id, imageUrl: $imageUrl, imageUrlSmall: $imageUrlSmall, imageUrlCropped: $imageUrlCropped)';
+    return 'CardImage(id: $id, imageUrl: $imageUrl, imageUrlSmall: $imageUrlSmall, imageUrlCropped: $imageUrlCropped)';
 }
 
 
@@ -576,16 +590,21 @@ $CardSetCopyWith<CardSet> get copyWith => _$CardSetCopyWithImpl<CardSet>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardSet&&(identical(other.setName, setName) || other.setName == setName)&&(identical(other.setCode, setCode) || other.setCode == setCode)&&(identical(other.setRarity, setRarity) || other.setRarity == setRarity)&&(identical(other.setRarityCode, setRarityCode) || other.setRarityCode == setRarityCode)&&(identical(other.setPrice, setPrice) || other.setPrice == setPrice));
+  final _this = this as CardSet;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardSet&&(identical(other.setName, _this.setName) || other.setName == _this.setName)&&(identical(other.setCode, _this.setCode) || other.setCode == _this.setCode)&&(identical(other.setRarity, _this.setRarity) || other.setRarity == _this.setRarity)&&(identical(other.setRarityCode, _this.setRarityCode) || other.setRarityCode == _this.setRarityCode)&&(identical(other.setPrice, _this.setPrice) || other.setPrice == _this.setPrice));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,setName,setCode,setRarity,setRarityCode,setPrice);
+int get hashCode {
+  final _this = this as CardSet;
+  return Object.hash(runtimeType,_this.setName,_this.setCode,_this.setRarity,_this.setRarityCode,_this.setPrice);
+}
 
 @override
 String toString() {
-  return 'CardSet(setName: $setName, setCode: $setCode, setRarity: $setRarity, setRarityCode: $setRarityCode, setPrice: $setPrice)';
+  final _this = this as CardSet;
+  return 'CardSet(setName: ${_this.setName}, setCode: ${_this.setCode}, setRarity: ${_this.setRarity}, setRarityCode: ${_this.setRarityCode}, setPrice: ${_this.setPrice})';
 }
 
 
@@ -783,16 +802,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardSet&&(identical(other.setName, setName) || other.setName == setName)&&(identical(other.setCode, setCode) || other.setCode == setCode)&&(identical(other.setRarity, setRarity) || other.setRarity == setRarity)&&(identical(other.setRarityCode, setRarityCode) || other.setRarityCode == setRarityCode)&&(identical(other.setPrice, setPrice) || other.setPrice == setPrice));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardSet&&(identical(other.setName, setName) || other.setName == setName)&&(identical(other.setCode, setCode) || other.setCode == setCode)&&(identical(other.setRarity, setRarity) || other.setRarity == setRarity)&&(identical(other.setRarityCode, setRarityCode) || other.setRarityCode == setRarityCode)&&(identical(other.setPrice, setPrice) || other.setPrice == setPrice));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,setName,setCode,setRarity,setRarityCode,setPrice);
+int get hashCode {
+    return Object.hash(runtimeType,setName,setCode,setRarity,setRarityCode,setPrice);
+}
 
 @override
 String toString() {
-  return 'CardSet(setName: $setName, setCode: $setCode, setRarity: $setRarity, setRarityCode: $setRarityCode, setPrice: $setPrice)';
+    return 'CardSet(setName: $setName, setCode: $setCode, setRarity: $setRarity, setRarityCode: $setRarityCode, setPrice: $setPrice)';
 }
 
 
@@ -851,16 +872,21 @@ $BanlistInfoCopyWith<BanlistInfo> get copyWith => _$BanlistInfoCopyWithImpl<Banl
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BanlistInfo&&(identical(other.banTcg, banTcg) || other.banTcg == banTcg)&&(identical(other.banOcg, banOcg) || other.banOcg == banOcg)&&(identical(other.banGoat, banGoat) || other.banGoat == banGoat)&&(identical(other.banEdison, banEdison) || other.banEdison == banEdison));
+  final _this = this as BanlistInfo;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BanlistInfo&&(identical(other.banTcg, _this.banTcg) || other.banTcg == _this.banTcg)&&(identical(other.banOcg, _this.banOcg) || other.banOcg == _this.banOcg)&&(identical(other.banGoat, _this.banGoat) || other.banGoat == _this.banGoat)&&(identical(other.banEdison, _this.banEdison) || other.banEdison == _this.banEdison));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,banTcg,banOcg,banGoat,banEdison);
+int get hashCode {
+  final _this = this as BanlistInfo;
+  return Object.hash(runtimeType,_this.banTcg,_this.banOcg,_this.banGoat,_this.banEdison);
+}
 
 @override
 String toString() {
-  return 'BanlistInfo(banTcg: $banTcg, banOcg: $banOcg, banGoat: $banGoat, banEdison: $banEdison)';
+  final _this = this as BanlistInfo;
+  return 'BanlistInfo(banTcg: ${_this.banTcg}, banOcg: ${_this.banOcg}, banGoat: ${_this.banGoat}, banEdison: ${_this.banEdison})';
 }
 
 
@@ -1056,16 +1082,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BanlistInfo&&(identical(other.banTcg, banTcg) || other.banTcg == banTcg)&&(identical(other.banOcg, banOcg) || other.banOcg == banOcg)&&(identical(other.banGoat, banGoat) || other.banGoat == banGoat)&&(identical(other.banEdison, banEdison) || other.banEdison == banEdison));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _BanlistInfo&&(identical(other.banTcg, banTcg) || other.banTcg == banTcg)&&(identical(other.banOcg, banOcg) || other.banOcg == banOcg)&&(identical(other.banGoat, banGoat) || other.banGoat == banGoat)&&(identical(other.banEdison, banEdison) || other.banEdison == banEdison));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,banTcg,banOcg,banGoat,banEdison);
+int get hashCode {
+    return Object.hash(runtimeType,banTcg,banOcg,banGoat,banEdison);
+}
 
 @override
 String toString() {
-  return 'BanlistInfo(banTcg: $banTcg, banOcg: $banOcg, banGoat: $banGoat, banEdison: $banEdison)';
+    return 'BanlistInfo(banTcg: $banTcg, banOcg: $banOcg, banGoat: $banGoat, banEdison: $banEdison)';
 }
 
 
@@ -1123,16 +1151,21 @@ $MiscInfoCopyWith<MiscInfo> get copyWith => _$MiscInfoCopyWithImpl<MiscInfo>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MiscInfo&&(identical(other.tcgDate, tcgDate) || other.tcgDate == tcgDate)&&(identical(other.ocgDate, ocgDate) || other.ocgDate == ocgDate));
+  final _this = this as MiscInfo;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MiscInfo&&(identical(other.tcgDate, _this.tcgDate) || other.tcgDate == _this.tcgDate)&&(identical(other.ocgDate, _this.ocgDate) || other.ocgDate == _this.ocgDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,tcgDate,ocgDate);
+int get hashCode {
+  final _this = this as MiscInfo;
+  return Object.hash(runtimeType,_this.tcgDate,_this.ocgDate);
+}
 
 @override
 String toString() {
-  return 'MiscInfo(tcgDate: $tcgDate, ocgDate: $ocgDate)';
+  final _this = this as MiscInfo;
+  return 'MiscInfo(tcgDate: ${_this.tcgDate}, ocgDate: ${_this.ocgDate})';
 }
 
 
@@ -1324,16 +1357,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MiscInfo&&(identical(other.tcgDate, tcgDate) || other.tcgDate == tcgDate)&&(identical(other.ocgDate, ocgDate) || other.ocgDate == ocgDate));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _MiscInfo&&(identical(other.tcgDate, tcgDate) || other.tcgDate == tcgDate)&&(identical(other.ocgDate, ocgDate) || other.ocgDate == ocgDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,tcgDate,ocgDate);
+int get hashCode {
+    return Object.hash(runtimeType,tcgDate,ocgDate);
+}
 
 @override
 String toString() {
-  return 'MiscInfo(tcgDate: $tcgDate, ocgDate: $ocgDate)';
+    return 'MiscInfo(tcgDate: $tcgDate, ocgDate: $ocgDate)';
 }
 
 
@@ -1389,16 +1424,21 @@ $YgoCardCopyWith<YgoCard> get copyWith => _$YgoCardCopyWithImpl<YgoCard>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is YgoCard&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.typeLine, typeLine)&&(identical(other.type, type) || other.type == type)&&(identical(other.humanReadableCardType, humanReadableCardType) || other.humanReadableCardType == humanReadableCardType)&&(identical(other.frameType, frameType) || other.frameType == frameType)&&(identical(other.desc, desc) || other.desc == desc)&&(identical(other.race, race) || other.race == race)&&(identical(other.pendDesc, pendDesc) || other.pendDesc == pendDesc)&&(identical(other.monsterDesc, monsterDesc) || other.monsterDesc == monsterDesc)&&(identical(other.atk, atk) || other.atk == atk)&&(identical(other.def, def) || other.def == def)&&(identical(other.level, level) || other.level == level)&&(identical(other.attribute, attribute) || other.attribute == attribute)&&(identical(other.archetype, archetype) || other.archetype == archetype)&&(identical(other.scale, scale) || other.scale == scale)&&(identical(other.linkVal, linkVal) || other.linkVal == linkVal)&&const DeepCollectionEquality().equals(other.linkMarkers, linkMarkers)&&(identical(other.ygoProDeckUrl, ygoProDeckUrl) || other.ygoProDeckUrl == ygoProDeckUrl)&&const DeepCollectionEquality().equals(other.cardSets, cardSets)&&(identical(other.banlistInfo, banlistInfo) || other.banlistInfo == banlistInfo)&&const DeepCollectionEquality().equals(other.cardImages, cardImages)&&const DeepCollectionEquality().equals(other.cardPrices, cardPrices)&&const DeepCollectionEquality().equals(other.miscInfo, miscInfo));
+  final _this = this as YgoCard;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is YgoCard&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.name, _this.name) || other.name == _this.name)&&const DeepCollectionEquality().equals(other.typeLine, _this.typeLine)&&(identical(other.type, _this.type) || other.type == _this.type)&&(identical(other.humanReadableCardType, _this.humanReadableCardType) || other.humanReadableCardType == _this.humanReadableCardType)&&(identical(other.frameType, _this.frameType) || other.frameType == _this.frameType)&&(identical(other.desc, _this.desc) || other.desc == _this.desc)&&(identical(other.race, _this.race) || other.race == _this.race)&&(identical(other.pendDesc, _this.pendDesc) || other.pendDesc == _this.pendDesc)&&(identical(other.monsterDesc, _this.monsterDesc) || other.monsterDesc == _this.monsterDesc)&&(identical(other.atk, _this.atk) || other.atk == _this.atk)&&(identical(other.def, _this.def) || other.def == _this.def)&&(identical(other.level, _this.level) || other.level == _this.level)&&(identical(other.attribute, _this.attribute) || other.attribute == _this.attribute)&&(identical(other.archetype, _this.archetype) || other.archetype == _this.archetype)&&(identical(other.scale, _this.scale) || other.scale == _this.scale)&&(identical(other.linkVal, _this.linkVal) || other.linkVal == _this.linkVal)&&const DeepCollectionEquality().equals(other.linkMarkers, _this.linkMarkers)&&(identical(other.ygoProDeckUrl, _this.ygoProDeckUrl) || other.ygoProDeckUrl == _this.ygoProDeckUrl)&&const DeepCollectionEquality().equals(other.cardSets, _this.cardSets)&&(identical(other.banlistInfo, _this.banlistInfo) || other.banlistInfo == _this.banlistInfo)&&const DeepCollectionEquality().equals(other.cardImages, _this.cardImages)&&const DeepCollectionEquality().equals(other.cardPrices, _this.cardPrices)&&const DeepCollectionEquality().equals(other.miscInfo, _this.miscInfo));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,name,const DeepCollectionEquality().hash(typeLine),type,humanReadableCardType,frameType,desc,race,pendDesc,monsterDesc,atk,def,level,attribute,archetype,scale,linkVal,const DeepCollectionEquality().hash(linkMarkers),ygoProDeckUrl,const DeepCollectionEquality().hash(cardSets),banlistInfo,const DeepCollectionEquality().hash(cardImages),const DeepCollectionEquality().hash(cardPrices),const DeepCollectionEquality().hash(miscInfo)]);
+int get hashCode {
+  final _this = this as YgoCard;
+  return Object.hashAll([runtimeType,_this.id,_this.name,const DeepCollectionEquality().hash(_this.typeLine),_this.type,_this.humanReadableCardType,_this.frameType,_this.desc,_this.race,_this.pendDesc,_this.monsterDesc,_this.atk,_this.def,_this.level,_this.attribute,_this.archetype,_this.scale,_this.linkVal,const DeepCollectionEquality().hash(_this.linkMarkers),_this.ygoProDeckUrl,const DeepCollectionEquality().hash(_this.cardSets),_this.banlistInfo,const DeepCollectionEquality().hash(_this.cardImages),const DeepCollectionEquality().hash(_this.cardPrices),const DeepCollectionEquality().hash(_this.miscInfo)]);
+}
 
 @override
 String toString() {
-  return 'YgoCard(id: $id, name: $name, typeLine: $typeLine, type: $type, humanReadableCardType: $humanReadableCardType, frameType: $frameType, desc: $desc, race: $race, pendDesc: $pendDesc, monsterDesc: $monsterDesc, atk: $atk, def: $def, level: $level, attribute: $attribute, archetype: $archetype, scale: $scale, linkVal: $linkVal, linkMarkers: $linkMarkers, ygoProDeckUrl: $ygoProDeckUrl, cardSets: $cardSets, banlistInfo: $banlistInfo, cardImages: $cardImages, cardPrices: $cardPrices, miscInfo: $miscInfo)';
+  final _this = this as YgoCard;
+  return 'YgoCard(id: ${_this.id}, name: ${_this.name}, typeLine: ${_this.typeLine}, type: ${_this.type}, humanReadableCardType: ${_this.humanReadableCardType}, frameType: ${_this.frameType}, desc: ${_this.desc}, race: ${_this.race}, pendDesc: ${_this.pendDesc}, monsterDesc: ${_this.monsterDesc}, atk: ${_this.atk}, def: ${_this.def}, level: ${_this.level}, attribute: ${_this.attribute}, archetype: ${_this.archetype}, scale: ${_this.scale}, linkVal: ${_this.linkVal}, linkMarkers: ${_this.linkMarkers}, ygoProDeckUrl: ${_this.ygoProDeckUrl}, cardSets: ${_this.cardSets}, banlistInfo: ${_this.banlistInfo}, cardImages: ${_this.cardImages}, cardPrices: ${_this.cardPrices}, miscInfo: ${_this.miscInfo})';
 }
 
 
@@ -1694,16 +1734,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _YgoCard&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other._typeLine, _typeLine)&&(identical(other.type, type) || other.type == type)&&(identical(other.humanReadableCardType, humanReadableCardType) || other.humanReadableCardType == humanReadableCardType)&&(identical(other.frameType, frameType) || other.frameType == frameType)&&(identical(other.desc, desc) || other.desc == desc)&&(identical(other.race, race) || other.race == race)&&(identical(other.pendDesc, pendDesc) || other.pendDesc == pendDesc)&&(identical(other.monsterDesc, monsterDesc) || other.monsterDesc == monsterDesc)&&(identical(other.atk, atk) || other.atk == atk)&&(identical(other.def, def) || other.def == def)&&(identical(other.level, level) || other.level == level)&&(identical(other.attribute, attribute) || other.attribute == attribute)&&(identical(other.archetype, archetype) || other.archetype == archetype)&&(identical(other.scale, scale) || other.scale == scale)&&(identical(other.linkVal, linkVal) || other.linkVal == linkVal)&&const DeepCollectionEquality().equals(other._linkMarkers, _linkMarkers)&&(identical(other.ygoProDeckUrl, ygoProDeckUrl) || other.ygoProDeckUrl == ygoProDeckUrl)&&const DeepCollectionEquality().equals(other._cardSets, _cardSets)&&(identical(other.banlistInfo, banlistInfo) || other.banlistInfo == banlistInfo)&&const DeepCollectionEquality().equals(other._cardImages, _cardImages)&&const DeepCollectionEquality().equals(other._cardPrices, _cardPrices)&&const DeepCollectionEquality().equals(other._miscInfo, _miscInfo));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _YgoCard&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&const DeepCollectionEquality().equals(other.typeLine, _typeLine)&&(identical(other.type, type) || other.type == type)&&(identical(other.humanReadableCardType, humanReadableCardType) || other.humanReadableCardType == humanReadableCardType)&&(identical(other.frameType, frameType) || other.frameType == frameType)&&(identical(other.desc, desc) || other.desc == desc)&&(identical(other.race, race) || other.race == race)&&(identical(other.pendDesc, pendDesc) || other.pendDesc == pendDesc)&&(identical(other.monsterDesc, monsterDesc) || other.monsterDesc == monsterDesc)&&(identical(other.atk, atk) || other.atk == atk)&&(identical(other.def, def) || other.def == def)&&(identical(other.level, level) || other.level == level)&&(identical(other.attribute, attribute) || other.attribute == attribute)&&(identical(other.archetype, archetype) || other.archetype == archetype)&&(identical(other.scale, scale) || other.scale == scale)&&(identical(other.linkVal, linkVal) || other.linkVal == linkVal)&&const DeepCollectionEquality().equals(other.linkMarkers, _linkMarkers)&&(identical(other.ygoProDeckUrl, ygoProDeckUrl) || other.ygoProDeckUrl == ygoProDeckUrl)&&const DeepCollectionEquality().equals(other.cardSets, _cardSets)&&(identical(other.banlistInfo, banlistInfo) || other.banlistInfo == banlistInfo)&&const DeepCollectionEquality().equals(other.cardImages, _cardImages)&&const DeepCollectionEquality().equals(other.cardPrices, _cardPrices)&&const DeepCollectionEquality().equals(other.miscInfo, _miscInfo));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,name,const DeepCollectionEquality().hash(_typeLine),type,humanReadableCardType,frameType,desc,race,pendDesc,monsterDesc,atk,def,level,attribute,archetype,scale,linkVal,const DeepCollectionEquality().hash(_linkMarkers),ygoProDeckUrl,const DeepCollectionEquality().hash(_cardSets),banlistInfo,const DeepCollectionEquality().hash(_cardImages),const DeepCollectionEquality().hash(_cardPrices),const DeepCollectionEquality().hash(_miscInfo)]);
+int get hashCode {
+    return Object.hashAll([runtimeType,id,name,const DeepCollectionEquality().hash(_typeLine),type,humanReadableCardType,frameType,desc,race,pendDesc,monsterDesc,atk,def,level,attribute,archetype,scale,linkVal,const DeepCollectionEquality().hash(_linkMarkers),ygoProDeckUrl,const DeepCollectionEquality().hash(_cardSets),banlistInfo,const DeepCollectionEquality().hash(_cardImages),const DeepCollectionEquality().hash(_cardPrices),const DeepCollectionEquality().hash(_miscInfo)]);
+}
 
 @override
 String toString() {
-  return 'YgoCard(id: $id, name: $name, typeLine: $typeLine, type: $type, humanReadableCardType: $humanReadableCardType, frameType: $frameType, desc: $desc, race: $race, pendDesc: $pendDesc, monsterDesc: $monsterDesc, atk: $atk, def: $def, level: $level, attribute: $attribute, archetype: $archetype, scale: $scale, linkVal: $linkVal, linkMarkers: $linkMarkers, ygoProDeckUrl: $ygoProDeckUrl, cardSets: $cardSets, banlistInfo: $banlistInfo, cardImages: $cardImages, cardPrices: $cardPrices, miscInfo: $miscInfo)';
+    return 'YgoCard(id: $id, name: $name, typeLine: $typeLine, type: $type, humanReadableCardType: $humanReadableCardType, frameType: $frameType, desc: $desc, race: $race, pendDesc: $pendDesc, monsterDesc: $monsterDesc, atk: $atk, def: $def, level: $level, attribute: $attribute, archetype: $archetype, scale: $scale, linkVal: $linkVal, linkMarkers: $linkMarkers, ygoProDeckUrl: $ygoProDeckUrl, cardSets: $cardSets, banlistInfo: $banlistInfo, cardImages: $cardImages, cardPrices: $cardPrices, miscInfo: $miscInfo)';
 }
 
 

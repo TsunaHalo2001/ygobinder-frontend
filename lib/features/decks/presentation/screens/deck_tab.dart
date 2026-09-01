@@ -8,6 +8,13 @@ import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
 
+class DeckVisualCard {
+  final YgoCard card;
+  final bool isOwned;
+
+  DeckVisualCard({required this.card, required this.isOwned});
+}
+
 class DeckTab extends ConsumerStatefulWidget {
   const DeckTab({super.key});
 
@@ -18,13 +25,13 @@ class DeckTab extends ConsumerStatefulWidget {
 class _DeckTabState extends ConsumerState<DeckTab> {
   Future<void> _pickFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.any, // ✅ Changed to 'any' for better compatibility on Linux
         // allowedExtensions: ['ydk'], // Removed temporarily to test visibility
       );
 
-      if (result != null && result.files.single.path != null) {
-        await ref.read(deckFileContentProvider.notifier).loadFromPath(result.files.single.path!);
+      if (result.isNotEmpty && result.first.path != null) {
+        await ref.read(deckFileContentProvider.notifier).loadFromPath(result.first.path!);
       }
     } catch (e) {
       if (mounted) {
@@ -282,15 +289,36 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                     ),
                   ),
                   Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.all(16.0),
-                      children: [
-                        _buildCategorySection('MAIN DECK', categorized['main']!, theme, cacheManager, inventoryIdsAsync.value ?? {}),
-                        const SizedBox(height: 24),
-                        _buildCategorySection('EXTRA DECK', categorized['extra']!, theme, cacheManager, inventoryIdsAsync.value ?? {}),
-                        const SizedBox(height: 24),
-                        _buildCategorySection('SIDE DECK', categorized['side']!, theme, cacheManager, inventoryIdsAsync.value ?? {}),
-                      ],
+                    child: Builder(
+                      builder: (context) {
+                        final inventory = inventoryIdsAsync.value ?? {};
+                        final usageTracker = <int, int>{};
+
+                        List<DeckVisualCard> prepareVisualCards(List<YgoCard> source) {
+                          return source.map((card) {
+                            final totalOwned = inventory[card.id] ?? 0;
+                            final usedSoFar = usageTracker[card.id] ?? 0;
+                            final isOwned = usedSoFar < totalOwned;
+                            usageTracker[card.id] = usedSoFar + 1;
+                            return DeckVisualCard(card: card, isOwned: isOwned);
+                          }).toList();
+                        }
+
+                        final mainVisual = prepareVisualCards(categorized['main']!);
+                        final extraVisual = prepareVisualCards(categorized['extra']!);
+                        final sideVisual = prepareVisualCards(categorized['side']!);
+
+                        return ListView(
+                          padding: const EdgeInsets.all(16.0),
+                          children: [
+                            _buildCategorySection('MAIN DECK', mainVisual, theme, cacheManager),
+                            const SizedBox(height: 24),
+                            _buildCategorySection('EXTRA DECK', extraVisual, theme, cacheManager),
+                            const SizedBox(height: 24),
+                            _buildCategorySection('SIDE DECK', sideVisual, theme, cacheManager),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -301,8 +329,13 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     );
   }
 
-  Widget _buildCategorySection(String title, List<YgoCard> cards, ThemeData theme, CacheManager cacheManager, Set<int> ownedIds) {
-    if (cards.isEmpty) return const SizedBox.shrink();
+  Widget _buildCategorySection(
+    String title,
+    List<DeckVisualCard> visualCards,
+    ThemeData theme,
+    CacheManager cacheManager,
+  ) {
+    if (visualCards.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +352,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
             ),
             const SizedBox(width: 8),
             Text(
-              '(${cards.length})',
+              '(${visualCards.length})',
               style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38),
             ),
           ],
@@ -334,11 +367,12 @@ class _DeckTabState extends ConsumerState<DeckTab> {
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
           ),
-          itemCount: cards.length,
+          itemCount: visualCards.length,
           itemBuilder: (context, index) {
-            final card = cards[index];
+            final visual = visualCards[index];
+            final card = visual.card;
+            final isOwned = visual.isOwned;
             final imageUrl = card.cardImages?.first.imageUrlSmall ?? '';
-            final isOwned = ownedIds.contains(card.id);
 
             return InkWell(
               onTap: () => context.push('/card/${card.id}'),
