@@ -115,6 +115,23 @@ class CollectionItems extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+@DataClassName('DriftDeck')
+class Decks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DataClassName('DriftDeckCard')
+class DeckCards extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get deckId => integer().references(Decks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get cardId => integer().references(Cards, #id)();
+  // category: 'main', 'extra', 'side'
+  TextColumn get category => text()();
+}
+
 // ==========================================
 // DATABASE CLASS
 // ==========================================
@@ -127,12 +144,14 @@ class CollectionItems extends Table {
   BanlistInfos,
   CollectionItems,
   AppConfig,
+  Decks,
+  DeckCards,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -168,6 +187,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         // Add Edison banlist to BanlistInfos table
         await m.addColumn(banlistInfos, banlistInfos.banEdison);
+      }
+      if (from < 7) {
+        // Add Deck tables
+        await m.createTable(decks);
+        await m.createTable(deckCards);
       }
     },
     beforeOpen: (details) async {
@@ -634,6 +658,51 @@ class AppDatabase extends _$AppDatabase {
     // LIMIT X OFFSET Y is the magic of pagination
     query.limit(limit, offset: offset);
     return query.get();
+  }
+
+  // ==========================================
+  // DECK QUERIES
+  // ==========================================
+
+  Future<int> saveDeck(String name, Map<String, List<int>> categorizedCards) async {
+    return transaction(() async {
+      final deckId = await into(decks).insert(
+        DecksCompanion.insert(
+          name: name,
+          createdAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+      for (final entry in categorizedCards.entries) {
+        final category = entry.key;
+        final cardIds = entry.value;
+
+        for (final cardId in cardIds) {
+          await into(deckCards).insert(
+            DeckCardsCompanion.insert(
+              deckId: deckId,
+              cardId: cardId,
+              category: category,
+            ),
+          );
+        }
+      }
+
+      return deckId;
+    });
+  }
+
+  Stream<List<DriftDeck>> watchAllDecks() {
+    return select(decks).watch();
+  }
+
+  Future<List<DriftDeckCard>> getDeckCards(int deckId) {
+    return (select(deckCards)..where((t) => t.deckId.equals(deckId))).get();
+  }
+
+  Future<void> deleteDeck(int deckId) async {
+    await (delete(decks)..where((t) => t.id.equals(deckId))).go();
   }
 }
 

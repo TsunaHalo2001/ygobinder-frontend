@@ -194,6 +194,34 @@ class CardRepository {
     }).toList();
   }
 
+  Future<List<YgoCard>> getCardsByIds(List<int> cardIds) async {
+    if (cardIds.isEmpty) return [];
+
+    final driftCards = await (_db.select(_db.cards)..where((t) => t.id.isIn(cardIds))).get();
+
+    if (driftCards.isEmpty) return [];
+
+    final imagesFuture = (_db.select(_db.cardImages)..where((t) => t.cardId.isIn(cardIds))).get();
+    final banlistFuture = (_db.select(_db.banlistInfos)..where((t) => t.cardId.isIn(cardIds))).get();
+
+    final [allImages, allBanlists] = await Future.wait([imagesFuture, banlistFuture]);
+
+    final imagesByCardId = <int, List<DriftCardImage>>{};
+    for (final img in allImages as List<DriftCardImage>) {
+      imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
+    }
+
+    final banlistByCardId = {for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b};
+
+    return driftCards.map((card) {
+      return CardMapper.toYgoCard(
+        card,
+        images: imagesByCardId[card.id] ?? [],
+        banlist: banlistByCardId[card.id],
+      );
+    }).toList();
+  }
+
   Stream<List<YgoCard>> watchAllCards() {
     return _db.watchAllCards().map((cards) => cards.map((card) => CardMapper.toYgoCard(card)).toList());
   }
