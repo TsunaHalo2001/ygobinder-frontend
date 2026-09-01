@@ -308,14 +308,11 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                         final extraVisual = prepareVisualCards(categorized['extra']!);
                         final sideVisual = prepareVisualCards(categorized['side']!);
 
-                        return ListView(
-                          padding: const EdgeInsets.all(16.0),
-                          children: [
-                            _buildCategorySection('MAIN DECK', mainVisual, theme, cacheManager),
-                            const SizedBox(height: 24),
-                            _buildCategorySection('EXTRA DECK', extraVisual, theme, cacheManager),
-                            const SizedBox(height: 24),
-                            _buildCategorySection('SIDE DECK', sideVisual, theme, cacheManager),
+                        return CustomScrollView(
+                          slivers: [
+                            ..._buildCategorySectionSlivers('MAIN DECK', mainVisual, theme, cacheManager),
+                            ..._buildCategorySectionSlivers('EXTRA DECK', extraVisual, theme, cacheManager),
+                            ..._buildCategorySectionSlivers('SIDE DECK', sideVisual, theme, cacheManager, isLast: true),
                           ],
                         );
                       },
@@ -329,85 +326,71 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     );
   }
 
-  Widget _buildCategorySection(
+  List<Widget> _buildCategorySectionSlivers(
     String title,
     List<DeckVisualCard> visualCards,
     ThemeData theme,
-    CacheManager cacheManager,
-  ) {
-    if (visualCards.isEmpty) return const SizedBox.shrink();
+    CacheManager cacheManager, {
+    bool isLast = false,
+  }) {
+    if (visualCards.isEmpty) return const [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-                letterSpacing: 1.2,
+    return [
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverToBoxAdapter(
+          child: Row(
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                  letterSpacing: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '(${visualCards.length})',
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                '(${visualCards.length})',
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white38),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+      ),
+      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 80,
             childAspectRatio: 0.7,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
           ),
-          itemCount: visualCards.length,
-          itemBuilder: (context, index) {
-            final visual = visualCards[index];
-            final card = visual.card;
-            final isOwned = visual.isOwned;
-            final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final visual = visualCards[index];
+              final card = visual.card;
+              final isOwned = visual.isOwned;
+              final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
 
-            return InkWell(
-              onTap: () => context.push('/card/${card.id}'),
-              borderRadius: BorderRadius.circular(4),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: isOwned ? Colors.white10 : Colors.redAccent.withValues(alpha: 0.3)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ColorFiltered(
-                  colorFilter: isOwned
-                      ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
-                      : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
-                  child: imageUrl.isEmpty
-                      ? Container(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/images/icon/logo.png',
-                              width: 24,
-                              height: 24,
-                              opacity: const AlwaysStoppedAnimation(0.2),
-                            ),
-                          ),
-                        )
-                      : CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          cacheManager: cacheManager,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          ),
-                          errorWidget: (context, url, error) => Container(
+              return InkWell(
+                onTap: () => context.push('/card/${card.id}'),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: isOwned ? Colors.white10 : Colors.redAccent.withValues(alpha: 0.3)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ColorFiltered(
+                    colorFilter: isOwned
+                        ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
+                        : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+                    child: imageUrl.isEmpty
+                        ? Container(
                             color: Colors.white.withValues(alpha: 0.05),
                             child: Center(
                               child: Image.asset(
@@ -417,14 +400,36 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                                 opacity: const AlwaysStoppedAnimation(0.2),
                               ),
                             ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            cacheManager: cacheManager,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/images/icon/logo.png',
+                                  width: 24,
+                                  height: 24,
+                                  opacity: const AlwaysStoppedAnimation(0.2),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+            childCount: visualCards.length,
+          ),
         ),
-      ],
-    );
+      ),
+      SliverToBoxAdapter(child: SizedBox(height: isLast ? 16 : 24)),
+    ];
   }
 }
