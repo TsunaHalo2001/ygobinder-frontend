@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
-import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
 part 'card_detail_provider.g.dart';

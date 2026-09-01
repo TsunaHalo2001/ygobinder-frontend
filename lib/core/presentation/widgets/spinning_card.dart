@@ -75,7 +75,7 @@ class _SpinningCardLoaderState extends State<SpinningCardLoader>
         border: Border.all(color: const Color(0xFFFFD54F), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.6),
             blurRadius: 12,
             offset: const Offset(0, 8), // Shadow drops down to enhance 3D effect
           ),

@@ -682,7 +682,7 @@ class _CardInfo extends ConsumerWidget {
           if (header != null || headerLeading != null || headerTrailing != null) ...[
             Row(
               children: [
-                if (headerLeading != null) headerLeading,
+                ?headerLeading,
                 if (header != null)
                   Expanded(
                     child: FittedBox(
@@ -698,7 +698,7 @@ class _CardInfo extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (headerTrailing != null) headerTrailing,
+                ?headerTrailing,
               ],
             ),
             const SizedBox(height: 6),

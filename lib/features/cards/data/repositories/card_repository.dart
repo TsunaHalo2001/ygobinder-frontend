@@ -217,7 +217,7 @@ class CardRepository {
     if (_syncRepo != null) {
       final updatedItem = await _db.getCollectionItemById(itemId);
       if (updatedItem != null) {
-        await _syncRepo!.syncItem(updatedItem);
+        await _syncRepo.syncItem(updatedItem);
       }
     }
   }
@@ -239,10 +239,10 @@ class CardRepository {
       final updatedItem = await _db.getCollectionItemById(collectionItemId);
       if (updatedItem != null) {
         // Still exists (decreased quantity)
-        await _syncRepo!.syncItem(updatedItem);
+        await _syncRepo.syncItem(updatedItem);
       } else {
         // Completely removed
-        await _syncRepo!.removeItem(existing);
+        await _syncRepo.removeItem(existing);
       }
     }
   }

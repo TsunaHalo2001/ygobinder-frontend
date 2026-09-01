@@ -284,7 +284,7 @@ class CardGridItem extends ConsumerWidget {
 }
 
 class _FilterBottomSheet extends ConsumerStatefulWidget {
-  const _FilterBottomSheet({super.key});
+  const _FilterBottomSheet();
   @override
   ConsumerState<_FilterBottomSheet> createState() => _FilterBottomSheetState();
 }
@@ -373,7 +373,7 @@ class _FilterBottomSheetState extends ConsumerState<_FilterBottomSheet> {
 }
 
 class _SortBottomSheet extends ConsumerWidget {
-  const _SortBottomSheet({super.key});
+  const _SortBottomSheet();
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -438,7 +438,7 @@ class _FilterTabContent extends ConsumerWidget {
   final ValueChanged<bool?>? onDefShowQuestionMarkChanged;
   final ValueChanged<bool>? onOnlyEdisonChanged;
 
-  const _FilterTabContent({required this.type, this.selectedAttribute, this.selectedRace, this.selectedSubType, this.selectedFrame, this.selectedLevel, this.selectedScale, this.selectedLinkVal, this.atkController, this.selectedAtkOperator, this.selectedAtkShowQuestionMark, this.defController, this.selectedDefOperator, this.selectedDefShowQuestionMark, this.onlyEdison = false, this.onAttributeSelected, this.onRaceSelected, this.onSubTypeSelected, this.onFrameSelected, this.onLevelChanged, this.onScaleChanged, this.onLinkValChanged, this.onAtkOperatorChanged, this.onAtkShowQuestionMarkChanged, this.onDefOperatorChanged, this.onDefShowQuestionMarkChanged, this.onOnlyEdisonChanged, super.key});
+  const _FilterTabContent({required this.type, this.selectedAttribute, this.selectedRace, this.selectedSubType, this.selectedFrame, this.selectedLevel, this.selectedScale, this.selectedLinkVal, this.atkController, this.selectedAtkOperator, this.selectedAtkShowQuestionMark, this.defController, this.selectedDefOperator, this.selectedDefShowQuestionMark, this.onlyEdison = false, this.onAttributeSelected, this.onRaceSelected, this.onSubTypeSelected, this.onFrameSelected, this.onLevelChanged, this.onScaleChanged, this.onLinkValChanged, this.onAtkOperatorChanged, this.onAtkShowQuestionMarkChanged, this.onDefOperatorChanged, this.onDefShowQuestionMarkChanged, this.onOnlyEdisonChanged});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -548,7 +548,7 @@ class _FilterTabContent extends ConsumerWidget {
           subtitle: const Text('Hide cards not legal in Edison', style: TextStyle(fontSize: 12, color: Colors.white38)),
           value: onlyEdison,
           onChanged: onOnlyEdisonChanged,
-          activeColor: Colors.blueAccent,
+          activeThumbColor: Colors.blueAccent,
           contentPadding: EdgeInsets.zero,
         ),
       ),

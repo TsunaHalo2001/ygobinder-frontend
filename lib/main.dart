@@ -9,7 +9,6 @@ import 'package:ygobinder/core/presentation/screens/splash_screen.dart';
 import 'package:ygobinder/core/presentation/screens/main_shell.dart';
 import 'package:ygobinder/features/scanner/presentation/screens/camera_scanner_screen.dart';
 import 'package:ygobinder/features/auth/presentation/screens/login_screen.dart';
-import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 import 'package:flutter/foundation.dart';
@@ -99,7 +98,7 @@ class MyApp extends StatelessWidget {
       Shadow(
         offset: const Offset(0.5, 0.5),
         blurRadius: 1.0,
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
       ),
     ];
 

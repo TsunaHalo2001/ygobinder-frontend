@@ -29,7 +29,7 @@ class StatsTab extends ConsumerWidget {
               value: totalCardsAsync.when(
                 data: (count) => count.toString(),
                 loading: () => '...',
-                error: (_, __) => 'Error',
+                error: (_, _) => 'Error',
               ),
               icon: Icons.copy_rounded,
               color: Theme.of(context).colorScheme.primary,
@@ -40,7 +40,7 @@ class StatsTab extends ConsumerWidget {
               value: uniqueCardsAsync.when(
                 data: (count) => count.toString(),
                 loading: () => '...',
-                error: (_, __) => 'Error',
+                error: (_, _) => 'Error',
               ),
               icon: Icons.style_rounded,
               color: Theme.of(context).colorScheme.secondary,

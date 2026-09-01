@@ -26,7 +26,7 @@ class InventorySyncRepository {
 
   CollectionReference<Map<String, dynamic>>? get _userCollection {
     if (_uid == null || _firestore == null) return null;
-    return _firestore!.collection('users').doc(_uid).collection('inventory');
+    return _firestore.collection('users').doc(_uid).collection('inventory');
   }
 
   /// Pushes a single local item to Firestore
