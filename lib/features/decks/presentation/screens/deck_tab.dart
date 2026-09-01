@@ -372,7 +372,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
             final visual = visualCards[index];
             final card = visual.card;
             final isOwned = visual.isOwned;
-            final imageUrl = card.cardImages?.first.imageUrlSmall ?? '';
+            final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
 
             return InkWell(
               onTap: () => context.push('/card/${card.id}'),
@@ -387,16 +387,38 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                   colorFilter: isOwned
                       ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
                       : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    cacheManager: cacheManager,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    ),
-                    errorWidget: (context, url, error) => const Center(child: Icon(Icons.error_outline, size: 20)),
-                  ),
+                  child: imageUrl.isEmpty
+                      ? Container(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/icon/logo.png',
+                              width: 24,
+                              height: 24,
+                              opacity: const AlwaysStoppedAnimation(0.2),
+                            ),
+                          ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          cacheManager: cacheManager,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            child: Center(
+                              child: Image.asset(
+                                'assets/images/icon/logo.png',
+                                width: 24,
+                                height: 24,
+                                opacity: const AlwaysStoppedAnimation(0.2),
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
               ),
             );
