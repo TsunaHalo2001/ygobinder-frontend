@@ -60,23 +60,44 @@ class DeckFileContent extends _$DeckFileContent {
   }
 
   Future<void> loadFromPath(String path) async {
-    if (path.endsWith('.ydk')) {
-      try {
-        final file = File(path);
-        if (!await file.exists()) {
-          state = DeckState(content: "Error: File does not exist at $path");
-          return;
-        }
-        final content = await file.readAsString();
-        state = DeckState(
-          content: content,
-          name: path.split('/').last.replaceAll('.ydk', ''),
-        );
-      } catch (e) {
-        state = DeckState(content: "Error reading file: $e\nPath: $path");
+    try {
+      final rawPath = path.trim();
+      final parsedUri = Uri.tryParse(rawPath);
+      final isContentUri = parsedUri != null && parsedUri.scheme == 'content';
+
+      String filePath = rawPath;
+      if (rawPath.startsWith('file://')) {
+        filePath = Uri.parse(rawPath).toFilePath();
       }
-    } else {
-      state = DeckState(content: "Error: Only .ydk files are supported.");
+
+      if (isContentUri) {
+        final media = await ReceiveSharingIntent.instance.getInitialMedia();
+        if (media.isNotEmpty) {
+          final sharedPath = media.first.path;
+          if (sharedPath.isNotEmpty) {
+            filePath = sharedPath;
+          }
+        }
+      }
+
+      if (!filePath.toLowerCase().endsWith('.ydk')) {
+        state = DeckState(content: "Error: Only .ydk files are supported.");
+        return;
+      }
+
+      final file = File(filePath);
+      if (!await file.exists()) {
+        state = DeckState(content: "Error: File does not exist at $filePath");
+        return;
+      }
+
+      final content = await file.readAsString();
+      state = DeckState(
+        content: content,
+        name: filePath.split('/').last.replaceAll('.ydk', ''),
+      );
+    } catch (e) {
+      state = DeckState(content: "Error reading file: $e\nPath: $path");
     }
   }
 

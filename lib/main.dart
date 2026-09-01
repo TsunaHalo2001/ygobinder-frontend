@@ -125,8 +125,12 @@ class MyApp extends StatelessWidget {
 final _router = GoRouter(
   initialLocation: '/splash',
   redirect: (context, state) {
-    // Redirection logic can be complex with Riverpod, 
-    // for now let's keep it simple and just define the route.
+    // Android can launch the app with a content/file URI as the route location
+    // when opening a shared .ydk file. Route those to the app shell instead.
+    final location = state.uri.toString();
+    if (location.startsWith('content://') || location.startsWith('file://')) {
+      return '/main';
+    }
     return null;
   },
   routes: [
