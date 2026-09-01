@@ -52,6 +52,7 @@ dependencies:
   cloud_firestore:
   google_sign_in: ^6.2.1
   receive_sharing_intent: ^1.6.3
+  share_plus: ^10.1.0
   desktop_drop: ^0.8.4
   file_picker: ^8.0.0
 

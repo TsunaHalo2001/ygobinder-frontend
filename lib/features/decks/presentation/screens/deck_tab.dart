@@ -79,9 +79,47 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     }
   }
 
+  Future<void> _deleteDeck(int deckId, String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Deck'),
+        content: Text('Are you sure you want to delete "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(deckFileContentProvider.notifier).deleteDeck(deckId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Deck "$name" deleted')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting deck: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final deckContent = ref.watch(deckFileContentProvider);
+    final deckState = ref.watch(deckFileContentProvider);
     final savedDecksAsync = ref.watch(savedDecksProvider);
     final categorizedCardsAsync = ref.watch(categorizedDeckCardsProvider);
     final inventoryIdsAsync = ref.watch(userInventoryIdsProvider);
@@ -93,12 +131,18 @@ class _DeckTabState extends ConsumerState<DeckTab> {
         title: const Text('DECK BUILDER', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
         centerTitle: true,
         actions: [
-          if (deckContent.isNotEmpty)
+          if (deckState.content.isNotEmpty) ...[
+            IconButton(
+              onPressed: () => ref.read(deckFileContentProvider.notifier).shareDeck(),
+              icon: const Icon(Icons.share_rounded),
+              tooltip: 'Share Deck',
+            ),
             IconButton(
               onPressed: _saveDeck,
               icon: const Icon(Icons.save_rounded),
               tooltip: 'Save Deck',
             ),
+          ],
           IconButton(
             onPressed: _pickFile,
             icon: const Icon(Icons.file_upload_rounded), // ✅ More standard icon
@@ -106,7 +150,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
           ),
         ],
       ),
-      body: deckContent.isEmpty
+      body: deckState.content.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -139,25 +183,51 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                         if (decks.isEmpty) return const SizedBox.shrink();
                         return Column(
                           children: [
-                            DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'LOAD SAVED DECK',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                prefixIcon: const Icon(Icons.folder_special_rounded),
+                            const Text(
+                              'SAVED DECKS',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white38,
+                                letterSpacing: 1.5,
                               ),
-                              items: decks.map((deck) {
-                                return DropdownMenuItem<int>(
-                                  value: deck.id,
-                                  child: Text(deck.name),
-                                );
-                              }).toList(),
-                              onChanged: (deckId) {
-                                if (deckId != null) {
-                                  ref.read(deckFileContentProvider.notifier).loadFromDatabase(deckId);
-                                }
-                              },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 200),
+                              child: Material(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                clipBehavior: Clip.antiAlias,
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  itemCount: decks.length,
+                                  separatorBuilder: (context, index) => Divider(
+                                    height: 1,
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final deck = decks[index];
+                                    return ListTile(
+                                      leading: const Icon(Icons.folder_special_rounded, color: Colors.amber),
+                                      title: Text(deck.name),
+                                      subtitle: Text(
+                                        'Last updated: ${deck.updatedAt.day}/${deck.updatedAt.month}/${deck.updatedAt.year}',
+                                        style: const TextStyle(fontSize: 10, color: Colors.white38),
+                                      ),
+                                      trailing: IconButton(
+                                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                        onPressed: () => _deleteDeck(deck.id, deck.name),
+                                      ),
+                                      onTap: () {
+                                        ref.read(deckFileContentProvider.notifier).loadFromDatabase(deck.id);
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
                           ],
                         );
                       },
@@ -191,9 +261,18 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                       children: [
                         const Icon(Icons.style_rounded, size: 16, color: Colors.white60),
                         const SizedBox(width: 8),
-                        const Text('DECK VISUALIZER',
-                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white60, letterSpacing: 1.5)),
-                        const Spacer(),
+                        Expanded(
+                          child: Text(
+                            deckState.name?.toUpperCase() ?? 'DECK VISUALIZER',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white60,
+                              letterSpacing: 1.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         IconButton(
                           onPressed: () => ref.read(deckFileContentProvider.notifier).reset(),
                           icon: const Icon(Icons.close_rounded, size: 16),

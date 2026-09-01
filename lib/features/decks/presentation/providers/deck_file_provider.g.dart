@@ -13,7 +13,7 @@ part of 'deck_file_provider.dart';
 final deckFileContentProvider = DeckFileContentProvider._();
 
 final class DeckFileContentProvider
-    extends $NotifierProvider<DeckFileContent, String> {
+    extends $NotifierProvider<DeckFileContent, DeckState> {
   DeckFileContentProvider._()
     : super(
         from: null,
@@ -33,27 +33,27 @@ final class DeckFileContentProvider
   DeckFileContent create() => DeckFileContent();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(String value) {
+  Override overrideWithValue(DeckState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<String>(value),
+      providerOverride: $SyncValueProvider<DeckState>(value),
     );
   }
 }
 
-String _$deckFileContentHash() => r'95ec73b558a1ec543d0b14455a5deb913e0d8568';
+String _$deckFileContentHash() => r'4d0af7a2cc782a9764206ce19369890f87f0242f';
 
-abstract class _$DeckFileContent extends $Notifier<String> {
-  String build();
+abstract class _$DeckFileContent extends $Notifier<DeckState> {
+  DeckState build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
-    final ref = this.ref as $Ref<String, String>;
+    final ref = this.ref as $Ref<DeckState, DeckState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<String, String>,
-              String,
+              AnyNotifier<DeckState, DeckState>,
+              DeckState,
               Object?,
               Object?
             >;
@@ -101,4 +101,4 @@ final class CategorizedDeckCardsProvider
 }
 
 String _$categorizedDeckCardsHash() =>
-    r'7496601c98390af0f1e90a020e62c95304761bc4';
+    r'b0d784f9b6065d2aea2227e3cee1a3ef1938e8f2';

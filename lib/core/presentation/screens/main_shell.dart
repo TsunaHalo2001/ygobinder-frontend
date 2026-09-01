@@ -44,7 +44,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     // ✅ Auto-switch to Decks tab when a file is loaded
     ref.listen(deckFileContentProvider, (previous, next) {
-      if (next.isNotEmpty && !next.startsWith("Error")) {
+      if (next.content.isNotEmpty && !next.content.startsWith("Error")) {
         setState(() => _currentIndex = 2); // 2 is the index of Decks tab
       }
     });

@@ -7,18 +7,29 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 
 part 'deck_file_provider.g.dart';
+
+class DeckState {
+  final String content;
+  final String? name;
+
+  DeckState({required this.content, this.name});
+}
 
 @riverpod
 class DeckFileContent extends _$DeckFileContent {
   StreamSubscription? _intentSubscription;
 
   @override
-  String build() {
+  DeckState build() {
     ref.onDispose(() => _intentSubscription?.cancel());
     _initIntentListener();
-    return '';
+    return DeckState(content: '');
   }
 
   void _initIntentListener() {
@@ -51,21 +62,24 @@ class DeckFileContent extends _$DeckFileContent {
       try {
         final file = File(path);
         if (!await file.exists()) {
-          state = "Error: File does not exist at $path";
+          state = DeckState(content: "Error: File does not exist at $path");
           return;
         }
         final content = await file.readAsString();
-        state = content;
+        state = DeckState(
+          content: content,
+          name: path.split('/').last.replaceAll('.ydk', ''),
+        );
       } catch (e) {
-        state = "Error reading file: $e\nPath: $path";
+        state = DeckState(content: "Error reading file: $e\nPath: $path");
       }
     } else {
-      state = "Error: Only .ydk files are supported.";
+      state = DeckState(content: "Error: Only .ydk files are supported.");
     }
   }
 
   void reset() {
-    state = '';
+    state = DeckState(content: '');
   }
 
   Map<String, List<int>> parseYdk() {
@@ -75,9 +89,9 @@ class DeckFileContent extends _$DeckFileContent {
       'side': [],
     };
 
-    if (state.isEmpty) return categorizedCards;
+    if (state.content.isEmpty) return categorizedCards;
 
-    final lines = state.split('\n');
+    final lines = state.content.split('\n');
     String currentCategory = '';
 
     for (var line in lines) {
@@ -105,12 +119,14 @@ class DeckFileContent extends _$DeckFileContent {
     final categorizedCards = parseYdk();
     final db = ref.read(databaseProvider);
     await db.saveDeck(name, categorizedCards);
+    state = DeckState(content: state.content, name: name);
   }
 
   Future<void> loadFromDatabase(int deckId) async {
     final db = ref.read(databaseProvider);
+    final deck = await db.getDeckById(deckId);
     final cards = await db.getDeckCards(deckId);
-
+    
     final main = cards.where((c) => c.category == 'main').map((c) => c.cardId);
     final extra = cards.where((c) => c.category == 'extra').map((c) => c.cardId);
     final side = cards.where((c) => c.category == 'side').map((c) => c.cardId);
@@ -129,7 +145,43 @@ class DeckFileContent extends _$DeckFileContent {
       buffer.writeln(id);
     }
 
-    state = buffer.toString();
+    state = DeckState(content: buffer.toString(), name: deck?.name);
+  }
+
+  Future<void> deleteDeck(int deckId) async {
+    final db = ref.read(databaseProvider);
+    await db.deleteDeck(deckId);
+    reset();
+  }
+
+  Future<void> shareDeck() async {
+    if (state.content.isEmpty) return;
+
+    final fileName = state.name != null && state.name!.isNotEmpty ? '${state.name}.ydk' : 'deck.ydk';
+
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      // Mobile sharing
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(p.join(tempDir.path, fileName));
+      await tempFile.writeAsString(state.content);
+
+      await Share.shareXFiles(
+        [XFile(tempFile.path)],
+        subject: 'YGO Deck: ${state.name ?? "deck"}',
+      );
+    } else {
+      // Desktop/Web fallback: Save As dialog
+      final result = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export Deck',
+        fileName: fileName,
+        type: FileType.any,
+      );
+
+      if (result != null) {
+        final file = File(result);
+        await file.writeAsString(state.content);
+      }
+    }
   }
 }
 
@@ -145,8 +197,8 @@ final userInventoryIdsProvider = StreamProvider<Set<int>>((ref) {
 
 @riverpod
 Future<Map<String, List<YgoCard>>> categorizedDeckCards(Ref ref) async {
-  final ydk = ref.watch(deckFileContentProvider);
-  if (ydk.isEmpty) {
+  final deckState = ref.watch(deckFileContentProvider);
+  if (deckState.content.isEmpty) {
     return {'main': [], 'extra': [], 'side': []};
   }
 

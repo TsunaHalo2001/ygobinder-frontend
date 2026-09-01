@@ -697,6 +697,10 @@ class AppDatabase extends _$AppDatabase {
     return select(decks).watch();
   }
 
+  Future<DriftDeck?> getDeckById(int deckId) {
+    return (select(decks)..where((t) => t.id.equals(deckId))).getSingleOrNull();
+  }
+
   Future<List<DriftDeckCard>> getDeckCards(int deckId) {
     return (select(deckCards)..where((t) => t.deckId.equals(deckId))).get();
   }
