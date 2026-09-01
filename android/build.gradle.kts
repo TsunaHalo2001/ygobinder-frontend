@@ -23,7 +23,7 @@ subprojects {
             }
             // ✅ Force Kotlin Gradle Plugin version to resolve warnings
             if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-gradle-plugin")) {
-                useVersion("2.1.10")
+                useVersion("2.2.20")
             }
         }
     }
