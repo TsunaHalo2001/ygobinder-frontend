@@ -237,8 +237,10 @@ class OptionsTab extends ConsumerWidget {
                     InkWell(
                       onTap: () async {
                         final uri = Uri.parse('https://ygoprodeck.com');
-                        if (await canLaunchUrl(uri)) {
+                        try {
                           await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (e) {
+                          debugPrint('Could not launch URL: $e');
                         }
                       },
                       child: const Text(
@@ -281,8 +283,10 @@ class OptionsTab extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () async {
                     final uri = Uri.parse('https://ko-fi.com/tsunas200121679');
-                    if (await canLaunchUrl(uri)) {
+                    try {
                       await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } catch (e) {
+                      debugPrint('Could not launch URL: $e');
                     }
                   },
                   icon: const Icon(Icons.coffee_rounded, color: Color(0xFF22C55E), size: 18),

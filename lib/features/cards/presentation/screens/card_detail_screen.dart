@@ -919,11 +919,7 @@ class _CardInfo extends ConsumerWidget {
         final uri = Uri.parse(urlString);
 
         try {
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          } else {
-            await launchUrl(uri);
-          }
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
         } catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
