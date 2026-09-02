@@ -10,6 +10,103 @@ import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
 
+enum BanlistStatus { forbidden, limited, semiLimited, unlimited }
+
+BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
+  final info = card.banlistInfo;
+  final format = banlist.toUpperCase();
+
+  String? rawStatus;
+  if (format == 'TCG') {
+    rawStatus = info?.banTcg;
+  } else if (format == 'OCG') {
+    rawStatus = info?.banOcg;
+  } else if (format == 'GOAT') {
+    rawStatus = info?.banGoat;
+  } else if (format == 'EDISON') {
+    rawStatus = info?.banEdison;
+    // Edison rule: If card has no Edison record (or empty), it is not legal in Edison -> forbidden!
+    if (rawStatus == null || rawStatus.isEmpty) {
+      return BanlistStatus.forbidden;
+    }
+  }
+
+  if (rawStatus == null || rawStatus.isEmpty) {
+    return BanlistStatus.unlimited;
+  }
+
+  final lower = rawStatus.toLowerCase().trim();
+  if (lower.contains('forbid') || lower.contains('banned') || lower == '0') {
+    return BanlistStatus.forbidden;
+  } else if (lower.contains('semi') || lower == '2') {
+    return BanlistStatus.semiLimited;
+  } else if (lower.contains('limited') || lower == '1') {
+    return BanlistStatus.limited;
+  } else if (lower.contains('legal') || lower.contains('unlimited') || lower == '3') {
+    return BanlistStatus.unlimited;
+  }
+
+  return BanlistStatus.unlimited;
+}
+
+class _BanlistBadge extends StatelessWidget {
+  final BanlistStatus status;
+
+  const _BanlistBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    if (status == BanlistStatus.unlimited) return const SizedBox.shrink();
+
+    Color color;
+    String text;
+
+    switch (status) {
+      case BanlistStatus.forbidden:
+        color = Colors.redAccent;
+        text = '0';
+        break;
+      case BanlistStatus.limited:
+        color = Colors.amber;
+        text = '1';
+        break;
+      case BanlistStatus.semiLimited:
+        color = Colors.orangeAccent;
+        text = '2';
+        break;
+      case BanlistStatus.unlimited:
+        return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(1.5),
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        shape: BoxShape.circle,
+      ),
+      child: Container(
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              height: 1.0,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class DeckTab extends ConsumerStatefulWidget {
   const DeckTab({super.key});
 
@@ -19,6 +116,7 @@ class DeckTab extends ConsumerStatefulWidget {
 
 class _DeckTabState extends ConsumerState<DeckTab> {
   bool _isEditing = false;
+  String _selectedBanlist = 'TCG';
 
   Future<void> _pickFile() async {
     try {
@@ -179,6 +277,50 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 40,
+        leadingWidth: deckState.content.isNotEmpty ? 80 : null,
+        leading: deckState.content.isNotEmpty
+            ? Center(
+                child: PopupMenuButton<String>(
+                  initialValue: _selectedBanlist,
+                  tooltip: 'Select Banlist Format',
+                  padding: EdgeInsets.zero,
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedBanlist,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        Icon(Icons.arrow_drop_down, size: 14, color: theme.colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  onSelected: (value) {
+                    setState(() {
+                      _selectedBanlist = value;
+                    });
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 'TCG', child: Text('TCG Format')),
+                    PopupMenuItem(value: 'OCG', child: Text('OCG Format')),
+                    PopupMenuItem(value: 'GOAT', child: Text('GOAT Format')),
+                    PopupMenuItem(value: 'EDISON', child: Text('EDISON Format')),
+                  ],
+                ),
+              )
+            : null,
         title: const Text('DECK BUILDER', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
         centerTitle: true,
         actions: [
@@ -316,9 +458,9 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                     Expanded(
                       child: CustomScrollView(
                         slivers: [
-                          ..._buildCategorySectionSlivers('MAIN DECK', 'main', deckData.main, theme, cacheManager),
-                          ..._buildCategorySectionSlivers('EXTRA DECK', 'extra', deckData.extra, theme, cacheManager),
-                          ..._buildCategorySectionSlivers('SIDE DECK', 'side', deckData.side, theme, cacheManager, isLast: true),
+                          ..._buildCategorySectionSlivers('MAIN DECK', 'main', deckData.main, theme, cacheManager, _selectedBanlist),
+                          ..._buildCategorySectionSlivers('EXTRA DECK', 'extra', deckData.extra, theme, cacheManager, _selectedBanlist),
+                          ..._buildCategorySectionSlivers('SIDE DECK', 'side', deckData.side, theme, cacheManager, _selectedBanlist, isLast: true),
                         ],
                       ),
                     ),
@@ -335,6 +477,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                           width: 340,
                           child: _DeckEditSidebar(
                             totalCardsInDeck: totalCardsInDeck,
+                            selectedBanlist: _selectedBanlist,
                             onClose: () => setState(() => _isEditing = false),
                           ),
                         ),
@@ -361,6 +504,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                               color: theme.colorScheme.surface,
                               child: _DeckEditSidebar(
                                 totalCardsInDeck: totalCardsInDeck,
+                                selectedBanlist: _selectedBanlist,
                                 onClose: () => setState(() => _isEditing = false),
                               ),
                             ),
@@ -513,7 +657,8 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     String categoryKey,
     List<DeckVisualCard> visualCards,
     ThemeData theme,
-    CacheManager cacheManager, {
+    CacheManager cacheManager,
+    String selectedBanlist, {
     bool isLast = false,
   }) {
     if (visualCards.isEmpty) return const [];
@@ -559,6 +704,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                 categoryKey: categoryKey,
                 isEditing: _isEditing,
                 cacheManager: cacheManager,
+                selectedBanlist: selectedBanlist,
               );
             },
             childCount: visualCards.length,
@@ -577,12 +723,14 @@ class _DeckCardTile extends ConsumerWidget {
   final String categoryKey;
   final bool isEditing;
   final CacheManager cacheManager;
+  final String selectedBanlist;
 
   const _DeckCardTile({
     required this.visual,
     required this.categoryKey,
     required this.isEditing,
     required this.cacheManager,
+    required this.selectedBanlist,
   });
 
   static const _grayscaleFilter = ColorFilter.mode(Colors.grey, BlendMode.saturation);
@@ -592,6 +740,7 @@ class _DeckCardTile extends ConsumerWidget {
     final card = visual.card;
     final isOwned = visual.isOwned;
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
+    final banlistStatus = getBanlistStatus(card, selectedBanlist);
 
     Widget imageWidget;
     if (imageUrl.isEmpty) {
@@ -657,6 +806,13 @@ class _DeckCardTile extends ConsumerWidget {
             ),
           ),
 
+          // Banlist Status Badge
+          Positioned(
+            top: 2,
+            left: 2,
+            child: _BanlistBadge(status: banlistStatus),
+          ),
+
           // Remove Button Badge in Edit Mode
           if (isEditing)
             Positioned(
@@ -691,10 +847,12 @@ class _DeckCardTile extends ConsumerWidget {
 
 class _DeckEditSidebar extends ConsumerStatefulWidget {
   final Map<int, int> totalCardsInDeck;
+  final String selectedBanlist;
   final VoidCallback onClose;
 
   const _DeckEditSidebar({
     required this.totalCardsInDeck,
+    required this.selectedBanlist,
     required this.onClose,
   });
 
@@ -881,6 +1039,7 @@ class _DeckEditSidebarState extends ConsumerState<_DeckEditSidebar> {
                                 return _SidebarCardTile(
                                   card: card,
                                   totalInDeck: totalInDeck,
+                                  selectedBanlist: widget.selectedBanlist,
                                 );
                               },
                             );
@@ -895,7 +1054,10 @@ class _DeckEditSidebarState extends ConsumerState<_DeckEditSidebar> {
                   ),
 
                   // Tab 1: Current Deck Cards List (Main, Extra, Side)
-                  _DeckCurrentCardsTab(deckData: deckData),
+                  _DeckCurrentCardsTab(
+                    deckData: deckData,
+                    selectedBanlist: widget.selectedBanlist,
+                  ),
                 ],
               ),
             ),
@@ -908,8 +1070,12 @@ class _DeckEditSidebarState extends ConsumerState<_DeckEditSidebar> {
 
 class _DeckCurrentCardsTab extends ConsumerWidget {
   final VisualDeckData? deckData;
+  final String selectedBanlist;
 
-  const _DeckCurrentCardsTab({required this.deckData});
+  const _DeckCurrentCardsTab({
+    required this.deckData,
+    required this.selectedBanlist,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -969,6 +1135,7 @@ class _DeckCurrentCardsTab extends ConsumerWidget {
               card: card,
               count: count,
               categoryKey: categoryKey,
+              selectedBanlist: selectedBanlist,
             );
           }),
         ],
@@ -990,11 +1157,13 @@ class _DeckCardQuantityTile extends ConsumerWidget {
   final YgoCard card;
   final int count;
   final String categoryKey;
+  final String selectedBanlist;
 
   const _DeckCardQuantityTile({
     required this.card,
     required this.count,
     required this.categoryKey,
+    required this.selectedBanlist,
   });
 
   @override
@@ -1002,6 +1171,7 @@ class _DeckCardQuantityTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
+    final banlistStatus = getBanlistStatus(card, selectedBanlist);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1015,20 +1185,29 @@ class _DeckCardQuantityTile extends ConsumerWidget {
         children: [
           InkWell(
             onTap: () => context.push('/card/${card.id}'),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: SizedBox(
-                width: 36,
-                height: 52,
-                child: imageUrl.isEmpty
-                    ? Container(color: Colors.black26)
-                    : CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        cacheManager: cacheManager,
-                        memCacheWidth: 120,
-                        fit: BoxFit.cover,
-                      ),
-              ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: SizedBox(
+                    width: 36,
+                    height: 52,
+                    child: imageUrl.isEmpty
+                        ? Container(color: Colors.black26)
+                        : CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            cacheManager: cacheManager,
+                            memCacheWidth: 120,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                ),
+                Positioned(
+                  top: 1,
+                  left: 1,
+                  child: _BanlistBadge(status: banlistStatus),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -1092,10 +1271,12 @@ class _DeckCardQuantityTile extends ConsumerWidget {
 class _SidebarCardTile extends ConsumerWidget {
   final YgoCard card;
   final int totalInDeck;
+  final String selectedBanlist;
 
   const _SidebarCardTile({
     required this.card,
     required this.totalInDeck,
+    required this.selectedBanlist,
   });
 
   bool get _isExtraDeckMonster {
@@ -1111,6 +1292,7 @@ class _SidebarCardTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
+    final banlistStatus = getBanlistStatus(card, selectedBanlist);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1132,23 +1314,32 @@ class _SidebarCardTile extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 2.0),
               child: Row(
                 children: [
-                  // Small Card Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: SizedBox(
-                      width: 40,
-                      height: 58,
-                      child: imageUrl.isEmpty
-                          ? Container(color: Colors.black26)
-                          : CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              cacheManager: cacheManager,
-                              memCacheWidth: 120,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(color: Colors.black12),
-                              errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 16),
-                            ),
-                    ),
+                  // Small Card Image with Banlist Badge
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: SizedBox(
+                          width: 40,
+                          height: 58,
+                          child: imageUrl.isEmpty
+                              ? Container(color: Colors.black26)
+                              : CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  cacheManager: cacheManager,
+                                  memCacheWidth: 120,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(color: Colors.black12),
+                                  errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 16),
+                                ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 1,
+                        left: 1,
+                        child: _BanlistBadge(status: banlistStatus),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 10),
                   // Details
