@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
 bool get _isGoogleSignInSupported =>
@@ -184,9 +185,79 @@ class OptionsTab extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
-          // Footer / Credits
-          const Divider(color: Colors.white24),
-          const SizedBox(height: 16),
+          // Legal Disclaimer & Credits Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Column(
+              children: [
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.gavel_rounded, size: 16, color: Colors.white38),
+                    SizedBox(width: 8),
+                    Text(
+                      'LEGAL DISCLAIMER & ATTRIBUTION',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white38,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'YGOBinder is an unofficial fan-made application and is not affiliated with, endorsed by, or sponsored by Konami Digital Entertainment or Studio Dice.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Yu-Gi-Oh! and all related card text, images, and trademarks belong to Studio Dice, SHUEISHA, TV TOKYO, and KONAMI.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const Icon(Icons.api_rounded, size: 14, color: Colors.blueAccent),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Card data & images powered by ',
+                      style: TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse('https://ygoprodeck.com');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: const Text(
+                        'YGOPRODeck API',
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
           Center(
             child: Column(
               children: [

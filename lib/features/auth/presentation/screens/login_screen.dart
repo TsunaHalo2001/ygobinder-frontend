@@ -117,6 +117,16 @@ class LoginScreen extends ConsumerWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
+                const SizedBox(height: 32),
+                const Text(
+                  'Unofficial fan-made Yu-Gi-Oh! app.\nCard data and images provided by YGOPRODeck API.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    height: 1.3,
+                  ),
+                ),
               ],
             ),
           ),
