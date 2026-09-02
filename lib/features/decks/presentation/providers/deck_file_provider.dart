@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,10 +8,12 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/decks/data/repositories/deck_sync_repository.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 part 'deck_file_provider.g.dart';
 
@@ -43,7 +44,7 @@ class DeckFileContent extends _$DeckFileContent {
         _handleSharedFile(value.first.path);
       }
     }, onError: (err) {
-      print("getIntentDataStream error: $err");
+      debugPrint("getIntentDataStream error: $err");
     });
 
     // For sharing files coming from outside the app while the app is closed
@@ -141,8 +142,28 @@ class DeckFileContent extends _$DeckFileContent {
   Future<void> saveToDatabase(String name) async {
     final categorizedCards = parseYdk();
     final db = ref.read(databaseProvider);
-    await db.saveDeck(name, categorizedCards);
+    
+    final syncId = const Uuid().v4();
+    final deckId = await db.saveDeck(name, categorizedCards, syncId: syncId);
+    
+    // Sync to cloud (Non-blocking and safe)
+    _syncDeckToCloud(deckId);
+
     state = DeckState(content: state.content, name: name);
+  }
+
+  Future<void> _syncDeckToCloud(int deckId) async {
+    try {
+      final db = ref.read(databaseProvider);
+      final syncRepo = ref.read(deckSyncRepositoryProvider);
+      final deck = await db.getDeckById(deckId);
+      final cards = await db.getDeckCards(deckId);
+      if (deck != null) {
+        await syncRepo.syncDeck(deck, cards);
+      }
+    } catch (e) {
+      debugPrint('Cloud sync failed: $e');
+    }
   }
 
   Future<void> loadFromDatabase(int deckId) async {
@@ -173,6 +194,16 @@ class DeckFileContent extends _$DeckFileContent {
 
   Future<void> deleteDeck(int deckId) async {
     final db = ref.read(databaseProvider);
+    final syncRepo = ref.read(deckSyncRepositoryProvider);
+    
+    final deck = await db.getDeckById(deckId);
+    if (deck != null && deck.syncId != null) {
+      // Don't await cloud removal to ensure local deletion is fast
+      syncRepo.removeDeck(deck.syncId!).catchError((e) {
+        debugPrint('Cloud removal failed: $e');
+      });
+    }
+
     await db.deleteDeck(deckId);
     reset();
   }
@@ -194,7 +225,7 @@ class DeckFileContent extends _$DeckFileContent {
       );
     } else {
       // Desktop/Web fallback: Save As dialog
-      final result = await FilePicker.saveFile(
+      await FilePicker.saveFile(
         dialogTitle: 'Export Deck',
         fileName: fileName,
         type: FileType.any,
@@ -209,13 +240,49 @@ final savedDecksProvider = StreamProvider<List<DriftDeck>>((ref) {
 });
 
 final userInventoryIdsProvider = StreamProvider<Map<int, int>>((ref) {
-  return ref.watch(databaseProvider).watchCollection().map((items) {
-    final inventory = <int, int>{};
-    for (final item in items) {
-      inventory[item.card.id] = (inventory[item.card.id] ?? 0) + item.collectionItem.quantity;
-    }
-    return inventory;
+  return ref.watch(databaseProvider).watchCollectionCardQuantities();
+});
+
+class DeckVisualCard {
+  final YgoCard card;
+  final bool isOwned;
+
+  const DeckVisualCard({required this.card, required this.isOwned});
+}
+
+class VisualDeckData {
+  final List<DeckVisualCard> main;
+  final List<DeckVisualCard> extra;
+  final List<DeckVisualCard> side;
+
+  const VisualDeckData({
+    required this.main,
+    required this.extra,
+    required this.side,
   });
+}
+
+final processedDeckDataProvider = FutureProvider<VisualDeckData>((ref) async {
+  final categorized = await ref.watch(categorizedDeckCardsProvider.future);
+  final inventory = ref.watch(userInventoryIdsProvider).value ?? {};
+
+  final usageTracker = <int, int>{};
+
+  List<DeckVisualCard> prepareVisualCards(List<YgoCard> source) {
+    return source.map((card) {
+      final totalOwned = inventory[card.id] ?? 0;
+      final usedSoFar = usageTracker[card.id] ?? 0;
+      final isOwned = usedSoFar < totalOwned;
+      usageTracker[card.id] = usedSoFar + 1;
+      return DeckVisualCard(card: card, isOwned: isOwned);
+    }).toList();
+  }
+
+  return VisualDeckData(
+    main: prepareVisualCards(categorized['main'] ?? []),
+    extra: prepareVisualCards(categorized['extra'] ?? []),
+    side: prepareVisualCards(categorized['side'] ?? []),
+  );
 });
 
 @riverpod

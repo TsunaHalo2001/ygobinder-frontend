@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:ygobinder/firebase_options.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/presentation/screens/initial_sync_screen.dart';
 import 'package:ygobinder/features/cards/presentation/screens/card_detail_screen.dart';
@@ -21,7 +22,9 @@ void main() async {
   // (Android, iOS, macOS, Web). Linux and Windows require additional setup.
   if (kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     } catch (e) {
       debugPrint('Firebase initialization failed: $e');
     }

@@ -3,17 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ygobinder/features/decks/presentation/providers/deck_file_provider.dart';
-import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
-
-class DeckVisualCard {
-  final YgoCard card;
-  final bool isOwned;
-
-  DeckVisualCard({required this.card, required this.isOwned});
-}
 
 class DeckTab extends ConsumerStatefulWidget {
   const DeckTab({super.key});
@@ -26,8 +18,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.pickFiles(
-        type: FileType.any, // ✅ Changed to 'any' for better compatibility on Linux
-        // allowedExtensions: ['ydk'], // Removed temporarily to test visibility
+        type: FileType.any,
       );
 
       if (result.isNotEmpty && result.first.path != null) {
@@ -128,8 +119,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
   Widget build(BuildContext context) {
     final deckState = ref.watch(deckFileContentProvider);
     final savedDecksAsync = ref.watch(savedDecksProvider);
-    final categorizedCardsAsync = ref.watch(categorizedDeckCardsProvider);
-    final inventoryIdsAsync = ref.watch(userInventoryIdsProvider);
+    final processedDeckAsync = ref.watch(processedDeckDataProvider);
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final theme = Theme.of(context);
 
@@ -152,7 +142,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
           ],
           IconButton(
             onPressed: _pickFile,
-            icon: const Icon(Icons.file_upload_rounded), // ✅ More standard icon
+            icon: const Icon(Icons.file_upload_rounded),
             tooltip: 'Load Deck',
           ),
         ],
@@ -249,7 +239,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: Colors.black87,
-                        minimumSize: const Size(double.infinity, 56), // Make it full width to match dropdown
+                        minimumSize: const Size(double.infinity, 56),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -257,8 +247,8 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                 ),
               ),
             )
-          : categorizedCardsAsync.when(
-              data: (categorized) => Column(
+          : processedDeckAsync.when(
+              data: (deckData) => Column(
                 children: [
                   Container(
                     width: double.infinity,
@@ -289,33 +279,12 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                     ),
                   ),
                   Expanded(
-                    child: Builder(
-                      builder: (context) {
-                        final inventory = inventoryIdsAsync.value ?? {};
-                        final usageTracker = <int, int>{};
-
-                        List<DeckVisualCard> prepareVisualCards(List<YgoCard> source) {
-                          return source.map((card) {
-                            final totalOwned = inventory[card.id] ?? 0;
-                            final usedSoFar = usageTracker[card.id] ?? 0;
-                            final isOwned = usedSoFar < totalOwned;
-                            usageTracker[card.id] = usedSoFar + 1;
-                            return DeckVisualCard(card: card, isOwned: isOwned);
-                          }).toList();
-                        }
-
-                        final mainVisual = prepareVisualCards(categorized['main']!);
-                        final extraVisual = prepareVisualCards(categorized['extra']!);
-                        final sideVisual = prepareVisualCards(categorized['side']!);
-
-                        return CustomScrollView(
-                          slivers: [
-                            ..._buildCategorySectionSlivers('MAIN DECK', mainVisual, theme, cacheManager),
-                            ..._buildCategorySectionSlivers('EXTRA DECK', extraVisual, theme, cacheManager),
-                            ..._buildCategorySectionSlivers('SIDE DECK', sideVisual, theme, cacheManager, isLast: true),
-                          ],
-                        );
-                      },
+                    child: CustomScrollView(
+                      slivers: [
+                        ..._buildCategorySectionSlivers('MAIN DECK', deckData.main, theme, cacheManager),
+                        ..._buildCategorySectionSlivers('EXTRA DECK', deckData.extra, theme, cacheManager),
+                        ..._buildCategorySectionSlivers('SIDE DECK', deckData.side, theme, cacheManager, isLast: true),
+                      ],
                     ),
                   ),
                 ],
@@ -371,65 +340,98 @@ class _DeckTabState extends ConsumerState<DeckTab> {
           ),
           delegate: SliverChildBuilderDelegate(
             (context, index) {
-              final visual = visualCards[index];
-              final card = visual.card;
-              final isOwned = visual.isOwned;
-              final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
-
-              return InkWell(
-                onTap: () => context.push('/card/${card.id}'),
-                borderRadius: BorderRadius.circular(4),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: isOwned ? Colors.white10 : Colors.redAccent.withValues(alpha: 0.3)),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: ColorFiltered(
-                    colorFilter: isOwned
-                        ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
-                        : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
-                    child: imageUrl.isEmpty
-                        ? Container(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/images/icon/logo.png',
-                                width: 24,
-                                height: 24,
-                                opacity: const AlwaysStoppedAnimation(0.2),
-                              ),
-                            ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            cacheManager: cacheManager,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              child: Center(
-                                child: Image.asset(
-                                  'assets/images/icon/logo.png',
-                                  width: 24,
-                                  height: 24,
-                                  opacity: const AlwaysStoppedAnimation(0.2),
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
+              return _DeckCardTile(
+                visual: visualCards[index],
+                cacheManager: cacheManager,
               );
             },
             childCount: visualCards.length,
+            addAutomaticKeepAlives: true,
+            addRepaintBoundaries: true,
           ),
         ),
       ),
       SliverToBoxAdapter(child: SizedBox(height: isLast ? 16 : 24)),
     ];
+  }
+}
+
+class _DeckCardTile extends StatelessWidget {
+  final DeckVisualCard visual;
+  final CacheManager cacheManager;
+
+  const _DeckCardTile({
+    required this.visual,
+    required this.cacheManager,
+  });
+
+  static const _grayscaleFilter = ColorFilter.mode(Colors.grey, BlendMode.saturation);
+
+  @override
+  Widget build(BuildContext context) {
+    final card = visual.card;
+    final isOwned = visual.isOwned;
+    final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
+
+    Widget imageWidget;
+    if (imageUrl.isEmpty) {
+      imageWidget = Container(
+        color: Colors.white.withValues(alpha: 0.05),
+        child: Center(
+          child: Image.asset(
+            'assets/images/icon/logo.png',
+            width: 24,
+            height: 24,
+            opacity: const AlwaysStoppedAnimation(0.2),
+          ),
+        ),
+      );
+    } else {
+      imageWidget = CachedNetworkImage(
+        imageUrl: imageUrl,
+        cacheManager: cacheManager,
+        memCacheWidth: 160,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: Colors.white.withValues(alpha: 0.05),
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: Colors.white.withValues(alpha: 0.05),
+          child: Center(
+            child: Image.asset(
+              'assets/images/icon/logo.png',
+              width: 24,
+              height: 24,
+              opacity: const AlwaysStoppedAnimation(0.2),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!isOwned) {
+      imageWidget = ColorFiltered(
+        colorFilter: _grayscaleFilter,
+        child: imageWidget,
+      );
+    }
+
+    return RepaintBoundary(
+      child: InkWell(
+        onTap: () => context.push('/card/${card.id}'),
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isOwned ? Colors.white10 : Colors.redAccent.withValues(alpha: 0.3),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: imageWidget,
+        ),
+      ),
+    );
   }
 }

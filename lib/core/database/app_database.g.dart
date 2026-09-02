@@ -3882,6 +3882,15 @@ class $DecksTable extends Decks with TableInfo<$DecksTable, DriftDeck> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _syncIdMeta = const VerificationMeta('syncId');
+  @override
+  late final GeneratedColumn<String> syncId = GeneratedColumn<String>(
+    'sync_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3907,7 +3916,13 @@ class $DecksTable extends Decks with TableInfo<$DecksTable, DriftDeck> {
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, createdAt, updatedAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    syncId,
+    createdAt,
+    updatedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3930,6 +3945,12 @@ class $DecksTable extends Decks with TableInfo<$DecksTable, DriftDeck> {
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('sync_id')) {
+      context.handle(
+        _syncIdMeta,
+        syncId.isAcceptableOrUnknown(data['sync_id']!, _syncIdMeta),
+      );
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -3960,6 +3981,10 @@ class $DecksTable extends Decks with TableInfo<$DecksTable, DriftDeck> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      syncId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_id'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3980,11 +4005,13 @@ class $DecksTable extends Decks with TableInfo<$DecksTable, DriftDeck> {
 class DriftDeck extends DataClass implements Insertable<DriftDeck> {
   final int id;
   final String name;
+  final String? syncId;
   final DateTime createdAt;
   final DateTime updatedAt;
   const DriftDeck({
     required this.id,
     required this.name,
+    this.syncId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -3993,6 +4020,9 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || syncId != null) {
+      map['sync_id'] = Variable<String>(syncId);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -4002,6 +4032,9 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
     return DecksCompanion(
       id: Value(id),
       name: Value(name),
+      syncId: syncId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -4015,6 +4048,7 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
     return DriftDeck(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
+      syncId: serializer.fromJson<String?>(json['syncId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -4025,6 +4059,7 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
+      'syncId': serializer.toJson<String?>(syncId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -4033,11 +4068,13 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
   DriftDeck copyWith({
     int? id,
     String? name,
+    Value<String?> syncId = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => DriftDeck(
     id: id ?? this.id,
     name: name ?? this.name,
+    syncId: syncId.present ? syncId.value : this.syncId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -4045,6 +4082,7 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
     return DriftDeck(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
+      syncId: data.syncId.present ? data.syncId.value : this.syncId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -4055,6 +4093,7 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
     return (StringBuffer('DriftDeck(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('syncId: $syncId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4062,13 +4101,14 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, name, syncId, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DriftDeck &&
           other.id == this.id &&
           other.name == this.name &&
+          other.syncId == this.syncId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -4076,29 +4116,34 @@ class DriftDeck extends DataClass implements Insertable<DriftDeck> {
 class DecksCompanion extends UpdateCompanion<DriftDeck> {
   final Value<int> id;
   final Value<String> name;
+  final Value<String?> syncId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const DecksCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
+    this.syncId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   DecksCompanion.insert({
     this.id = const Value.absent(),
     required String name,
+    this.syncId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<DriftDeck> custom({
     Expression<int>? id,
     Expression<String>? name,
+    Expression<String>? syncId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
+      if (syncId != null) 'sync_id': syncId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -4107,12 +4152,14 @@ class DecksCompanion extends UpdateCompanion<DriftDeck> {
   DecksCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
+    Value<String?>? syncId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
     return DecksCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
+      syncId: syncId ?? this.syncId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -4126,6 +4173,9 @@ class DecksCompanion extends UpdateCompanion<DriftDeck> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (syncId.present) {
+      map['sync_id'] = Variable<String>(syncId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -4141,6 +4191,7 @@ class DecksCompanion extends UpdateCompanion<DriftDeck> {
     return (StringBuffer('DecksCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('syncId: $syncId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -7540,12 +7591,14 @@ typedef $$AppConfigTableProcessedTableManager =
 typedef $$DecksTableCreateCompanionBuilder = DecksCompanion Function({
   Value<int> id,
   required String name,
+  Value<String?> syncId,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
 });
 typedef $$DecksTableUpdateCompanionBuilder = DecksCompanion Function({
   Value<int> id,
   Value<String> name,
+  Value<String?> syncId,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
 });
@@ -7588,6 +7641,11 @@ class $$DecksTableFilterComposer extends Composer<_$AppDatabase, $DecksTable> {
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncId => $composableBuilder(
+    column: $table.syncId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7646,6 +7704,11 @@ class $$DecksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get syncId => $composableBuilder(
+    column: $table.syncId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7671,6 +7734,9 @@ class $$DecksTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get syncId =>
+      $composableBuilder(column: $table.syncId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -7734,11 +7800,13 @@ class $$DecksTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<String?> syncId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => DecksCompanion(
                 id: id,
                 name: name,
+                syncId: syncId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -7746,11 +7814,13 @@ class $$DecksTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
+                Value<String?> syncId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => DecksCompanion.insert(
                 id: id,
                 name: name,
+                syncId: syncId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

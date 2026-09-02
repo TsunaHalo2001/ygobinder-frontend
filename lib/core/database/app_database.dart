@@ -119,6 +119,7 @@ class CollectionItems extends Table {
 class Decks extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
+  TextColumn get syncId => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -151,7 +152,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -192,6 +193,10 @@ class AppDatabase extends _$AppDatabase {
         // Add Deck tables
         await m.createTable(decks);
         await m.createTable(deckCards);
+      } else if (from < 8) {
+        // Only add syncId if the table already existed (v7)
+        // If from < 7, the table was created above with the syncId column included.
+        await m.addColumn(decks, decks.syncId);
       }
     },
     beforeOpen: (details) async {
@@ -283,6 +288,17 @@ class AppDatabase extends _$AppDatabase {
           card: row.readTable(cards),
         );
       }).toList();
+    });
+  }
+
+  /// Fast query for deck builder: watches only collectionItems to map cardId -> totalQuantity
+  Stream<Map<int, int>> watchCollectionCardQuantities() {
+    return select(collectionItems).watch().map((items) {
+      final counts = <int, int>{};
+      for (final item in items) {
+        counts[item.cardId] = (counts[item.cardId] ?? 0) + item.quantity;
+      }
+      return counts;
     });
   }
 
@@ -664,21 +680,30 @@ class AppDatabase extends _$AppDatabase {
   // DECK QUERIES
   // ==========================================
 
-  Future<int> saveDeck(String name, Map<String, List<int>> categorizedCards) async {
+  Future<int> saveDeck(String name, Map<String, List<int>> categorizedCards, {String? syncId}) async {
     return transaction(() async {
       final deckId = await into(decks).insert(
         DecksCompanion.insert(
           name: name,
+          syncId: Value(syncId),
           createdAt: Value(DateTime.now()),
           updatedAt: Value(DateTime.now()),
         ),
       );
+
+      // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
+      final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
+      final existingCardIds = await (selectOnly(cards)..addColumns([cards.id])..where(cards.id.isIn(allCardIds)))
+          .get()
+          .then((rows) => rows.map((r) => r.read(cards.id)).toSet());
 
       for (final entry in categorizedCards.entries) {
         final category = entry.key;
         final cardIds = entry.value;
 
         for (final cardId in cardIds) {
+          if (!existingCardIds.contains(cardId)) continue; // Skip missing cards
+
           await into(deckCards).insert(
             DeckCardsCompanion.insert(
               deckId: deckId,
@@ -691,6 +716,59 @@ class AppDatabase extends _$AppDatabase {
 
       return deckId;
     });
+  }
+
+  Future<void> upsertDeck(String syncId, String name, Map<String, List<int>> categorizedCards, DateTime updatedAt) async {
+    await transaction(() async {
+      final existing = await (select(decks)..where((t) => t.syncId.equals(syncId))).getSingleOrNull();
+      
+      int deckId;
+      if (existing != null) {
+        deckId = existing.id;
+        await (update(decks)..where((t) => t.id.equals(deckId))).write(
+          DecksCompanion(
+            name: Value(name),
+            updatedAt: Value(updatedAt),
+          ),
+        );
+        // Clear old cards
+        await (delete(deckCards)..where((t) => t.deckId.equals(deckId))).go();
+      } else {
+        deckId = await into(decks).insert(
+          DecksCompanion.insert(
+            name: name,
+            syncId: Value(syncId),
+            createdAt: Value(updatedAt),
+            updatedAt: Value(updatedAt),
+          ),
+        );
+      }
+
+      // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
+      final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
+      final existingCardIds = await (selectOnly(cards)..addColumns([cards.id])..where(cards.id.isIn(allCardIds)))
+          .get()
+          .then((rows) => rows.map((r) => r.read(cards.id)).toSet());
+
+      for (final entry in categorizedCards.entries) {
+        final category = entry.key;
+        for (final cardId in entry.value) {
+          if (!existingCardIds.contains(cardId)) continue; // Skip missing cards
+
+          await into(deckCards).insert(
+            DeckCardsCompanion.insert(
+              deckId: deckId,
+              cardId: cardId,
+              category: category,
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  Future<DriftDeck?> getDeckBySyncId(String syncId) {
+    return (select(decks)..where((t) => t.syncId.equals(syncId))).getSingleOrNull();
   }
 
   Stream<List<DriftDeck>> watchAllDecks() {

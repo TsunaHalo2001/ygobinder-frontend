@@ -37,7 +37,7 @@ class OptionsTab extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.value;
 
@@ -82,6 +82,58 @@ class OptionsTab extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.white24),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'GUEST MODE',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Sign in to sync your inventory and decks across all your devices.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white60),
+                    ),
+                    const SizedBox(height: 24),
+                    if (authState.isLoading)
+                      const CircularProgressIndicator()
+                    else
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await ref.read(authProvider.notifier).signInWithGoogle();
+                          if (context.mounted && ref.read(authProvider).value != null) {
+                            context.go('/splash');
+                          }
+                        },
+                        icon: Image.network(
+                          'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                          height: 20,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.login),
+                        ),
+                        label: const Text('SIGN IN WITH GOOGLE'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black87,
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           Expanded(

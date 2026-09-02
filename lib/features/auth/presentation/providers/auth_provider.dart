@@ -41,8 +41,10 @@ class AuthNotifier extends _$AuthNotifier {
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      // ✅ Now using the stable v6.x API
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      // ✅ Using the Web Client ID from google-services.json to fix DEVELOPER_ERROR
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '1017987650151-ido2f7pki69sjfvo05ci9qlkgisoh4b2.apps.googleusercontent.com',
+      );
       
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       
@@ -58,6 +60,10 @@ class AuthNotifier extends _$AuthNotifier {
       final UserCredential userCredential = await auth.signInWithCredential(credential);
       return userCredential.user;
     });
+
+    if (state.hasError) {
+      debugPrint('Google Sign-In Error Detail: ${state.error}');
+    }
   }
 
   Future<void> signOut() async {
@@ -71,7 +77,9 @@ class AuthNotifier extends _$AuthNotifier {
     
     if (auth != null) {
       await auth.signOut();
-      await GoogleSignIn().signOut();
+      await GoogleSignIn(
+        serverClientId: '1017987650151-ido2f7pki69sjfvo05ci9qlkgisoh4b2.apps.googleusercontent.com',
+      ).signOut();
     }
     
     state = const AsyncData(null);

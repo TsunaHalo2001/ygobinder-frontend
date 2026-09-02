@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.tsuna2001.ygobinder"
-    compileSdk = 35
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -23,8 +23,8 @@ android {
         applicationId = "com.tsuna2001.ygobinder"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        minSdk = flutter.minSdkVersion // Standard for Flutter apps
+        targetSdk = 34
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
@@ -51,4 +51,24 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+
+    // Import the Firebase BoM
+
+    implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
+
+
+    // TODO: Add the dependencies for Firebase products you want to use
+
+    // When using the BoM, don't specify versions in Firebase dependencies
+
+    implementation("com.google.firebase:firebase-analytics")
+
+
+    // Add the dependencies for any other desired Firebase products
+
+    // https://firebase.google.com/docs/android/setup#available-libraries
+
 }

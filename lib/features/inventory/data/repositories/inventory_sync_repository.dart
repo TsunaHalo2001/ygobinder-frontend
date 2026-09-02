@@ -65,7 +65,8 @@ class InventorySyncRepository {
     if (collection == null) return;
 
     try {
-      final snapshot = await collection.get();
+      // Add a specific timeout for the network call
+      final snapshot = await collection.get().timeout(const Duration(seconds: 5));
       if (snapshot.docs.isEmpty) return;
 
       await db.transaction(() async {
