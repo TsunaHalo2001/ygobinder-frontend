@@ -115,10 +115,8 @@ class _MainShellState extends ConsumerState<MainShell> {
                           setState(() => _currentIndex = index);
                         },
                         destinations: sideDestinations,
-                        labelType: constraints.maxWidth >= 800
-                            ? null
-                            : NavigationRailLabelType.all,
-                        extended: constraints.maxWidth >= 800,
+                        labelType: NavigationRailLabelType.none,
+                        extended: false,
                         backgroundColor: theme.colorScheme.surface,
                       ),
                       const VerticalDivider(thickness: 1, width: 1),
