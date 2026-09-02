@@ -147,6 +147,17 @@ class FavoriteCards extends Table {
   Set<Column> get primaryKey => {cardId};
 }
 
+@DataClassName('DriftWantedCard')
+class WantedCards extends Table {
+  IntColumn get cardId => integer()();
+  TextColumn get syncId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {cardId};
+}
+
 // ==========================================
 // DATABASE CLASS
 // ==========================================
@@ -162,12 +173,13 @@ class FavoriteCards extends Table {
   Decks,
   DeckCards,
   FavoriteCards,
+  WantedCards,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -215,6 +227,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 9) {
         await m.createTable(favoriteCards);
+      }
+      if (from < 10) {
+        await m.createTable(wantedCards);
       }
     },
     beforeOpen: (details) async {
@@ -598,6 +613,8 @@ class AppDatabase extends _$AppDatabase {
     String? sortBy, // ✅ Added sort field
     bool sortDescending = false, // ✅ Added sort direction
     bool onlyEdison = false, // ✅ Added only Edison filter
+    bool onlyFavorites = false, // ✅ Added only Favorites filter
+    bool onlyWanted = false, // ✅ Added only Wanted filter
   }) {
     var query = select(cards);
 
@@ -702,6 +719,22 @@ class AppDatabase extends _$AppDatabase {
           selectOnly(banlistInfos)
             ..addColumns([banlistInfos.cardId])
             ..where(banlistInfos.banEdison.isNotNull())
+        );
+      });
+    }
+
+    if (onlyFavorites) {
+      query = query..where((t) {
+        return t.id.isInQuery(
+          selectOnly(favoriteCards)..addColumns([favoriteCards.cardId])
+        );
+      });
+    }
+
+    if (onlyWanted) {
+      query = query..where((t) {
+        return t.id.isInQuery(
+          selectOnly(wantedCards)..addColumns([wantedCards.cardId])
         );
       });
     }
@@ -854,6 +887,64 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> removeFavoriteCard(int cardId) async {
     await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
+  }
+
+  // ==========================================
+  // WANTED QUERIES
+  // ==========================================
+
+  Stream<bool> watchIsWanted(int cardId) {
+    return (select(wantedCards)..where((t) => t.cardId.equals(cardId)))
+        .watch()
+        .map((rows) => rows.isNotEmpty);
+  }
+
+  Future<bool> isWanted(int cardId) async {
+    final item = await (select(wantedCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
+    return item != null;
+  }
+
+  Future<bool> toggleWanted(int cardId, {String? syncId}) async {
+    final existing = await (select(wantedCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
+    if (existing != null) {
+      await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
+      return false;
+    } else {
+      final id = syncId ?? const Uuid().v4();
+      await into(wantedCards).insert(
+        WantedCardsCompanion.insert(
+          cardId: Value(cardId),
+          syncId: Value(id),
+          createdAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      return true;
+    }
+  }
+
+  Stream<List<int>> watchWantedCardIds() {
+    return select(wantedCards).watch().map((rows) => rows.map((r) => r.cardId).toList());
+  }
+
+  Future<List<DriftWantedCard>> getAllWantedCards() {
+    return select(wantedCards).get();
+  }
+
+  Future<void> upsertWantedCard(int cardId, String syncId, DateTime updatedAt) async {
+    await into(wantedCards).insert(
+      WantedCardsCompanion.insert(
+        cardId: Value(cardId),
+        syncId: Value(syncId),
+        createdAt: Value(updatedAt),
+        updatedAt: Value(updatedAt),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  Future<void> removeWantedCard(int cardId) async {
+    await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
   }
 
   Future<void> upsertDeck(String syncId, String name, Map<String, List<int>> categorizedCards, DateTime updatedAt) async {

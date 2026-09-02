@@ -51,6 +51,8 @@ class CardList extends _$CardList {
   String _currentSortBy = 'name';
   bool _currentSortDescending = false;
   bool _currentOnlyEdisonFilter = false;
+  bool _currentOnlyFavoritesFilter = false;
+  bool _currentOnlyWantedFilter = false;
 
   @override
   Future<CardListState> build() async {
@@ -73,6 +75,8 @@ class CardList extends _$CardList {
     _currentSortBy = 'name';
     _currentSortDescending = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
     
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -106,6 +110,8 @@ class CardList extends _$CardList {
       sortBy: _currentSortBy,
       sortDescending: _currentSortDescending,
       onlyEdison: _currentOnlyEdisonFilter,
+      onlyFavorites: _currentOnlyFavoritesFilter,
+      onlyWanted: _currentOnlyWantedFilter,
     );
   }
 
@@ -122,7 +128,9 @@ class CardList extends _$CardList {
       _currentAtkShowQuestionMark != null ||
       _currentDefFilter != null ||
       _currentDefShowQuestionMark != null ||
-      _currentOnlyEdisonFilter;
+      _currentOnlyEdisonFilter ||
+      _currentOnlyFavoritesFilter ||
+      _currentOnlyWantedFilter;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
@@ -139,6 +147,8 @@ class CardList extends _$CardList {
   String? get currentDefOperator => _currentDefOperator;
   bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
   bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
+  bool get currentOnlyFavoritesFilter => _currentOnlyFavoritesFilter;
+  bool get currentOnlyWantedFilter => _currentOnlyWantedFilter;
   
   String get currentSortBy => _currentSortBy;
   bool get currentSortDescending => _currentSortDescending;
@@ -253,6 +263,8 @@ class CardList extends _$CardList {
     String? defOperator,
     bool? defShowQuestionMark,
     bool? onlyEdison,
+    bool? onlyFavorites,
+    bool? onlyWanted,
   }) async {
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
@@ -269,17 +281,21 @@ class CardList extends _$CardList {
     _currentDefOperator = defOperator;
     _currentDefShowQuestionMark = defShowQuestionMark;
     if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
+    if (onlyFavorites != null) _currentOnlyFavoritesFilter = onlyFavorites;
+    if (onlyWanted != null) _currentOnlyWantedFilter = onlyWanted;
     _offset = 0;
 
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -294,12 +310,14 @@ class CardList extends _$CardList {
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -321,17 +339,21 @@ class CardList extends _$CardList {
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
     _offset = 0;
 
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -353,6 +375,8 @@ class CardList extends _$CardList {
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
     _currentSortBy = 'name';
     _currentSortDescending = false;
     _offset = 0;
@@ -394,6 +418,8 @@ class DeckCardList extends _$DeckCardList {
   String _currentSortBy = 'name';
   bool _currentSortDescending = false;
   bool _currentOnlyEdisonFilter = false;
+  bool _currentOnlyFavoritesFilter = false;
+  bool _currentOnlyWantedFilter = false;
 
   @override
   FutureOr<CardListState> build() async {
@@ -416,6 +442,8 @@ class DeckCardList extends _$DeckCardList {
     _currentSortBy = 'name';
     _currentSortDescending = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
 
     final initialCards = await _fetchPage(0);
     _offset = initialCards.length;
@@ -449,6 +477,8 @@ class DeckCardList extends _$DeckCardList {
       sortBy: _currentSortBy,
       sortDescending: _currentSortDescending,
       onlyEdison: _currentOnlyEdisonFilter,
+      onlyFavorites: _currentOnlyFavoritesFilter,
+      onlyWanted: _currentOnlyWantedFilter,
     );
   }
 
@@ -465,7 +495,9 @@ class DeckCardList extends _$DeckCardList {
       _currentAtkShowQuestionMark != null ||
       _currentDefFilter != null ||
       _currentDefShowQuestionMark != null ||
-      _currentOnlyEdisonFilter;
+      _currentOnlyEdisonFilter ||
+      _currentOnlyFavoritesFilter ||
+      _currentOnlyWantedFilter;
 
   String? get currentTypeFilter => _currentTypeFilter;
   String? get currentAttributeFilter => _currentAttributeFilter;
@@ -482,6 +514,8 @@ class DeckCardList extends _$DeckCardList {
   String? get currentDefOperator => _currentDefOperator;
   bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
   bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
+  bool get currentOnlyFavoritesFilter => _currentOnlyFavoritesFilter;
+  bool get currentOnlyWantedFilter => _currentOnlyWantedFilter;
 
   String get currentSortBy => _currentSortBy;
   bool get currentSortDescending => _currentSortDescending;
@@ -544,6 +578,8 @@ class DeckCardList extends _$DeckCardList {
     String? defOperator,
     bool? defShowQuestionMark,
     bool? onlyEdison,
+    bool? onlyFavorites,
+    bool? onlyWanted,
   }) async {
     _currentTypeFilter = type;
     _currentAttributeFilter = attribute;
@@ -560,17 +596,21 @@ class DeckCardList extends _$DeckCardList {
     _currentDefOperator = defOperator;
     _currentDefShowQuestionMark = defShowQuestionMark;
     if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
+    if (onlyFavorites != null) _currentOnlyFavoritesFilter = onlyFavorites;
+    if (onlyWanted != null) _currentOnlyWantedFilter = onlyWanted;
     _offset = 0;
 
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -585,12 +625,14 @@ class DeckCardList extends _$DeckCardList {
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -612,17 +654,21 @@ class DeckCardList extends _$DeckCardList {
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
     _offset = 0;
 
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -644,6 +690,8 @@ class DeckCardList extends _$DeckCardList {
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
     _currentSortBy = 'name';
     _currentSortDescending = false;
     _offset = 0;

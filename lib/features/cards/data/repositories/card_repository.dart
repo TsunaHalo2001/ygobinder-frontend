@@ -135,6 +135,8 @@ class CardRepository {
     String? sortBy, // ✅ Added sort field
     bool sortDescending = false, // ✅ Added sort direction
     bool onlyEdison = false, // ✅ Added only Edison filter
+    bool onlyFavorites = false, // ✅ Added only Favorites filter
+    bool onlyWanted = false, // ✅ Added only Wanted filter
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
@@ -157,6 +159,8 @@ class CardRepository {
       sortBy: sortBy, // ✅ Passed sortBy
       sortDescending: sortDescending, // ✅ Passed sortDescending
       onlyEdison: onlyEdison, // ✅ Passed onlyEdison
+      onlyFavorites: onlyFavorites,
+      onlyWanted: onlyWanted,
     );
 
     if (driftCards.isEmpty) return [];

@@ -7,6 +7,8 @@ import 'package:ygobinder/features/cards/presentation/providers/card_detail_prov
 import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/favorite_providers.dart';
 import 'package:ygobinder/features/cards/data/repositories/favorite_sync_repository.dart';
+import 'package:ygobinder/features/cards/presentation/providers/wanted_providers.dart';
+import 'package:ygobinder/features/cards/data/repositories/wanted_sync_repository.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
@@ -104,6 +106,7 @@ class _CardDetailScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final colors = _getCardColors();
     final isHybrid = colors.length > 1;
     final isDark = colors.first.computeLuminance() < 0.5;
@@ -112,6 +115,9 @@ class _CardDetailScaffold extends ConsumerWidget {
 
     final isFavAsync = ref.watch(isFavoriteCardProvider(card.id));
     final isFav = isFavAsync.value ?? false;
+
+    final isWantedAsync = ref.watch(isWantedCardProvider(card.id));
+    final isWanted = isWantedAsync.value ?? false;
 
     return Scaffold(
       backgroundColor: isHybrid ? null : colors.first,
@@ -136,6 +142,21 @@ class _CardDetailScaffold extends ConsumerWidget {
               final syncRepo = ref.read(favoriteSyncRepositoryProvider);
               final newIsFav = await db.toggleFavorite(card.id);
               await syncRepo.syncFavorite(card.id, newIsFav);
+            },
+          ),
+          IconButton(
+            icon: Image.asset(
+              'assets/images/icon/wanted.png',
+              width: 26,
+              height: 26,
+              color: isWanted ? theme.colorScheme.primary : foregroundColor.withValues(alpha: 0.35),
+            ),
+            tooltip: isWanted ? 'Remove from Wanted' : 'Add to Wanted',
+            onPressed: () async {
+              final db = ref.read(databaseProvider);
+              final syncRepo = ref.read(wantedSyncRepositoryProvider);
+              final newIsWanted = await db.toggleWanted(card.id);
+              await syncRepo.syncWanted(card.id, newIsWanted);
             },
           ),
           if (attributeAsset != null)

@@ -92,6 +92,8 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
   String? _tempDefOperator;
   bool? _tempDefShowQuestionMark;
   bool _tempOnlyEdison = false;
+  bool _tempOnlyFavorites = false;
+  bool _tempOnlyWanted = false;
 
   final TextEditingController _atkController = TextEditingController();
   final TextEditingController _defController = TextEditingController();
@@ -116,6 +118,8 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
     _tempDefOperator = notifier.currentDefOperator;
     _tempDefShowQuestionMark = notifier.currentDefShowQuestionMark;
     _tempOnlyEdison = notifier.currentOnlyEdisonFilter;
+    _tempOnlyFavorites = notifier.currentOnlyFavoritesFilter;
+    _tempOnlyWanted = notifier.currentOnlyWantedFilter;
 
     _atkController.text = _tempAtk?.toString() ?? '';
     _defController.text = _tempDef?.toString() ?? '';
@@ -146,6 +150,8 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
             defOperator: type == 'Monster' ? _tempDefOperator : null,
             defShowQuestionMark: type == 'Monster' ? _tempDefShowQuestionMark : null,
             onlyEdison: _tempOnlyEdison,
+            onlyFavorites: _tempOnlyFavorites,
+            onlyWanted: _tempOnlyWanted,
           );
     } else {
       ref.read(cardListProvider.notifier).applyFilters(
@@ -164,6 +170,8 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
             defOperator: type == 'Monster' ? _tempDefOperator : null,
             defShowQuestionMark: type == 'Monster' ? _tempDefShowQuestionMark : null,
             onlyEdison: _tempOnlyEdison,
+            onlyFavorites: _tempOnlyFavorites,
+            onlyWanted: _tempOnlyWanted,
           );
     }
   }
@@ -220,6 +228,8 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                     selectedDefOperator: _tempDefOperator,
                     selectedDefShowQuestionMark: _tempDefShowQuestionMark,
                     onlyEdison: _tempOnlyEdison,
+                    onlyFavorites: _tempOnlyFavorites,
+                    onlyWanted: _tempOnlyWanted,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onSubTypeSelected: (subType) => setState(() => _tempSubType = subType),
@@ -232,6 +242,8 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                     onDefOperatorChanged: (op) => setState(() => _tempDefOperator = op),
                     onDefShowQuestionMarkChanged: (show) => setState(() => _tempDefShowQuestionMark = show),
                     onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val),
+                    onOnlyFavoritesChanged: (val) => setState(() => _tempOnlyFavorites = val),
+                    onOnlyWantedChanged: (val) => setState(() => _tempOnlyWanted = val),
                     onApply: () {
                       _applyFilters('Monster');
                       Navigator.pop(context);
@@ -245,8 +257,12 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                     type: 'Spell',
                     selectedRace: _tempRace,
                     onlyEdison: _tempOnlyEdison,
+                    onlyFavorites: _tempOnlyFavorites,
+                    onlyWanted: _tempOnlyWanted,
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val),
+                    onOnlyFavoritesChanged: (val) => setState(() => _tempOnlyFavorites = val),
+                    onOnlyWantedChanged: (val) => setState(() => _tempOnlyWanted = val),
                     onApply: () {
                       _applyFilters('Spell');
                       Navigator.pop(context);
@@ -260,8 +276,12 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                     type: 'Trap',
                     selectedRace: _tempRace,
                     onlyEdison: _tempOnlyEdison,
+                    onlyFavorites: _tempOnlyFavorites,
+                    onlyWanted: _tempOnlyWanted,
                     onRaceSelected: (race) => setState(() => _tempRace = race),
                     onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val),
+                    onOnlyFavoritesChanged: (val) => setState(() => _tempOnlyFavorites = val),
+                    onOnlyWantedChanged: (val) => setState(() => _tempOnlyWanted = val),
                     onApply: () {
                       _applyFilters('Trap');
                       Navigator.pop(context);
@@ -393,6 +413,8 @@ class _FilterTabContent extends StatelessWidget {
   final String? selectedDefOperator;
   final bool? selectedDefShowQuestionMark;
   final bool onlyEdison;
+  final bool onlyFavorites;
+  final bool onlyWanted;
 
   final ValueChanged<String?>? onAttributeSelected;
   final ValueChanged<String?>? onRaceSelected;
@@ -406,6 +428,8 @@ class _FilterTabContent extends StatelessWidget {
   final ValueChanged<String?>? onDefOperatorChanged;
   final ValueChanged<bool?>? onDefShowQuestionMarkChanged;
   final ValueChanged<bool>? onOnlyEdisonChanged;
+  final ValueChanged<bool>? onOnlyFavoritesChanged;
+  final ValueChanged<bool>? onOnlyWantedChanged;
   final VoidCallback? onApply;
   final VoidCallback? onClear;
 
@@ -425,6 +449,8 @@ class _FilterTabContent extends StatelessWidget {
     this.selectedDefOperator,
     this.selectedDefShowQuestionMark,
     this.onlyEdison = false,
+    this.onlyFavorites = false,
+    this.onlyWanted = false,
     this.onAttributeSelected,
     this.onRaceSelected,
     this.onSubTypeSelected,
@@ -437,6 +463,8 @@ class _FilterTabContent extends StatelessWidget {
     this.onDefOperatorChanged,
     this.onDefShowQuestionMarkChanged,
     this.onOnlyEdisonChanged,
+    this.onOnlyFavoritesChanged,
+    this.onOnlyWantedChanged,
     this.onApply,
     this.onClear,
   });
@@ -617,13 +645,45 @@ class _FilterTabContent extends StatelessWidget {
           ],
           Material(
             color: Colors.transparent,
-            child: SwitchListTile(
-              title: const Text('ONLY EDISON FORMAT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
-              subtitle: const Text('Hide cards not legal in Edison', style: TextStyle(fontSize: 12, color: Colors.white38)),
-              value: onlyEdison,
-              onChanged: onOnlyEdisonChanged,
-              activeThumbColor: Colors.blueAccent,
-              contentPadding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Row(
+                    children: [
+                      Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+                      SizedBox(width: 8),
+                      Text('FAVORITES ONLY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
+                    ],
+                  ),
+                  subtitle: const Text('Show only cards marked as favorites', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                  value: onlyFavorites,
+                  onChanged: onOnlyFavoritesChanged,
+                  activeColor: Colors.amber,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                SwitchListTile(
+                  title: Row(
+                    children: [
+                      Image.asset('assets/images/icon/wanted.png', width: 20, height: 20, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      const Text('WANTED ONLY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
+                    ],
+                  ),
+                  subtitle: const Text('Show only cards marked as wanted', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                  value: onlyWanted,
+                  onChanged: onOnlyWantedChanged,
+                  activeColor: theme.colorScheme.primary,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                SwitchListTile(
+                  title: const Text('ONLY EDISON FORMAT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
+                  subtitle: const Text('Hide cards not legal in Edison', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                  value: onlyEdison,
+                  onChanged: onOnlyEdisonChanged,
+                  activeThumbColor: Colors.blueAccent,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
