@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:ygobinder/features/stats/presentation/providers/stats_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
+import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/core/providers/image_cache_provider.dart';
 
 class StatsTab extends ConsumerWidget {
   const StatsTab({super.key});
@@ -11,6 +15,8 @@ class StatsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final totalCardsAsync = ref.watch(totalCardsCountProvider);
     final uniqueCardsAsync = ref.watch(uniqueCardsCountProvider);
+    final newestCardAsync = ref.watch(newestCardProvider);
+    final oldestCardAsync = ref.watch(oldestCardProvider);
     final topSetsAsync = ref.watch(topSetsProvider);
     final topCardsAsync = ref.watch(topCardsProvider);
 
@@ -44,6 +50,20 @@ class StatsTab extends ConsumerWidget {
               ),
               icon: Icons.style_rounded,
               color: Theme.of(context).colorScheme.secondary,
+            ),
+            const SizedBox(height: 16),
+            _CardDateStatCard(
+              label: 'Newest Card Owned',
+              cardAsync: newestCardAsync,
+              icon: Icons.auto_awesome_rounded,
+              color: Colors.tealAccent,
+            ),
+            const SizedBox(height: 16),
+            _CardDateStatCard(
+              label: 'Oldest Card Owned',
+              cardAsync: oldestCardAsync,
+              icon: Icons.history_edu_rounded,
+              color: Colors.amber,
             ),
             const SizedBox(height: 32),
             _SectionHeader(title: 'TOP 5 SETS'),
@@ -223,6 +243,137 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CardDateStatCard extends ConsumerWidget {
+  final String label;
+  final AsyncValue<YgoCard?> cardAsync;
+  final IconData icon;
+  final Color color;
+
+  const _CardDateStatCard({
+    required this.label,
+    required this.cardAsync,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cacheManager = ref.watch(imageCacheManagerProvider);
+
+    return cardAsync.when(
+      data: (card) {
+        final imageUrl = card?.cardImages?.firstOrNull?.imageUrlCropped ??
+            card?.cardImages?.firstOrNull?.imageUrlSmall ??
+            '';
+
+        String dateString = 'N/A';
+        if (card != null) {
+          final tcgDate = card.miscInfo?.firstOrNull?.tcgDate;
+          if (tcgDate != null && tcgDate.isNotEmpty) {
+            dateString = tcgDate;
+          }
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+          ),
+          child: InkWell(
+            onTap: card != null ? () => context.push('/card/${card.id}') : null,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  if (card != null && imageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 44,
+                        height: 64,
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          cacheManager: cacheManager,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 120,
+                          placeholder: (context, url) => Container(color: Colors.black12),
+                          errorWidget: (context, url, error) => Icon(icon, color: color, size: 28),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: color, size: 28),
+                    ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: color.withValues(alpha: 0.8),
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          card?.name ?? 'No cards in collection',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (card != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Released: $dateString',
+                            style: const TextStyle(fontSize: 12, color: Colors.white60),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (card != null)
+                    const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (err, stack) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
       ),
     );
   }

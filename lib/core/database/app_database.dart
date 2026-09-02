@@ -4,6 +4,8 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 
 part 'app_database.g.dart';
 
@@ -437,6 +439,42 @@ class AppDatabase extends _$AppDatabase {
           count: row.read(quantitySum) ?? 0,
         );
       }).toList();
+    });
+  }
+
+  Stream<YgoCard?> watchNewestCard() {
+    final query = select(cards).join([
+      innerJoin(collectionItems, collectionItems.cardId.equalsExp(cards.id)),
+    ]);
+
+    query
+      ..where(cards.tcgDate.isNotNull())
+      ..orderBy([OrderingTerm.desc(cards.tcgDate), OrderingTerm.asc(cards.name)])
+      ..limit(1);
+
+    return query.watch().asyncMap((rows) async {
+      if (rows.isEmpty) return null;
+      final driftCard = rows.first.readTable(cards);
+      final images = await getCardImages(driftCard.id);
+      return CardMapper.toYgoCard(driftCard, images: images);
+    });
+  }
+
+  Stream<YgoCard?> watchOldestCard() {
+    final query = select(cards).join([
+      innerJoin(collectionItems, collectionItems.cardId.equalsExp(cards.id)),
+    ]);
+
+    query
+      ..where(cards.tcgDate.isNotNull())
+      ..orderBy([OrderingTerm.asc(cards.tcgDate), OrderingTerm.asc(cards.name)])
+      ..limit(1);
+
+    return query.watch().asyncMap((rows) async {
+      if (rows.isEmpty) return null;
+      final driftCard = rows.first.readTable(cards);
+      final images = await getCardImages(driftCard.id);
+      return CardMapper.toYgoCard(driftCard, images: images);
     });
   }
 

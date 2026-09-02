@@ -295,6 +295,14 @@ class CardRepository {
     return _db.watchTopCards(limit);
   }
 
+  Stream<YgoCard?> watchNewestCard() {
+    return _db.watchNewestCard();
+  }
+
+  Stream<YgoCard?> watchOldestCard() {
+    return _db.watchOldestCard();
+  }
+
   Future<int?> identifyCardFromText(List<String> lines) async {
     final idRegex = RegExp(r'\b\d{8}\b'); // Exactly 8 digits
     final setCodeRegex = RegExp(r'([A-Z0-9]{3,4})-([A-Z0-9]+)'); // Basic PREFIX-SUFFIX pattern
