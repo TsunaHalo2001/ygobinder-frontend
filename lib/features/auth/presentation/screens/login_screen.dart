@@ -54,7 +54,7 @@ class LoginScreen extends ConsumerWidget {
                   ),
                 ),
                 const Text(
-                  'Alpha Version 0.3.4',
+                  'Alpha Version 0.3.5',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white38,
