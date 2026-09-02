@@ -40,9 +40,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Detect screen size for adaptive fonts
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final bool isLargeScreen = screenWidth > 600;
+    // 1. Detect device type using shortestSide (tablets vs phones in portrait/landscape)
+    final bool isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
 
     return MaterialApp.router(
       title: 'YGOBinder',
@@ -64,7 +63,7 @@ class MyApp extends StatelessWidget {
         ),
 
         // Applying the adaptive TextTheme
-        textTheme: _buildTextTheme(isLargeScreen),
+        textTheme: _buildTextTheme(isTablet),
         
         // Themed Card appearance
         cardTheme: CardThemeData(
@@ -91,10 +90,10 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  TextTheme _buildTextTheme(bool isLargeScreen) {
-    // Increase base sizes significantly for large screens (from 1.2 to 1.6)
-    final double scale = isLargeScreen ? 1.6 : 1.0;
-    const double lineHeight = 1.0; // Reduced line height for YGO font
+  TextTheme _buildTextTheme(bool isTablet) {
+    // Scale 1.0 for phones (portrait & landscape), 1.2 for tablet devices
+    final double scale = isTablet ? 1.2 : 1.0;
+    const double lineHeight = 1.1;
     
     // Subtle shadow to help text pop against varied backgrounds
     final List<Shadow> textShadows = [
@@ -106,21 +105,21 @@ class MyApp extends StatelessWidget {
     ];
 
     return TextTheme(
-      displayLarge: TextStyle(fontSize: 57 * scale, height: lineHeight, shadows: textShadows),
-      displayMedium: TextStyle(fontSize: 45 * scale, height: lineHeight, shadows: textShadows),
-      displaySmall: TextStyle(fontSize: 36 * scale, height: lineHeight, shadows: textShadows),
-      headlineLarge: TextStyle(fontSize: 32 * scale, height: lineHeight, shadows: textShadows),
-      headlineMedium: TextStyle(fontSize: 28 * scale, height: lineHeight, shadows: textShadows),
-      headlineSmall: TextStyle(fontSize: 24 * scale, height: lineHeight, shadows: textShadows),
-      titleLarge: TextStyle(fontSize: 22 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
-      titleMedium: TextStyle(fontSize: 16 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
-      titleSmall: TextStyle(fontSize: 14 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
-      bodyLarge: TextStyle(fontSize: 16 * scale, height: lineHeight, shadows: textShadows),
-      bodyMedium: TextStyle(fontSize: 14 * scale, height: lineHeight, shadows: textShadows),
-      bodySmall: TextStyle(fontSize: 12 * scale, height: lineHeight, shadows: textShadows),
-      labelLarge: TextStyle(fontSize: 14 * scale, height: lineHeight, shadows: textShadows),
-      labelMedium: TextStyle(fontSize: 12 * scale, height: lineHeight, shadows: textShadows),
-      labelSmall: TextStyle(fontSize: 11 * scale, height: lineHeight, shadows: textShadows),
+      displayLarge: TextStyle(fontSize: 48 * scale, height: lineHeight, shadows: textShadows),
+      displayMedium: TextStyle(fontSize: 40 * scale, height: lineHeight, shadows: textShadows),
+      displaySmall: TextStyle(fontSize: 32 * scale, height: lineHeight, shadows: textShadows),
+      headlineLarge: TextStyle(fontSize: 28 * scale, height: lineHeight, shadows: textShadows),
+      headlineMedium: TextStyle(fontSize: 24 * scale, height: lineHeight, shadows: textShadows),
+      headlineSmall: TextStyle(fontSize: 20 * scale, height: lineHeight, shadows: textShadows),
+      titleLarge: TextStyle(fontSize: 20 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
+      titleMedium: TextStyle(fontSize: 17 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
+      titleSmall: TextStyle(fontSize: 15 * scale, height: lineHeight, shadows: textShadows, fontWeight: FontWeight.bold),
+      bodyLarge: TextStyle(fontSize: 16.5 * scale, height: lineHeight, shadows: textShadows),
+      bodyMedium: TextStyle(fontSize: 14.5 * scale, height: lineHeight, shadows: textShadows),
+      bodySmall: TextStyle(fontSize: 13 * scale, height: lineHeight, shadows: textShadows),
+      labelLarge: TextStyle(fontSize: 14.5 * scale, height: lineHeight, shadows: textShadows),
+      labelMedium: TextStyle(fontSize: 13 * scale, height: lineHeight, shadows: textShadows),
+      labelSmall: TextStyle(fontSize: 11.5 * scale, height: lineHeight, shadows: textShadows),
     );
   }
 }

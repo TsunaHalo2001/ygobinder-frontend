@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 part 'app_database.g.dart';
 
@@ -682,14 +683,40 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> saveDeck(String name, Map<String, List<int>> categorizedCards, {String? syncId}) async {
     return transaction(() async {
-      final deckId = await into(decks).insert(
-        DecksCompanion.insert(
-          name: name,
-          syncId: Value(syncId),
-          createdAt: Value(DateTime.now()),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
+      // Check if a deck with the same name already exists (case-insensitive)
+      final existing = await (select(decks)
+            ..where((t) => t.name.lower().equals(name.toLowerCase())))
+          .getSingleOrNull();
+
+      int deckId;
+      String currentSyncId;
+
+      if (existing != null) {
+        deckId = existing.id;
+        currentSyncId = existing.syncId ?? syncId ?? const Uuid().v4();
+
+        // Replace/update deck details and timestamp
+        await (update(decks)..where((t) => t.id.equals(deckId))).write(
+          DecksCompanion(
+            name: Value(name),
+            syncId: Value(currentSyncId),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+
+        // Delete old cards for this deck
+        await (delete(deckCards)..where((t) => t.deckId.equals(deckId))).go();
+      } else {
+        currentSyncId = syncId ?? const Uuid().v4();
+        deckId = await into(decks).insert(
+          DecksCompanion.insert(
+            name: name,
+            syncId: Value(currentSyncId),
+            createdAt: Value(DateTime.now()),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+      }
 
       // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
       final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();

@@ -52,3 +52,47 @@ abstract class _$CardList extends $AsyncNotifier<CardListState> {
     return element.handleCreate(ref, build);
   }
 }
+
+@ProviderFor(DeckCardList)
+final deckCardListProvider = DeckCardListProvider._();
+
+final class DeckCardListProvider
+    extends $AsyncNotifierProvider<DeckCardList, CardListState> {
+  DeckCardListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'deckCardListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$deckCardListHash();
+
+  @$internal
+  @override
+  DeckCardList create() => DeckCardList();
+}
+
+String _$deckCardListHash() => r'deckCardListHash3c35ddfa';
+
+abstract class _$DeckCardList extends $AsyncNotifier<CardListState> {
+  FutureOr<CardListState> build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<CardListState>, CardListState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<CardListState>, CardListState>,
+              AsyncValue<CardListState>,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}

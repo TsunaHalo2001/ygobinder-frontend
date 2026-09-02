@@ -139,6 +139,35 @@ class DeckFileContent extends _$DeckFileContent {
     return categorizedCards;
   }
 
+  void addCardToCategory(int cardId, String category) {
+    final categorized = parseYdk();
+    categorized[category]?.add(cardId);
+    _updateContentFromCategorized(categorized);
+  }
+
+  void removeOneCopyFromCategory(int cardId, String category) {
+    final categorized = parseYdk();
+    categorized[category]?.remove(cardId);
+    _updateContentFromCategorized(categorized);
+  }
+
+  void _updateContentFromCategorized(Map<String, List<int>> categorized) {
+    final buffer = StringBuffer();
+    buffer.writeln('#main');
+    for (final id in categorized['main'] ?? []) {
+      buffer.writeln(id);
+    }
+    buffer.writeln('#extra');
+    for (final id in categorized['extra'] ?? []) {
+      buffer.writeln(id);
+    }
+    buffer.writeln('!side');
+    for (final id in categorized['side'] ?? []) {
+      buffer.writeln(id);
+    }
+    state = DeckState(content: buffer.toString(), name: state.name);
+  }
+
   Future<void> saveToDatabase(String name) async {
     final categorizedCards = parseYdk();
     final db = ref.read(databaseProvider);
@@ -285,6 +314,8 @@ final processedDeckDataProvider = FutureProvider<VisualDeckData>((ref) async {
   );
 });
 
+final _deckCardCache = <int, YgoCard>{};
+
 @riverpod
 Future<Map<String, List<YgoCard>>> categorizedDeckCards(Ref ref) async {
   final deckState = ref.watch(deckFileContentProvider);
@@ -301,14 +332,20 @@ Future<Map<String, List<YgoCard>>> categorizedDeckCards(Ref ref) async {
     ...categorizedIds['main']!,
     ...categorizedIds['extra']!,
     ...categorizedIds['side']!,
-  }.toList();
+  };
 
-  final allCards = await repo.getCardsByIds(allIds);
-  final cardMap = {for (final card in allCards) card.id: card};
+  final missingIds = allIds.where((id) => !_deckCardCache.containsKey(id)).toList();
+
+  if (missingIds.isNotEmpty) {
+    final fetchedCards = await repo.getCardsByIds(missingIds);
+    for (final card in fetchedCards) {
+      _deckCardCache[card.id] = card;
+    }
+  }
 
   return {
-    'main': categorizedIds['main']!.map((id) => cardMap[id]).whereType<YgoCard>().toList(),
-    'extra': categorizedIds['extra']!.map((id) => cardMap[id]).whereType<YgoCard>().toList(),
-    'side': categorizedIds['side']!.map((id) => cardMap[id]).whereType<YgoCard>().toList(),
+    'main': categorizedIds['main']!.map((id) => _deckCardCache[id]).whereType<YgoCard>().toList(),
+    'extra': categorizedIds['extra']!.map((id) => _deckCardCache[id]).whereType<YgoCard>().toList(),
+    'side': categorizedIds['side']!.map((id) => _deckCardCache[id]).whereType<YgoCard>().toList(),
   };
 }
