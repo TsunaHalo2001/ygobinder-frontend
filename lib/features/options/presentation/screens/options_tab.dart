@@ -277,6 +277,22 @@ class OptionsTab extends ConsumerWidget {
                     fontSize: 12,
                   ),
                 ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse('https://ko-fi.com/tsunas200121679');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.coffee_rounded, color: Color(0xFF22C55E), size: 18),
+                  label: const Text('Support on Ko-fi', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF22C55E),
+                    side: const BorderSide(color: Color(0xFF22C55E)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
           ),

@@ -52,6 +52,16 @@
 
 ---
 
+## ☕ Support the Project
+
+If you enjoy using **YGOBinder** and would like to support its continued development, consider supporting me on Ko-fi!
+
+[![Support on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tsunas200121679)
+
+👉 **[Support Tsuna2001 on Ko-fi](https://ko-fi.com/tsunas200121679)**
+
+---
+
 ## ⚖️ Legal Disclaimer & Attribution
 
 > [!IMPORTANT]
