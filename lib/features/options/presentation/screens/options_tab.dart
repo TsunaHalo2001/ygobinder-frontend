@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+
+bool get _isGoogleSignInSupported =>
+    kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
 
 class OptionsTab extends ConsumerWidget {
   const OptionsTab({super.key});
@@ -103,42 +108,50 @@ class OptionsTab extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.cloud_off_rounded, size: 40, color: Colors.white24),
+                  Icon(
+                    _isGoogleSignInSupported ? Icons.cloud_off_rounded : Icons.storage_rounded,
+                    size: 40,
+                    color: Colors.white24,
+                  ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'GUEST MODE',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    _isGoogleSignInSupported ? 'GUEST MODE' : 'LOCAL MODE',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Sign in to sync your inventory and decks across all your devices.',
+                  Text(
+                    _isGoogleSignInSupported
+                        ? 'Sign in to sync your inventory and decks across all your devices.'
+                        : 'Your inventory and decks are saved locally on this device.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
                   ),
-                  const SizedBox(height: 16),
-                  if (authState.isLoading)
-                    const CircularProgressIndicator()
-                  else
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await ref.read(authProvider.notifier).signInWithGoogle();
-                        if (context.mounted && ref.read(authProvider).value != null) {
-                          context.go('/splash');
-                        }
-                      },
-                      icon: Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-                        height: 18,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.login),
+                  if (_isGoogleSignInSupported) ...[
+                    const SizedBox(height: 16),
+                    if (authState.isLoading)
+                      const CircularProgressIndicator()
+                    else
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await ref.read(authProvider.notifier).signInWithGoogle();
+                          if (context.mounted && ref.read(authProvider).value != null) {
+                            context.go('/splash');
+                          }
+                        },
+                        icon: Image.network(
+                          'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                          height: 18,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.login),
+                        ),
+                        label: const Text('SIGN IN WITH GOOGLE'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black87,
+                          minimumSize: const Size(double.infinity, 44),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
-                      label: const Text('SIGN IN WITH GOOGLE'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        minimumSize: const Size(double.infinity, 44),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+                  ],
                 ],
               ),
             ),

@@ -2,6 +2,73 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_list_provider.dart';
 
+const List<Map<String, String>> _kAttributes = [
+  {'name': 'DARK', 'asset': 'assets/images/attributes/dark.webp'},
+  {'name': 'EARTH', 'asset': 'assets/images/attributes/earth.png'},
+  {'name': 'FIRE', 'asset': 'assets/images/attributes/fire.webp'},
+  {'name': 'LIGHT', 'asset': 'assets/images/attributes/light.png'},
+  {'name': 'WATER', 'asset': 'assets/images/attributes/water.png'},
+  {'name': 'WIND', 'asset': 'assets/images/attributes/wind.webp'},
+  {'name': 'DIVINE', 'asset': 'assets/images/attributes/divine.webp'},
+];
+
+const List<Map<String, String>> _kMonsterRaces = [
+  {'name': 'Aqua', 'asset': 'assets/images/races/aqua.png'},
+  {'name': 'Beast', 'asset': 'assets/images/races/beast.png'},
+  {'name': 'Beast-Warrior', 'asset': 'assets/images/races/beast_warrior.png'},
+  {'name': 'Cyberse', 'asset': 'assets/images/races/cyberse.png'},
+  {'name': 'Dinosaur', 'asset': 'assets/images/races/dinosaur.png'},
+  {'name': 'Divine-Beast', 'asset': 'assets/images/races/divine_beast.png'},
+  {'name': 'Dragon', 'asset': 'assets/images/races/dragon.png'},
+  {'name': 'Fairy', 'asset': 'assets/images/races/fairy.png'},
+  {'name': 'Fiend', 'asset': 'assets/images/races/demon.png'},
+  {'name': 'Fish', 'asset': 'assets/images/races/fish.png'},
+  {'name': 'Illusion', 'asset': 'assets/images/races/illusion.png'},
+  {'name': 'Insect', 'asset': 'assets/images/races/insect.png'},
+  {'name': 'Machine', 'asset': 'assets/images/races/machine.png'},
+  {'name': 'Plant', 'asset': 'assets/images/races/plant.png'},
+  {'name': 'Psychic', 'asset': 'assets/images/races/psychic.png'},
+  {'name': 'Pyro', 'asset': 'assets/images/races/pyro.png'},
+  {'name': 'Reptile', 'asset': 'assets/images/races/reptile.png'},
+  {'name': 'Rock', 'asset': 'assets/images/races/rock.png'},
+  {'name': 'Sea Serpent', 'asset': 'assets/images/races/sea_serpent.png'},
+  {'name': 'Spellcaster', 'asset': 'assets/images/races/spellcaster.png'},
+  {'name': 'Thunder', 'asset': 'assets/images/races/thunder.png'},
+  {'name': 'Warrior', 'asset': 'assets/images/races/warrior.png'},
+  {'name': 'Winged Beast', 'asset': 'assets/images/races/winged_beast.png'},
+  {'name': 'Wyrm', 'asset': 'assets/images/races/wyrm.png'},
+  {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
+];
+
+const List<Map<String, String?>> _kSpellRaces = [
+  {'name': 'Normal', 'asset': null},
+  {'name': 'Continuous', 'asset': 'assets/images/attributes/continuous.png'},
+  {'name': 'Equip', 'asset': 'assets/images/attributes/equip.webp'},
+  {'name': 'Field', 'asset': 'assets/images/attributes/field.png'},
+  {'name': 'Quick-Play', 'asset': 'assets/images/attributes/quickplay.webp'},
+  {'name': 'Ritual', 'asset': 'assets/images/attributes/ritual.webp'},
+];
+
+const List<Map<String, String?>> _kTrapRaces = [
+  {'name': 'Normal', 'asset': null},
+  {'name': 'Continuous', 'asset': 'assets/images/attributes/continuous.png'},
+  {'name': 'Counter', 'asset': 'assets/images/attributes/counter.webp'},
+];
+
+const List<Map<String, dynamic>> _kFrames = [
+  {'name': 'normal', 'label': 'NORMAL', 'color': Color(0xFFFDE68A)},
+  {'name': 'effect', 'label': 'EFFECT', 'color': Color(0xFFFF8B53)},
+  {'name': 'ritual', 'label': 'RITUAL', 'color': Color(0xFF9DB5F2)},
+  {'name': 'fusion', 'label': 'FUSION', 'color': Color(0xFFA086B7)},
+  {'name': 'synchro', 'label': 'SYNCHRO', 'color': Color(0xFFCCCCCC)},
+  {'name': 'xyz', 'label': 'XYZ', 'color': Color(0xFF000000)},
+  {'name': 'link', 'label': 'LINK', 'color': Color(0xFF00008B)},
+  {'name': 'pendulum', 'label': 'PENDULUM', 'color': Color(0xFF45A29E)},
+  {'name': 'token', 'label': 'TOKEN', 'color': Color(0xFFC0C0C0)},
+];
+
+const List<String> _kSubTypes = ['Flip', 'Toon', 'Spirit', 'Union', 'Gemini', 'Tuner'];
+
 class CardFilterBottomSheet extends ConsumerStatefulWidget {
   final bool isDeckBuilder;
   const CardFilterBottomSheet({super.key, this.isDeckBuilder = false});
@@ -113,7 +180,7 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
+      height: MediaQuery.sizeOf(context).height * 0.9,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -236,7 +303,7 @@ class CardSortBottomSheet extends ConsumerWidget {
     final descending = isDeckBuilder
         ? ref.read(deckCardListProvider.notifier).currentSortDescending
         : ref.read(cardListProvider.notifier).currentSortDescending;
-    final options = [
+    final options = const [
       {'label': 'A-Z', 'field': 'name', 'desc': false, 'icon': Icons.sort_by_alpha_rounded},
       {'label': 'Z-A', 'field': 'name', 'desc': true, 'icon': Icons.sort_by_alpha_rounded},
       {'label': 'DATE ASC', 'field': 'tcgDate', 'desc': false, 'icon': Icons.calendar_today_rounded},
@@ -310,7 +377,7 @@ class CardSortBottomSheet extends ConsumerWidget {
   }
 }
 
-class _FilterTabContent extends ConsumerWidget {
+class _FilterTabContent extends StatelessWidget {
   final String type;
   final String? selectedAttribute;
   final String? selectedRace;
@@ -375,72 +442,11 @@ class _FilterTabContent extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isMonster = type == 'Monster';
     final isSpell = type == 'Spell';
     final isTrap = type == 'Trap';
-    final attributes = [
-      {'name': 'DARK', 'asset': 'assets/images/attributes/dark.webp'},
-      {'name': 'EARTH', 'asset': 'assets/images/attributes/earth.png'},
-      {'name': 'FIRE', 'asset': 'assets/images/attributes/fire.webp'},
-      {'name': 'LIGHT', 'asset': 'assets/images/attributes/light.png'},
-      {'name': 'WATER', 'asset': 'assets/images/attributes/water.png'},
-      {'name': 'WIND', 'asset': 'assets/images/attributes/wind.webp'},
-      {'name': 'DIVINE', 'asset': 'assets/images/attributes/divine.webp'},
-    ];
-    final monsterRaces = [
-      {'name': 'Aqua', 'asset': 'assets/images/races/aqua.png'},
-      {'name': 'Beast', 'asset': 'assets/images/races/beast.png'},
-      {'name': 'Beast-Warrior', 'asset': 'assets/images/races/beast_warrior.png'},
-      {'name': 'Cyberse', 'asset': 'assets/images/races/cyberse.png'},
-      {'name': 'Dinosaur', 'asset': 'assets/images/races/dinosaur.png'},
-      {'name': 'Divine-Beast', 'asset': 'assets/images/races/divine_beast.png'},
-      {'name': 'Dragon', 'asset': 'assets/images/races/dragon.png'},
-      {'name': 'Fairy', 'asset': 'assets/images/races/fairy.png'},
-      {'name': 'Fiend', 'asset': 'assets/images/races/demon.png'},
-      {'name': 'Fish', 'asset': 'assets/images/races/fish.png'},
-      {'name': 'Illusion', 'asset': 'assets/images/races/illusion.png'},
-      {'name': 'Insect', 'asset': 'assets/images/races/insect.png'},
-      {'name': 'Machine', 'asset': 'assets/images/races/machine.png'},
-      {'name': 'Plant', 'asset': 'assets/images/races/plant.png'},
-      {'name': 'Psychic', 'asset': 'assets/images/races/psychic.png'},
-      {'name': 'Pyro', 'asset': 'assets/images/races/pyro.png'},
-      {'name': 'Reptile', 'asset': 'assets/images/races/reptile.png'},
-      {'name': 'Rock', 'asset': 'assets/images/races/rock.png'},
-      {'name': 'Sea Serpent', 'asset': 'assets/images/races/sea_serpent.png'},
-      {'name': 'Spellcaster', 'asset': 'assets/images/races/spellcaster.png'},
-      {'name': 'Thunder', 'asset': 'assets/images/races/thunder.png'},
-      {'name': 'Warrior', 'asset': 'assets/images/races/warrior.png'},
-      {'name': 'Winged Beast', 'asset': 'assets/images/races/winged_beast.png'},
-      {'name': 'Wyrm', 'asset': 'assets/images/races/wyrm.png'},
-      {'name': 'Zombie', 'asset': 'assets/images/races/zombie.png'},
-    ];
-    final spellRaces = [
-      {'name': 'Normal', 'asset': null},
-      {'name': 'Continuous', 'asset': 'assets/images/attributes/continuous.png'},
-      {'name': 'Equip', 'asset': 'assets/images/attributes/equip.webp'},
-      {'name': 'Field', 'asset': 'assets/images/attributes/field.png'},
-      {'name': 'Quick-Play', 'asset': 'assets/images/attributes/quickplay.webp'},
-      {'name': 'Ritual', 'asset': 'assets/images/attributes/ritual.webp'},
-    ];
-    final trapRaces = [
-      {'name': 'Normal', 'asset': null},
-      {'name': 'Continuous', 'asset': 'assets/images/attributes/continuous.png'},
-      {'name': 'Counter', 'asset': 'assets/images/attributes/counter.webp'},
-    ];
-    final frames = [
-      {'name': 'normal', 'label': 'NORMAL', 'color': const Color(0xFFFDE68A)},
-      {'name': 'effect', 'label': 'EFFECT', 'color': const Color(0xFFFF8B53)},
-      {'name': 'ritual', 'label': 'RITUAL', 'color': const Color(0xFF9DB5F2)},
-      {'name': 'fusion', 'label': 'FUSION', 'color': const Color(0xFFA086B7)},
-      {'name': 'synchro', 'label': 'SYNCHRO', 'color': const Color(0xFFCCCCCC)},
-      {'name': 'xyz', 'label': 'XYZ', 'color': const Color(0xFF000000)},
-      {'name': 'link', 'label': 'LINK', 'color': const Color(0xFF00008B)},
-      {'name': 'pendulum', 'label': 'PENDULUM', 'color': const Color(0xFF45A29E)},
-      {'name': 'token', 'label': 'TOKEN', 'color': const Color(0xFFC0C0C0)},
-    ];
-    final subTypes = ['Flip', 'Toon', 'Spirit', 'Union', 'Gemini', 'Tuner'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -468,7 +474,7 @@ class _FilterTabContent extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: frames.map((f) {
+              children: _kFrames.map((f) {
                 final isSelected = selectedFrame == f['name'];
                 final Color frameColor = f['color'] as Color;
                 final bool isVeryDark = frameColor.computeLuminance() < 0.1;
@@ -501,7 +507,7 @@ class _FilterTabContent extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: attributes.map((attr) {
+              children: _kAttributes.map((attr) {
                 final isSelected = selectedAttribute == attr['name'];
                 return InkWell(
                   onTap: () => onAttributeSelected?.call(isSelected ? null : attr['name']!),
@@ -532,7 +538,7 @@ class _FilterTabContent extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: monsterRaces.map((race) {
+              children: _kMonsterRaces.map((race) {
                 final isSelected = selectedRace == race['name'];
                 return InkWell(
                   onTap: () => onRaceSelected?.call(isSelected ? null : race['name']!),
@@ -563,7 +569,7 @@ class _FilterTabContent extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: subTypes.map((st) {
+              children: _kSubTypes.map((st) {
                 final isSelected = selectedSubType == st;
                 return ChoiceChip(
                   label: Text(st.toUpperCase()),
@@ -583,10 +589,10 @@ class _FilterTabContent extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: (isSpell ? spellRaces : trapRaces).map((race) {
+              children: (isSpell ? _kSpellRaces : _kTrapRaces).map((race) {
                 final isSelected = selectedRace == race['name'];
                 return InkWell(
-                  onTap: () => onRaceSelected?.call(isSelected ? null : race['name'] as String),
+                  onTap: () => onRaceSelected?.call(isSelected ? null : race['name']),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -598,9 +604,9 @@ class _FilterTabContent extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (race['asset'] != null) Image.asset(race['asset'] as String, width: 24, height: 24) else const SizedBox(width: 24, height: 24),
+                        if (race['asset'] != null) Image.asset(race['asset']!, width: 24, height: 24) else const SizedBox(width: 24, height: 24),
                         const SizedBox(height: 8),
-                        Text((race['name'] as String).toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? theme.colorScheme.primary : Colors.white38)),
+                        Text((race['name']!).toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? theme.colorScheme.primary : Colors.white38)),
                       ],
                     ),
                   ),
