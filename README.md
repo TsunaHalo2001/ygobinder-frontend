@@ -6,7 +6,7 @@
 
 ## 📌 App Information
 
-- **Current Version**: `1.0.0+12` (Version 1.0.0)
+- **Current Version**: `1.0.1+13` (Version 1.0.1)
 - **Developer**: Tsuna2001
 - **Framework**: Flutter 3.x (Dart 3.x)
 - **State Management**: Flutter Riverpod
