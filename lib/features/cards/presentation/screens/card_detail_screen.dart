@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_detail_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
+import 'package:ygobinder/features/cards/presentation/providers/favorite_providers.dart';
+import 'package:ygobinder/features/cards/data/repositories/favorite_sync_repository.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
@@ -108,6 +110,9 @@ class _CardDetailScaffold extends ConsumerWidget {
     final foregroundColor = isDark ? Colors.white : Colors.black87;
     final attributeAsset = _getAttributeAsset();
 
+    final isFavAsync = ref.watch(isFavoriteCardProvider(card.id));
+    final isFav = isFavAsync.value ?? false;
+
     return Scaffold(
       backgroundColor: isHybrid ? null : colors.first,
       appBar: AppBar(
@@ -119,9 +124,23 @@ class _CardDetailScaffold extends ConsumerWidget {
           style: TextStyle(color: foregroundColor, fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              isFav ? Icons.star_rounded : Icons.star_border_rounded,
+              color: isFav ? Colors.amber : foregroundColor,
+              size: 28,
+            ),
+            tooltip: isFav ? 'Remove from Favorites' : 'Add to Favorites',
+            onPressed: () async {
+              final db = ref.read(databaseProvider);
+              final syncRepo = ref.read(favoriteSyncRepositoryProvider);
+              final newIsFav = await db.toggleFavorite(card.id);
+              await syncRepo.syncFavorite(card.id, newIsFav);
+            },
+          ),
           if (attributeAsset != null)
             Padding(
-              padding: const EdgeInsets.only(right: 16.0),
+              padding: const EdgeInsets.only(right: 16.0, left: 4.0),
               child: Image.asset(
                 attributeAsset,
                 width: 32,

@@ -41,7 +41,7 @@ final class DeckFileContentProvider
   }
 }
 
-String _$deckFileContentHash() => r'e1f55947d201258753e922c040105bf92aef0e44';
+String _$deckFileContentHash() => r'c12848da97cb3986f4fd55a6bba529c39a357ae8';
 
 abstract class _$DeckFileContent extends $Notifier<DeckState> {
   DeckState build();
@@ -101,4 +101,4 @@ final class CategorizedDeckCardsProvider
 }
 
 String _$categorizedDeckCardsHash() =>
-    r'b0d784f9b6065d2aea2227e3cee1a3ef1938e8f2';
+    r'8ff9a793ca5852ec4f056eeaefc0f8202cf8046a';

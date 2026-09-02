@@ -136,6 +136,17 @@ class DeckCards extends Table {
   TextColumn get category => text()();
 }
 
+@DataClassName('DriftFavoriteCard')
+class FavoriteCards extends Table {
+  IntColumn get cardId => integer()();
+  TextColumn get syncId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {cardId};
+}
+
 // ==========================================
 // DATABASE CLASS
 // ==========================================
@@ -150,12 +161,13 @@ class DeckCards extends Table {
   AppConfig,
   Decks,
   DeckCards,
+  FavoriteCards,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -200,6 +212,9 @@ class AppDatabase extends _$AppDatabase {
         // Only add syncId if the table already existed (v7)
         // If from < 7, the table was created above with the syncId column included.
         await m.addColumn(decks, decks.syncId);
+      }
+      if (from < 9) {
+        await m.createTable(favoriteCards);
       }
     },
     beforeOpen: (details) async {
@@ -781,6 +796,64 @@ class AppDatabase extends _$AppDatabase {
 
       return deckId;
     });
+  }
+
+  // ==========================================
+  // FAVORITES QUERIES
+  // ==========================================
+
+  Stream<bool> watchIsFavorite(int cardId) {
+    return (select(favoriteCards)..where((t) => t.cardId.equals(cardId)))
+        .watch()
+        .map((rows) => rows.isNotEmpty);
+  }
+
+  Future<bool> isFavorite(int cardId) async {
+    final item = await (select(favoriteCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
+    return item != null;
+  }
+
+  Future<bool> toggleFavorite(int cardId, {String? syncId}) async {
+    final existing = await (select(favoriteCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
+    if (existing != null) {
+      await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
+      return false;
+    } else {
+      final id = syncId ?? const Uuid().v4();
+      await into(favoriteCards).insert(
+        FavoriteCardsCompanion.insert(
+          cardId: Value(cardId),
+          syncId: Value(id),
+          createdAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      return true;
+    }
+  }
+
+  Stream<List<int>> watchFavoriteCardIds() {
+    return select(favoriteCards).watch().map((rows) => rows.map((r) => r.cardId).toList());
+  }
+
+  Future<List<DriftFavoriteCard>> getAllFavoriteCards() {
+    return select(favoriteCards).get();
+  }
+
+  Future<void> upsertFavoriteCard(int cardId, String syncId, DateTime updatedAt) async {
+    await into(favoriteCards).insert(
+      FavoriteCardsCompanion.insert(
+        cardId: Value(cardId),
+        syncId: Value(syncId),
+        createdAt: Value(updatedAt),
+        updatedAt: Value(updatedAt),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  Future<void> removeFavoriteCard(int cardId) async {
+    await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
   }
 
   Future<void> upsertDeck(String syncId, String name, Map<String, List<int>> categorizedCards, DateTime updatedAt) async {

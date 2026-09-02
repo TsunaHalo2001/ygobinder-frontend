@@ -33,7 +33,7 @@ final class CardListProvider
   CardList create() => CardList();
 }
 
-String _$cardListHash() => r'3c35ddfa446d25d6fe01b4ece883285135e285ac';
+String _$cardListHash() => r'2798654f6d9787e39d0449de819fd0737b153f6f';
 
 abstract class _$CardList extends $AsyncNotifier<CardListState> {
   FutureOr<CardListState> build();
@@ -77,7 +77,7 @@ final class DeckCardListProvider
   DeckCardList create() => DeckCardList();
 }
 
-String _$deckCardListHash() => r'deckCardListHash3c35ddfa';
+String _$deckCardListHash() => r'6de58f2ad718ed3fa9439cab06e978fe5423b24b';
 
 abstract class _$DeckCardList extends $AsyncNotifier<CardListState> {
   FutureOr<CardListState> build();

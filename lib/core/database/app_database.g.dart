@@ -4501,6 +4501,302 @@ class DeckCardsCompanion extends UpdateCompanion<DriftDeckCard> {
   }
 }
 
+class $FavoriteCardsTable extends FavoriteCards
+    with TableInfo<$FavoriteCardsTable, DriftFavoriteCard> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FavoriteCardsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _cardIdMeta = const VerificationMeta('cardId');
+  @override
+  late final GeneratedColumn<int> cardId = GeneratedColumn<int>(
+    'card_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncIdMeta = const VerificationMeta('syncId');
+  @override
+  late final GeneratedColumn<String> syncId = GeneratedColumn<String>(
+    'sync_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [cardId, syncId, createdAt, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'favorite_cards';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftFavoriteCard> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('card_id')) {
+      context.handle(
+        _cardIdMeta,
+        cardId.isAcceptableOrUnknown(data['card_id']!, _cardIdMeta),
+      );
+    }
+    if (data.containsKey('sync_id')) {
+      context.handle(
+        _syncIdMeta,
+        syncId.isAcceptableOrUnknown(data['sync_id']!, _syncIdMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {cardId};
+  @override
+  DriftFavoriteCard map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftFavoriteCard(
+      cardId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}card_id'],
+      )!,
+      syncId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $FavoriteCardsTable createAlias(String alias) {
+    return $FavoriteCardsTable(attachedDatabase, alias);
+  }
+}
+
+class DriftFavoriteCard extends DataClass
+    implements Insertable<DriftFavoriteCard> {
+  final int cardId;
+  final String? syncId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DriftFavoriteCard({
+    required this.cardId,
+    this.syncId,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['card_id'] = Variable<int>(cardId);
+    if (!nullToAbsent || syncId != null) {
+      map['sync_id'] = Variable<String>(syncId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  FavoriteCardsCompanion toCompanion(bool nullToAbsent) {
+    return FavoriteCardsCompanion(
+      cardId: Value(cardId),
+      syncId: syncId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftFavoriteCard.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftFavoriteCard(
+      cardId: serializer.fromJson<int>(json['cardId']),
+      syncId: serializer.fromJson<String?>(json['syncId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'cardId': serializer.toJson<int>(cardId),
+      'syncId': serializer.toJson<String?>(syncId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftFavoriteCard copyWith({
+    int? cardId,
+    Value<String?> syncId = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DriftFavoriteCard(
+    cardId: cardId ?? this.cardId,
+    syncId: syncId.present ? syncId.value : this.syncId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftFavoriteCard copyWithCompanion(FavoriteCardsCompanion data) {
+    return DriftFavoriteCard(
+      cardId: data.cardId.present ? data.cardId.value : this.cardId,
+      syncId: data.syncId.present ? data.syncId.value : this.syncId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftFavoriteCard(')
+          ..write('cardId: $cardId, ')
+          ..write('syncId: $syncId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(cardId, syncId, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftFavoriteCard &&
+          other.cardId == this.cardId &&
+          other.syncId == this.syncId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class FavoriteCardsCompanion extends UpdateCompanion<DriftFavoriteCard> {
+  final Value<int> cardId;
+  final Value<String?> syncId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const FavoriteCardsCompanion({
+    this.cardId = const Value.absent(),
+    this.syncId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  FavoriteCardsCompanion.insert({
+    this.cardId = const Value.absent(),
+    this.syncId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  static Insertable<DriftFavoriteCard> custom({
+    Expression<int>? cardId,
+    Expression<String>? syncId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (cardId != null) 'card_id': cardId,
+      if (syncId != null) 'sync_id': syncId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  FavoriteCardsCompanion copyWith({
+    Value<int>? cardId,
+    Value<String?>? syncId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return FavoriteCardsCompanion(
+      cardId: cardId ?? this.cardId,
+      syncId: syncId ?? this.syncId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (cardId.present) {
+      map['card_id'] = Variable<int>(cardId.value);
+    }
+    if (syncId.present) {
+      map['sync_id'] = Variable<String>(syncId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteCardsCompanion(')
+          ..write('cardId: $cardId, ')
+          ..write('syncId: $syncId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4515,6 +4811,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AppConfigTable appConfig = $AppConfigTable(this);
   late final $DecksTable decks = $DecksTable(this);
   late final $DeckCardsTable deckCards = $DeckCardsTable(this);
+  late final $FavoriteCardsTable favoriteCards = $FavoriteCardsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4529,6 +4826,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appConfig,
     decks,
     deckCards,
+    favoriteCards,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -8246,6 +8544,185 @@ typedef $$DeckCardsTableProcessedTableManager =
       DriftDeckCard,
       PrefetchHooks Function({bool deckId, bool cardId})
     >;
+typedef $$FavoriteCardsTableCreateCompanionBuilder =
+    FavoriteCardsCompanion Function({
+      Value<int> cardId,
+      Value<String?> syncId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$FavoriteCardsTableUpdateCompanionBuilder =
+    FavoriteCardsCompanion Function({
+      Value<int> cardId,
+      Value<String?> syncId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$FavoriteCardsTableFilterComposer
+    extends Composer<_$AppDatabase, $FavoriteCardsTable> {
+  $$FavoriteCardsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get cardId => $composableBuilder(
+    column: $table.cardId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncId => $composableBuilder(
+    column: $table.syncId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FavoriteCardsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FavoriteCardsTable> {
+  $$FavoriteCardsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get cardId => $composableBuilder(
+    column: $table.cardId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncId => $composableBuilder(
+    column: $table.syncId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FavoriteCardsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FavoriteCardsTable> {
+  $$FavoriteCardsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get cardId =>
+      $composableBuilder(column: $table.cardId, builder: (column) => column);
+
+  GeneratedColumn<String> get syncId =>
+      $composableBuilder(column: $table.syncId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$FavoriteCardsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FavoriteCardsTable,
+          DriftFavoriteCard,
+          $$FavoriteCardsTableFilterComposer,
+          $$FavoriteCardsTableOrderingComposer,
+          $$FavoriteCardsTableAnnotationComposer,
+          $$FavoriteCardsTableCreateCompanionBuilder,
+          $$FavoriteCardsTableUpdateCompanionBuilder,
+          (
+            DriftFavoriteCard,
+            BaseReferences<
+              _$AppDatabase,
+              $FavoriteCardsTable,
+              DriftFavoriteCard
+            >,
+          ),
+          DriftFavoriteCard,
+          PrefetchHooks Function()
+        > {
+  $$FavoriteCardsTableTableManager(_$AppDatabase db, $FavoriteCardsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FavoriteCardsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FavoriteCardsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FavoriteCardsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> cardId = const Value.absent(),
+                Value<String?> syncId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => FavoriteCardsCompanion(
+                cardId: cardId,
+                syncId: syncId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> cardId = const Value.absent(),
+                Value<String?> syncId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => FavoriteCardsCompanion.insert(
+                cardId: cardId,
+                syncId: syncId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FavoriteCardsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FavoriteCardsTable,
+      DriftFavoriteCard,
+      $$FavoriteCardsTableFilterComposer,
+      $$FavoriteCardsTableOrderingComposer,
+      $$FavoriteCardsTableAnnotationComposer,
+      $$FavoriteCardsTableCreateCompanionBuilder,
+      $$FavoriteCardsTableUpdateCompanionBuilder,
+      (
+        DriftFavoriteCard,
+        BaseReferences<_$AppDatabase, $FavoriteCardsTable, DriftFavoriteCard>,
+      ),
+      DriftFavoriteCard,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8268,4 +8745,6 @@ class $AppDatabaseManager {
       $$DecksTableTableManager(_db, _db.decks);
   $$DeckCardsTableTableManager get deckCards =>
       $$DeckCardsTableTableManager(_db, _db.deckCards);
+  $$FavoriteCardsTableTableManager get favoriteCards =>
+      $$FavoriteCardsTableTableManager(_db, _db.favoriteCards);
 }
