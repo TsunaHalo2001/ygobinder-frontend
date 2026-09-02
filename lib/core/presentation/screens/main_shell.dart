@@ -107,33 +107,38 @@ class _MainShellState extends ConsumerState<MainShell> {
 
               if (isWideScreen) {
                 return Scaffold(
-                  body: Row(
-                    children: [
-                      NavigationRail(
-                        selectedIndex: _currentIndex,
-                        onDestinationSelected: (index) {
-                          setState(() => _currentIndex = index);
-                        },
-                        destinations: sideDestinations,
-                        labelType: NavigationRailLabelType.none,
-                        extended: false,
-                        backgroundColor: theme.colorScheme.surface,
-                      ),
-                      const VerticalDivider(thickness: 1, width: 1),
-                      Expanded(
-                        child: IndexedStack(
-                          index: _currentIndex,
-                          children: tabs,
+                  body: SafeArea(
+                    child: Row(
+                      children: [
+                        NavigationRail(
+                          selectedIndex: _currentIndex,
+                          onDestinationSelected: (index) {
+                            setState(() => _currentIndex = index);
+                          },
+                          destinations: sideDestinations,
+                          labelType: NavigationRailLabelType.none,
+                          extended: false,
+                          backgroundColor: theme.colorScheme.surface,
                         ),
-                      ),
-                    ],
+                        const VerticalDivider(thickness: 1, width: 1),
+                        Expanded(
+                          child: IndexedStack(
+                            index: _currentIndex,
+                            children: tabs,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               } else {
                 return Scaffold(
-                  body: IndexedStack(
-                    index: _currentIndex,
-                    children: tabs,
+                  body: SafeArea(
+                    bottom: false,
+                    child: IndexedStack(
+                      index: _currentIndex,
+                      children: tabs,
+                    ),
                   ),
                   bottomNavigationBar: NavigationBar(
                     selectedIndex: _currentIndex,
