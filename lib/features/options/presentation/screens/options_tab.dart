@@ -138,7 +138,7 @@ class OptionsTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Version 0.3.2 (Alpha)',
+                  'Version 0.3.3 (Alpha)',
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 12,
