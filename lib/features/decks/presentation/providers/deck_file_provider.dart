@@ -106,6 +106,17 @@ class DeckFileContent extends _$DeckFileContent {
     state = DeckState(content: '');
   }
 
+  void createNewDeck([String name = 'New Deck']) {
+    final buffer = StringBuffer();
+    buffer.writeln('#main');
+    buffer.writeln('#extra');
+    buffer.writeln('!side');
+    state = DeckState(
+      content: buffer.toString(),
+      name: name,
+    );
+  }
+
   Map<String, List<int>> parseYdk() {
     final Map<String, List<int>> categorizedCards = {
       'main': [],
@@ -148,6 +159,18 @@ class DeckFileContent extends _$DeckFileContent {
   void removeOneCopyFromCategory(int cardId, String category) {
     final categorized = parseYdk();
     categorized[category]?.remove(cardId);
+    _updateContentFromCategorized(categorized);
+  }
+
+  void removeOneCopyFromAnyCategory(int cardId) {
+    final categorized = parseYdk();
+    if (categorized['main']?.contains(cardId) ?? false) {
+      categorized['main']?.remove(cardId);
+    } else if (categorized['extra']?.contains(cardId) ?? false) {
+      categorized['extra']?.remove(cardId);
+    } else if (categorized['side']?.contains(cardId) ?? false) {
+      categorized['side']?.remove(cardId);
+    }
     _updateContentFromCategorized(categorized);
   }
 

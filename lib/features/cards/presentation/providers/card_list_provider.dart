@@ -516,12 +516,14 @@ class DeckCardList extends _$DeckCardList {
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }
@@ -649,12 +651,14 @@ class DeckCardList extends _$DeckCardList {
     state = const AsyncValue.loading();
     try {
       final initialCards = await _fetchPage(0);
+      if (!ref.mounted) return;
       state = AsyncValue.data(CardListState(
         cards: initialCards,
         hasMore: initialCards.length >= _pageSize,
       ));
       _offset = initialCards.length;
     } catch (e, stack) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, stack);
     }
   }

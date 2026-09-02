@@ -132,6 +132,41 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     });
   }
 
+  Future<void> _createNewDeck() async {
+    final nameController = TextEditingController(text: 'New Deck');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Deck'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            hintText: 'Enter deck name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('CREATE'),
+          ),
+        ],
+      ),
+    );
+
+    if (name != null && name.trim().isNotEmpty) {
+      ref.read(deckFileContentProvider.notifier).createNewDeck(name.trim());
+      ref.read(deckCardListProvider.notifier).resetSearchAndFilters();
+      setState(() {
+        _isEditing = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final deckState = ref.watch(deckFileContentProvider);
@@ -143,9 +178,16 @@ class _DeckTabState extends ConsumerState<DeckTab> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DECK BUILDER', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
+        toolbarHeight: 40,
+        title: const Text('DECK BUILDER', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
         centerTitle: true,
         actions: [
+          IconButton(
+            onPressed: _createNewDeck,
+            icon: const Icon(Icons.add_rounded),
+            tooltip: 'New Deck',
+            visualDensity: VisualDensity.compact,
+          ),
           if (deckState.content.isNotEmpty) ...[
             IconButton(
               onPressed: () => _editDeck(),
@@ -154,22 +196,49 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                 color: _isEditing ? theme.colorScheme.primary : null,
               ),
               tooltip: _isEditing ? 'Exit Edit Mode' : 'Edit Deck',
-            ),
-            IconButton(
-              onPressed: () => ref.read(deckFileContentProvider.notifier).shareDeck(),
-              icon: const Icon(Icons.share_rounded),
-              tooltip: 'Share Deck',
+              visualDensity: VisualDensity.compact,
             ),
             IconButton(
               onPressed: _saveDeck,
               icon: const Icon(Icons.save_rounded),
               tooltip: 'Save Deck',
+              visualDensity: VisualDensity.compact,
             ),
           ],
-          IconButton(
-            onPressed: _pickFile,
-            icon: const Icon(Icons.file_upload_rounded),
-            tooltip: 'Load Deck',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'More Options',
+            padding: EdgeInsets.zero,
+            onSelected: (value) {
+              if (value == 'share') {
+                ref.read(deckFileContentProvider.notifier).shareDeck();
+              } else if (value == 'import') {
+                _pickFile();
+              }
+            },
+            itemBuilder: (context) => [
+              if (deckState.content.isNotEmpty)
+                const PopupMenuItem(
+                  value: 'share',
+                  child: Row(
+                    children: [
+                      Icon(Icons.share_rounded, size: 18),
+                      SizedBox(width: 12),
+                      Text('Share Deck'),
+                    ],
+                  ),
+                ),
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload_rounded, size: 18),
+                    SizedBox(width: 12),
+                    Text('Import .YDK File'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -195,80 +264,112 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                   totalCardsInDeck[item.card.id] = (totalCardsInDeck[item.card.id] ?? 0) + 1;
                 }
 
-                return Row(
+                final isShortHeight = MediaQuery.sizeOf(context).height < 500;
+
+                final deckView = Column(
                   children: [
-                    // Main Deck View
-                    Expanded(
-                      flex: 3,
-                      child: Column(
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: isShortHeight ? 4 : 10,
+                      ),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      child: Row(
                         children: [
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.style_rounded, size: 16, color: Colors.white60),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    deckState.name?.toUpperCase() ?? 'DECK VISUALIZER',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white60,
-                                      letterSpacing: 1.5,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => _editDeck(),
-                                  icon: Icon(
-                                    Icons.edit_rounded,
-                                    size: 16,
-                                    color: _isEditing ? theme.colorScheme.primary : Colors.amber,
-                                  ),
-                                  tooltip: 'Edit Deck',
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    setState(() => _isEditing = false);
-                                    ref.read(deckFileContentProvider.notifier).reset();
-                                  },
-                                  icon: const Icon(Icons.close_rounded, size: 16),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ],
+                          Icon(Icons.style_rounded, size: isShortHeight ? 14 : 18, color: Colors.white60),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              deckState.name?.toUpperCase() ?? 'DECK VISUALIZER',
+                              style: TextStyle(
+                                fontSize: isShortHeight ? 10 : 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white60,
+                                letterSpacing: 1.2,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Expanded(
-                            child: CustomScrollView(
-                              slivers: [
-                                ..._buildCategorySectionSlivers('MAIN DECK', 'main', deckData.main, theme, cacheManager),
-                                ..._buildCategorySectionSlivers('EXTRA DECK', 'extra', deckData.extra, theme, cacheManager),
-                                ..._buildCategorySectionSlivers('SIDE DECK', 'side', deckData.side, theme, cacheManager, isLast: true),
-                              ],
+                          IconButton(
+                            onPressed: () => _editDeck(),
+                            icon: Icon(
+                              Icons.edit_rounded,
+                              size: isShortHeight ? 14 : 18,
+                              color: _isEditing ? theme.colorScheme.primary : Colors.amber,
                             ),
+                            tooltip: 'Edit Deck',
+                            visualDensity: isShortHeight ? VisualDensity.compact : VisualDensity.standard,
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              setState(() => _isEditing = false);
+                              ref.read(deckFileContentProvider.notifier).reset();
+                            },
+                            icon: Icon(Icons.close_rounded, size: isShortHeight ? 14 : 18),
+                            tooltip: 'Close Deck',
+                            visualDensity: isShortHeight ? VisualDensity.compact : VisualDensity.standard,
                           ),
                         ],
                       ),
                     ),
-
-                    // Side Panel when Editing
-                    if (_isEditing) ...[
-                      const VerticalDivider(width: 1, thickness: 1, color: Colors.white10),
-                      SizedBox(
-                        width: isWideScreen ? 340 : 260,
-                        child: _DeckEditSidebar(
-                          totalCardsInDeck: totalCardsInDeck,
-                          onClose: () => setState(() => _isEditing = false),
-                        ),
+                    Expanded(
+                      child: CustomScrollView(
+                        slivers: [
+                          ..._buildCategorySectionSlivers('MAIN DECK', 'main', deckData.main, theme, cacheManager),
+                          ..._buildCategorySectionSlivers('EXTRA DECK', 'extra', deckData.extra, theme, cacheManager),
+                          ..._buildCategorySectionSlivers('SIDE DECK', 'side', deckData.side, theme, cacheManager, isLast: true),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 );
+
+                if (isWideScreen) {
+                  return Row(
+                    children: [
+                      Expanded(child: deckView),
+                      if (_isEditing) ...[
+                        const VerticalDivider(width: 1, thickness: 1, color: Colors.white10),
+                        SizedBox(
+                          width: 340,
+                          child: _DeckEditSidebar(
+                            totalCardsInDeck: totalCardsInDeck,
+                            onClose: () => setState(() => _isEditing = false),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                } else {
+                  return Stack(
+                    children: [
+                      Positioned.fill(child: deckView),
+                      if (_isEditing) ...[
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _isEditing = false),
+                            child: Container(color: Colors.black54),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: SizedBox(
+                            width: MediaQuery.sizeOf(context).width * 0.85,
+                            child: Material(
+                              elevation: 16,
+                              color: theme.colorScheme.surface,
+                              child: _DeckEditSidebar(
+                                totalCardsInDeck: totalCardsInDeck,
+                                onClose: () => setState(() => _isEditing = false),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                }
               },
             ),
     );
@@ -370,16 +471,36 @@ class _DeckTabState extends ConsumerState<DeckTab> {
               error: (err, stack) => Text('Error loading decks: $err'),
             ),
 
-            ElevatedButton.icon(
-              onPressed: _pickFile,
-              icon: const Icon(Icons.search_rounded),
-              label: const Text('SEARCH YDK FILE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.black87,
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _createNewDeck,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('NEW DECK', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.black87,
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickFile,
+                    icon: const Icon(Icons.file_upload_rounded),
+                    label: const Text('IMPORT .YDK', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.primary,
+                      side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -589,16 +710,12 @@ class _DeckEditSidebarState extends ConsumerState<_DeckEditSidebar> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(deckCardListProvider.notifier).resetSearchAndFilters();
-    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
-    ref.read(deckCardListProvider.notifier).resetSearchAndFilters();
     super.dispose();
   }
 
@@ -631,150 +748,340 @@ class _DeckEditSidebarState extends ConsumerState<_DeckEditSidebar> {
     final theme = Theme.of(context);
     final cardListState = ref.watch(deckCardListProvider);
     final isFiltered = ref.watch(deckCardListProvider.notifier).isFiltered;
+    final processedDeckAsync = ref.watch(processedDeckDataProvider);
+    final deckData = processedDeckAsync.value;
 
-    return Container(
-      color: theme.colorScheme.surface,
-      child: Column(
-        children: [
-          // Sidebar Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            child: Row(
-              children: [
-                Icon(Icons.style_rounded, size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'ADD CARDS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                      letterSpacing: 1.5,
+    final totalDeckCardCount = widget.totalCardsInDeck.values.fold(0, (sum, count) => sum + count);
+
+    return DefaultTabController(
+      length: 2,
+      child: Container(
+        color: theme.colorScheme.surface,
+        child: Column(
+          children: [
+            // Compact Header + TabBar Row
+            Container(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TabBar(
+                      labelColor: theme.colorScheme.primary,
+                      unselectedLabelColor: Colors.white38,
+                      indicatorColor: theme.colorScheme.primary,
+                      dividerColor: Colors.transparent,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      padding: EdgeInsets.zero,
+                      tabs: [
+                        const Tab(height: 36, text: 'CATALOG'),
+                        Tab(height: 36, text: 'DECK ($totalDeckCardCount)'),
+                      ],
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: widget.onClose,
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          ),
-
-          // Search and Filter Bar
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  style: const TextStyle(fontSize: 12),
-                  decoration: InputDecoration(
-                    hintText: 'Search card name...',
-                    hintStyle: const TextStyle(fontSize: 12),
-                    prefixIcon: const Icon(Icons.search, size: 18),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 16),
-                            onPressed: () {
-                              _searchController.clear();
-                              ref.read(deckCardListProvider.notifier).search('');
-                            },
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  IconButton(
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    visualDensity: VisualDensity.compact,
                   ),
-                  onChanged: (value) {
-                    ref.read(deckCardListProvider.notifier).search(value);
-                  },
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showFilterMenu(context),
-                        icon: Icon(
-                          Icons.tune_rounded,
-                          size: 16,
-                          color: isFiltered ? theme.colorScheme.primary : Colors.white70,
-                        ),
-                        label: Text(
-                          isFiltered ? 'FILTERED' : 'FILTERS',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isFiltered ? theme.colorScheme.primary : Colors.white70,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          side: BorderSide(
-                            color: isFiltered ? theme.colorScheme.primary : Colors.white24,
-                          ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      onPressed: () => _showSortMenu(context),
-                      icon: const Icon(Icons.filter_list_rounded, size: 16),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Sort Options',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1, color: Colors.white10),
-
-          // 1-Column Card List
-          Expanded(
-            child: cardListState.when(
-              data: (state) {
-                if (state.cards.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No cards found',
-                      style: TextStyle(color: Colors.white38, fontSize: 12),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: state.cards.length + (state.hasMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == state.cards.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                      );
-                    }
-
-                    final card = state.cards[index];
-                    final totalInDeck = widget.totalCardsInDeck[card.id] ?? 0;
-
-                    return _SidebarCardTile(
-                      card: card,
-                      totalInDeck: totalInDeck,
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(
-                child: Text('Error loading cards: $err', style: const TextStyle(fontSize: 11)),
+                ],
               ),
             ),
+
+            Expanded(
+              child: TabBarView(
+                children: [
+                  // Tab 0: Catalog Search & Filter
+                  Column(
+                    children: [
+                      // Single-Row Search, Filter, Sort Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                style: const TextStyle(fontSize: 12),
+                                decoration: InputDecoration(
+                                  hintText: 'Search card name...',
+                                  hintStyle: const TextStyle(fontSize: 11, color: Colors.white38),
+                                  prefixIcon: const Icon(Icons.search, size: 16),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear, size: 14),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            ref.read(deckCardListProvider.notifier).search('');
+                                          },
+                                        )
+                                      : null,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  isDense: true,
+                                ),
+                                onChanged: (value) {
+                                  ref.read(deckCardListProvider.notifier).search(value);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton.filledTonal(
+                              onPressed: () => _showFilterMenu(context),
+                              icon: Icon(
+                                Icons.tune_rounded,
+                                size: 16,
+                                color: isFiltered ? theme.colorScheme.primary : null,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              padding: EdgeInsets.zero,
+                              tooltip: 'Filter Options',
+                            ),
+                            const SizedBox(width: 2),
+                            IconButton.filledTonal(
+                              onPressed: () => _showSortMenu(context),
+                              icon: const Icon(Icons.filter_list_rounded, size: 16),
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              padding: EdgeInsets.zero,
+                              tooltip: 'Sort Options',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1, color: Colors.white10),
+                      Expanded(
+                        child: cardListState.when(
+                          data: (state) {
+                            if (state.cards.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  'No cards found',
+                                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                                ),
+                              );
+                            }
+
+                            return ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: state.cards.length + (state.hasMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == state.cards.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                  );
+                                }
+
+                                final card = state.cards[index];
+                                final totalInDeck = widget.totalCardsInDeck[card.id] ?? 0;
+
+                                return _SidebarCardTile(
+                                  card: card,
+                                  totalInDeck: totalInDeck,
+                                );
+                              },
+                            );
+                          },
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (err, stack) => Center(
+                            child: Text('Error loading cards: $err', style: const TextStyle(fontSize: 11)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Tab 1: Current Deck Cards List (Main, Extra, Side)
+                  _DeckCurrentCardsTab(deckData: deckData),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckCurrentCardsTab extends ConsumerWidget {
+  final VisualDeckData? deckData;
+
+  const _DeckCurrentCardsTab({required this.deckData});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (deckData == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final mainCards = deckData!.main;
+    final extraCards = deckData!.extra;
+    final sideCards = deckData!.side;
+
+    if (mainCards.isEmpty && extraCards.isEmpty && sideCards.isEmpty) {
+      return const Center(
+        child: Text(
+          'Deck is empty',
+          style: TextStyle(color: Colors.white38, fontSize: 12),
+        ),
+      );
+    }
+
+    Widget buildSection(String title, List<DeckVisualCard> visualCards, String categoryKey) {
+      if (visualCards.isEmpty) return const SizedBox.shrink();
+
+      // Group cards by ID to show quantity
+      final grouped = <int, Map<String, dynamic>>{};
+      for (final visual in visualCards) {
+        final existing = grouped[visual.card.id];
+        if (existing == null) {
+          grouped[visual.card.id] = {'card': visual.card, 'count': 1};
+        } else {
+          grouped[visual.card.id]!['count'] = (existing['count'] as int) + 1;
+        }
+      }
+
+      final items = grouped.values.toList();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(
+              '$title (${visualCards.length})',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          ...items.map((item) {
+            final card = item['card'] as YgoCard;
+            final count = item['count'] as int;
+
+            return _DeckCardQuantityTile(
+              card: card,
+              count: count,
+              categoryKey: categoryKey,
+            );
+          }),
+        ],
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        buildSection('MAIN DECK', mainCards, 'main'),
+        buildSection('EXTRA DECK', extraCards, 'extra'),
+        buildSection('SIDE DECK', sideCards, 'side'),
+      ],
+    );
+  }
+}
+
+class _DeckCardQuantityTile extends ConsumerWidget {
+  final YgoCard card;
+  final int count;
+  final String categoryKey;
+
+  const _DeckCardQuantityTile({
+    required this.card,
+    required this.count,
+    required this.categoryKey,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final cacheManager = ref.watch(imageCacheManagerProvider);
+    final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () => context.push('/card/${card.id}'),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                width: 36,
+                height: 52,
+                child: imageUrl.isEmpty
+                    ? Container(color: Colors.black26)
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        cacheManager: cacheManager,
+                        memCacheWidth: 120,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              onTap: () => context.push('/card/${card.id}'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '${card.type}',
+                    style: const TextStyle(fontSize: 10, color: Colors.white54),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.redAccent),
+                tooltip: 'Remove 1 copy',
+                onPressed: () {
+                  ref
+                      .read(deckFileContentProvider.notifier)
+                      .removeOneCopyFromCategory(card.id, categoryKey);
+                },
+              ),
+              Text(
+                'x$count',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.add_circle_outline, size: 20, color: theme.colorScheme.primary),
+                tooltip: 'Add 1 copy',
+                onPressed: () {
+                  ref
+                      .read(deckFileContentProvider.notifier)
+                      .addCardToCategory(card.id, categoryKey);
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -889,32 +1196,50 @@ class _SidebarCardTile extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           // Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.spaceBetween,
             children: [
-              if (!_isExtraDeckMonster)
+              if (totalInDeck > 0)
                 _QuickAddButton(
-                  label: '+ MAIN',
-                  color: theme.colorScheme.primary,
+                  label: '- REMOVE',
+                  color: Colors.redAccent,
                   onPressed: () {
-                    ref.read(deckFileContentProvider.notifier).addCardToCategory(card.id, 'main');
+                    ref.read(deckFileContentProvider.notifier).removeOneCopyFromAnyCategory(card.id);
                   },
                 )
               else
-                _QuickAddButton(
-                  label: '+ EXTRA',
-                  color: Colors.purpleAccent,
-                  onPressed: () {
-                    ref.read(deckFileContentProvider.notifier).addCardToCategory(card.id, 'extra');
-                  },
-                ),
-              const SizedBox(width: 6),
-              _QuickAddButton(
-                label: '+ SIDE',
-                color: Colors.tealAccent,
-                onPressed: () {
-                  ref.read(deckFileContentProvider.notifier).addCardToCategory(card.id, 'side');
-                },
+                const SizedBox.shrink(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!_isExtraDeckMonster)
+                    _QuickAddButton(
+                      label: '+ MAIN',
+                      color: theme.colorScheme.primary,
+                      onPressed: () {
+                        ref.read(deckFileContentProvider.notifier).addCardToCategory(card.id, 'main');
+                      },
+                    )
+                  else
+                    _QuickAddButton(
+                      label: '+ EXTRA',
+                      color: Colors.purpleAccent,
+                      onPressed: () {
+                        ref.read(deckFileContentProvider.notifier).addCardToCategory(card.id, 'extra');
+                      },
+                    ),
+                  const SizedBox(width: 6),
+                  _QuickAddButton(
+                    label: '+ SIDE',
+                    color: Colors.tealAccent,
+                    onPressed: () {
+                      ref.read(deckFileContentProvider.notifier).addCardToCategory(card.id, 'side');
+                    },
+                  ),
+                ],
               ),
             ],
           ),

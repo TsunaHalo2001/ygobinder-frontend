@@ -23,7 +23,7 @@ class _CollectionTabState extends ConsumerState<CollectionTab> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.microtask(() {
       _searchController.clear();
       ref.read(cardListProvider.notifier).resetSearchAndFilters();
     });
