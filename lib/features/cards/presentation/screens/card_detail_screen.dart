@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_detail_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
@@ -861,8 +862,47 @@ class _CardInfo extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         _buildInventoryTable(context, ref),
+        const SizedBox(height: 24),
+        _buildOpenInTcgPlayerButton(context),
         const SizedBox(height: 32),
       ],
+    );
+  }
+
+  Widget _buildOpenInTcgPlayerButton(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        final cleanName = card.name.trim().replaceAll(RegExp(r'\s+'), '+');
+        final encodedName = Uri.encodeQueryComponent(cleanName).replaceAll('%2B', '+');
+        final urlString =
+            'https://www.tcgplayer.com/search/yugioh/product?productLineName=yugioh&productName=$encodedName&Language=English';
+        final uri = Uri.parse(urlString);
+
+        try {
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            await launchUrl(uri);
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not open TCGPlayer: $e')),
+            );
+          }
+        }
+      },
+      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+      label: const Text(
+        'Open in TCGPlayer',
+        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: foregroundColor,
+        side: BorderSide(color: foregroundColor.withValues(alpha: 0.4)),
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 

@@ -43,6 +43,7 @@ dependencies:
   go_router:
   cached_network_image:
   flutter_cache_manager:
+  url_launcher: ^6.3.0
   http:
   syncfusion_flutter_charts:
   camera:
