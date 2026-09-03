@@ -52,6 +52,33 @@
 
 ---
 
+## 📱 Application Screenshots & Showcase
+
+<p align="center">
+  <img src="docs/image/Screenshot_20260902_230105.png" width="30%" alt="Collection Tab" />
+  <img src="docs/image/Screenshot_20260902_230230.png" width="30%" alt="Deck Builder" />
+  <img src="docs/image/Screenshot_20260902_230238.png" width="30%" alt="Card Detail View" />
+</p>
+
+### 📸 Features Showcase Gallery
+
+| Collection & Cards | Interactive Deck Builder | Card Detail & TCGPlayer |
+| :---: | :---: | :---: |
+| <img src="docs/image/Screenshot_20260902_230105.png" width="250" alt="Collection" /> | <img src="docs/image/Screenshot_20260902_230230.png" width="250" alt="Deck Builder" /> | <img src="docs/image/Screenshot_20260902_230238.png" width="250" alt="Card Details" /> |
+| *Browse cards with filters* | *Edit Main, Extra & Side Decks* | *Detailed stats, pricing & links* |
+
+| Banlist Status & Badges | Collection Statistics | Filter Options |
+| :---: | :---: | :---: |
+| <img src="docs/image/Screenshot_20260902_230017.png" width="250" alt="Banlists" /> | <img src="docs/image/Screenshot_20260902_230045.png" width="250" alt="Stats" /> | <img src="docs/image/Screenshot_20260902_230113.png" width="250" alt="Filters" /> |
+| *TCG / OCG / GOAT / EDISON badges* | *Overview of owned sets & cards* | *Filter by Favorites, Wanted, Edison* |
+
+| Landscape Layout | Options & Legal Disclaimer | Favorites & Wanted Cards |
+| :---: | :---: | :---: |
+| <img src="docs/image/Screenshot_20260902_225955.png" width="250" alt="Landscape" /> | <img src="docs/image/Screenshot_20260902_230128.png" width="250" alt="Options" /> | <img src="docs/image/Screenshot_20260902_230119.png" width="250" alt="Favorites" /> |
+| *Responsive 2-column view* | *Database management & Ko-fi support* | *Instant star & wanted poster badges* |
+
+---
+
 ## ☕ Support the Project
 
 If you enjoy using **YGOBinder** and would like to support its continued development, consider supporting me on Ko-fi!
