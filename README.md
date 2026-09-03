@@ -55,27 +55,27 @@
 ## 📱 Application Screenshots & Showcase
 
 <p align="center">
-  <img src="docs/image/Screenshot_20260902_230105.png" width="30%" alt="Collection Tab" />
-  <img src="docs/image/Screenshot_20260902_230230.png" width="30%" alt="Deck Builder" />
-  <img src="docs/image/Screenshot_20260902_230238.png" width="30%" alt="Card Detail View" />
+  <img src="docs/image/collection_tab.png" width="30%" alt="Collection Tab" />
+  <img src="docs/image/deck_formats_display.png" width="30%" alt="Deck Builder & Banlists" />
+  <img src="docs/image/card_detail.png" width="30%" alt="Card Detail View" />
 </p>
 
 ### 📸 Features Showcase Gallery
 
-| Collection & Cards | Interactive Deck Builder | Card Detail & TCGPlayer |
+| Collection View | Card Detail & TCGPlayer | Statistics & Insights |
 | :---: | :---: | :---: |
-| <img src="docs/image/Screenshot_20260902_230105.png" width="250" alt="Collection" /> | <img src="docs/image/Screenshot_20260902_230230.png" width="250" alt="Deck Builder" /> | <img src="docs/image/Screenshot_20260902_230238.png" width="250" alt="Card Details" /> |
-| *Browse cards with filters* | *Edit Main, Extra & Side Decks* | *Detailed stats, pricing & links* |
+| <img src="docs/image/collection_tab.png" width="250" alt="Collection Tab" /> | <img src="docs/image/card_detail.png" width="250" alt="Card Detail" /> | <img src="docs/image/stats_tab.png" width="250" alt="Statistics Tab" /> |
+| *Search, filter & browse card catalog* | *Detailed stats, inventory & TCGPlayer link* | *Total cards, top sets, newest/oldest cards* |
 
-| Banlist Status & Badges | Collection Statistics | Filter Options |
+| Deck Builder & Banlists | Deck Editing Mode | Empty Deck Options |
 | :---: | :---: | :---: |
-| <img src="docs/image/Screenshot_20260902_230017.png" width="250" alt="Banlists" /> | <img src="docs/image/Screenshot_20260902_230045.png" width="250" alt="Stats" /> | <img src="docs/image/Screenshot_20260902_230113.png" width="250" alt="Filters" /> |
-| *TCG / OCG / GOAT / EDISON badges* | *Overview of owned sets & cards* | *Filter by Favorites, Wanted, Edison* |
+| <img src="docs/image/deck_formats_display.png" width="250" alt="Banlists Display" /> | <img src="docs/image/deck_build.png" width="250" alt="Deck Builder" /> | <img src="docs/image/deck_tab_no_loaded.png" width="250" alt="Empty Deck View" /> |
+| *TCG, OCG, GOAT & EDISON banlist badges* | *Add/remove cards in Main, Extra & Side decks* | *Create new deck or import .ydk files* |
 
-| Landscape Layout | Options & Legal Disclaimer | Favorites & Wanted Cards |
+| Add to Collection | Open External Files | Login & Cloud Sync |
 | :---: | :---: | :---: |
-| <img src="docs/image/Screenshot_20260902_225955.png" width="250" alt="Landscape" /> | <img src="docs/image/Screenshot_20260902_230128.png" width="250" alt="Options" /> | <img src="docs/image/Screenshot_20260902_230119.png" width="250" alt="Favorites" /> |
-| *Responsive 2-column view* | *Database management & Ko-fi support* | *Instant star & wanted poster badges* |
+| <img src="docs/image/add_to_collection.png" width="250" alt="Add to Collection" /> | <img src="docs/image/open_with.png" width="250" alt="Open File" /> | <img src="docs/image/login.png" width="250" alt="Login Screen" /> |
+| *Manage card printings, sets & rarities* | *Direct .YDK file association* | *Google Sign-in & Guest Mode* |
 
 ---
 
