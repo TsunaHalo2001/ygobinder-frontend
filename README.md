@@ -64,7 +64,7 @@
 
 | Collection View | Card Detail & TCGPlayer | Statistics & Insights |
 | :---: | :---: | :---: |
-| <img src="docs/image/collection_tab.png" width="250" alt="Collection Tab" /> | <img src="docs/image/card_detail.png" width="250" alt="Card Detail" /> | <img src="docs/image/stats_tab.png" width="250" alt="Statistics Tab" /> |
+| <img src="docs/image/collection_tab.png" width="250" alt="Collection Tab" /> | <img src="docs/image/collection_and_tcgplayer_button.png" width="250" alt="Card Detail" /> | <img src="docs/image/stats_tab.png" width="250" alt="Statistics Tab" /> |
 | *Search, filter & browse card catalog* | *Detailed stats, inventory & TCGPlayer link* | *Total cards, top sets, newest/oldest cards* |
 
 | Deck Builder & Banlists | Deck Editing Mode | Empty Deck Options |
