@@ -11,6 +11,15 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.artifacts/
+
+# Signing keys & secrets
+*.jks
+*.keystore
+key.properties
+*.pem
+*.p12
+service-account*.json
 
 # IntelliJ related
 *.iml
