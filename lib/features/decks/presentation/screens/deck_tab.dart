@@ -269,6 +269,86 @@ class _DeckTabState extends ConsumerState<DeckTab> {
     }
   }
 
+  void _showExportQuoteOptionsBottomSheet(BuildContext context, WidgetRef ref) {
+    final currencyInfo = ref.read(activeCurrencyInfoProvider);
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            const Row(
+              children: [
+                Icon(Icons.request_quote_rounded, color: Colors.amber, size: 24),
+                SizedBox(width: 10),
+                Text('EXPORT QUOTE ESTIMATE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: Colors.white10),
+            const SizedBox(height: 12),
+
+            // Option 1: PDF Document
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 28),
+              title: const Text('PDF Document (.PDF)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: const Text('Download formatted PDF quote report with styled tables & totals', style: TextStyle(fontSize: 11, color: Colors.white54)),
+              trailing: const Icon(Icons.chevron_right),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: Colors.white.withValues(alpha: 0.04),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(deckFileContentProvider.notifier).shareQuoteEstimatePdf(currencyInfo);
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Option 2: Plain Text Report
+            ListTile(
+              leading: const Icon(Icons.article_rounded, color: Colors.blueAccent, size: 28),
+              title: const Text('Text Report (.TXT)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: const Text('Share clean plain text report formatted in ASCII table', style: TextStyle(fontSize: 11, color: Colors.white54)),
+              trailing: const Icon(Icons.chevron_right),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: Colors.white.withValues(alpha: 0.04),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(deckFileContentProvider.notifier).shareQuoteEstimate(currencyInfo);
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Option 3: YDK Deck File
+            ListTile(
+              leading: const Icon(Icons.style_rounded, color: Colors.amber, size: 28),
+              title: const Text('YDK Deck File (.YDK)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: const Text('Export quote items as a standard Yu-Gi-Oh! deck file', style: TextStyle(fontSize: 11, color: Colors.white54)),
+              trailing: const Icon(Icons.chevron_right),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: Colors.white.withValues(alpha: 0.04),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(deckFileContentProvider.notifier).shareDeck();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void deactivate() {
     final deckState = ref.read(deckFileContentProvider);
@@ -367,32 +447,46 @@ class _DeckTabState extends ConsumerState<DeckTab> {
             onSelected: (value) {
               if (value == 'share') {
                 ref.read(deckFileContentProvider.notifier).shareDeck();
+              } else if (value == 'export_quote') {
+                _showExportQuoteOptionsBottomSheet(context, ref);
               } else if (value == 'import') {
                 _pickFile();
               }
             },
             itemBuilder: (context) => [
-              if (deckState.content.isNotEmpty)
+              if (deckState.content.isNotEmpty && !deckState.isQuoteDeck)
                 const PopupMenuItem(
                   value: 'share',
                   child: Row(
                     children: [
                       Icon(Icons.share_rounded, size: 18),
                       SizedBox(width: 12),
-                      Text('Share Deck'),
+                      Text('Share Deck (.YDK)'),
                     ],
                   ),
                 ),
-              const PopupMenuItem(
-                value: 'import',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_upload_rounded, size: 18),
-                    SizedBox(width: 12),
-                    Text('Import .YDK File'),
-                  ],
+              if (deckState.isQuoteDeck)
+                const PopupMenuItem(
+                  value: 'export_quote',
+                  child: Row(
+                    children: [
+                      Icon(Icons.request_quote_rounded, size: 18, color: Colors.amber),
+                      SizedBox(width: 12),
+                      Text('Export Quote Estimate', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-              ),
+              if (!deckState.isQuoteDeck)
+                const PopupMenuItem(
+                  value: 'import',
+                  child: Row(
+                    children: [
+                      Icon(Icons.file_upload_rounded, size: 18),
+                      SizedBox(width: 12),
+                      Text('Import .YDK File'),
+                    ],
+                  ),
+                ),
             ],
           ),
         ],

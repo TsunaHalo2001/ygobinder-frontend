@@ -7,6 +7,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/core/providers/currency_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/decks/data/repositories/deck_sync_repository.dart';
 import 'package:share_plus/share_plus.dart';
@@ -339,6 +342,297 @@ class DeckFileContent extends _$DeckFileContent {
         fileName: fileName,
         type: FileType.any,
         bytes: Uint8List.fromList(utf8.encode(state.content)),
+      );
+    }
+  }
+
+  Future<void> shareQuoteEstimate(CurrencyInfo currencyInfo) async {
+    final db = ref.read(databaseProvider);
+    final quoteItems = await (db.select(db.collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
+
+    if (quoteItems.isEmpty) return;
+
+    final cardIds = quoteItems.map((i) => i.cardId).toSet().toList();
+    final driftCards = await (db.select(db.cards)..where((t) => t.id.isIn(cardIds))).get();
+    final cardNameById = {for (final c in driftCards) c.id: c.name};
+
+    final livePricesList = await (db.select(db.setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+    final livePricesBySetCode = <String, double>{};
+    for (final sp in livePricesList) {
+      final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+      if (sp.setCode != null && sp.setCode!.isNotEmpty) {
+        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}_${sp.printing.trim().toLowerCase()}'] = p;
+        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
+      }
+    }
+
+    final globalPricesList = await (db.select(db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+    final globalPriceById = <int, double>{};
+    for (final p in globalPricesList) {
+      globalPriceById[p.cardId] = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
+    }
+
+    final now = DateTime.now();
+    final day = now.day.toString().padLeft(2, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final year = now.year;
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    final dateStr = '$day/$month/$year $hour:$minute';
+
+    final buffer = StringBuffer();
+    buffer.writeln('================================================================================');
+    buffer.writeln('                        YGOBINDER - QUOTE ESTIMATE');
+    buffer.writeln('================================================================================');
+    buffer.writeln('Date Generated : $dateStr');
+    buffer.writeln('Currency       : ${currencyInfo.code}');
+    buffer.writeln('Source         : Quote Collection (#0)');
+    buffer.writeln('--------------------------------------------------------------------------------\n');
+
+    double totalEstimateUsd = 0.0;
+    int totalCardCount = 0;
+
+    buffer.writeln('#   QTY   CARD NAME                          SET CODE    RARITY                     UNIT PRICE    SUBTOTAL');
+    buffer.writeln('--------------------------------------------------------------------------------------------------------------');
+
+    for (var i = 0; i < quoteItems.length; i++) {
+      final item = quoteItems[i];
+      final cardName = cardNameById[item.cardId] ?? 'Unknown Card';
+      final setCode = item.setCode;
+      final rarity = item.rarity;
+      final qty = item.quantity;
+
+      final key = '${item.cardId}_${setCode.trim().toUpperCase()}_${rarity.trim().toLowerCase()}';
+      final fallbackKey = '${item.cardId}_${setCode.trim().toUpperCase()}';
+
+      double unitPriceUsd = livePricesBySetCode[key] ??
+          livePricesBySetCode[fallbackKey] ??
+          (item.priceAtPurchase ?? 0.0);
+
+      if (unitPriceUsd <= 0.0) {
+        unitPriceUsd = globalPriceById[item.cardId] ?? 0.0;
+      }
+
+      final subtotalUsd = unitPriceUsd * qty;
+      totalEstimateUsd += subtotalUsd;
+      totalCardCount += qty;
+
+      final padNum = (i + 1).toString().padRight(3);
+      final padQty = '${qty}x'.padRight(5);
+      final padName = (cardName.length > 33 ? '${cardName.substring(0, 30)}...' : cardName).padRight(33);
+      final padCode = setCode.padRight(11);
+      final padRarity = (rarity.length > 25 ? '${rarity.substring(0, 22)}...' : rarity).padRight(25);
+      final padUnitPrice = currencyInfo.formatPrice(unitPriceUsd).padRight(13);
+      final padSubtotal = currencyInfo.formatPrice(subtotalUsd);
+
+      buffer.writeln('$padNum $padQty $padName $padCode $padRarity $padUnitPrice $padSubtotal');
+    }
+
+    final totalFormatted = currencyInfo.formatPrice(totalEstimateUsd);
+
+    buffer.writeln('--------------------------------------------------------------------------------------------------------------');
+    buffer.writeln('TOTAL QUOTED CARDS : $totalCardCount cards');
+    buffer.writeln('TOTAL ESTIMATE     : $totalFormatted');
+    buffer.writeln('================================================================================');
+    buffer.writeln('Generated by YGOBINDER App • Unofficial Yu-Gi-Oh! Binder & Manager');
+
+    final contentStr = buffer.toString();
+    final fileName = 'Quoted_Cards_Estimate_${year}-${month}-${day}.txt';
+
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(p.join(tempDir.path, fileName));
+      await tempFile.writeAsString(contentStr);
+
+      await Share.shareXFiles(
+        [XFile(tempFile.path)],
+        subject: 'YGOBinder Quote Estimate ($totalFormatted)',
+        text: 'YGOBinder Quote Estimate:\nTotal: $totalFormatted ($totalCardCount cards)',
+      );
+    } else {
+      await FilePicker.saveFile(
+        dialogTitle: 'Export Quote Estimate',
+        fileName: fileName,
+        type: FileType.any,
+        bytes: Uint8List.fromList(utf8.encode(contentStr)),
+      );
+    }
+  }
+
+  Future<void> shareQuoteEstimatePdf(CurrencyInfo currencyInfo) async {
+    final db = ref.read(databaseProvider);
+    final quoteItems = await (db.select(db.collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
+
+    if (quoteItems.isEmpty) return;
+
+    final cardIds = quoteItems.map((i) => i.cardId).toSet().toList();
+    final driftCards = await (db.select(db.cards)..where((t) => t.id.isIn(cardIds))).get();
+    final cardNameById = {for (final c in driftCards) c.id: c.name};
+
+    final livePricesList = await (db.select(db.setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+    final livePricesBySetCode = <String, double>{};
+    for (final sp in livePricesList) {
+      final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+      if (sp.setCode != null && sp.setCode!.isNotEmpty) {
+        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}_${sp.printing.trim().toLowerCase()}'] = p;
+        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
+      }
+    }
+
+    final globalPricesList = await (db.select(db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+    final globalPriceById = <int, double>{};
+    for (final p in globalPricesList) {
+      globalPriceById[p.cardId] = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
+    }
+
+    final now = DateTime.now();
+    final day = now.day.toString().padLeft(2, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final year = now.year;
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    final dateStr = '$day/$month/$year $hour:$minute';
+
+    final pdf = pw.Document();
+
+    final tableData = <List<String>>[];
+    double totalEstimateUsd = 0.0;
+    int totalCardCount = 0;
+
+    for (var i = 0; i < quoteItems.length; i++) {
+      final item = quoteItems[i];
+      final cardName = cardNameById[item.cardId] ?? 'Unknown Card';
+      final setCode = item.setCode;
+      final rarity = item.rarity;
+      final qty = item.quantity;
+
+      final key = '${item.cardId}_${setCode.trim().toUpperCase()}_${rarity.trim().toLowerCase()}';
+      final fallbackKey = '${item.cardId}_${setCode.trim().toUpperCase()}';
+
+      double unitPriceUsd = livePricesBySetCode[key] ??
+          livePricesBySetCode[fallbackKey] ??
+          (item.priceAtPurchase ?? 0.0);
+
+      if (unitPriceUsd <= 0.0) {
+        unitPriceUsd = globalPriceById[item.cardId] ?? 0.0;
+      }
+
+      final subtotalUsd = unitPriceUsd * qty;
+      totalEstimateUsd += subtotalUsd;
+      totalCardCount += qty;
+
+      tableData.add([
+        '${i + 1}',
+        '${qty}x',
+        cardName,
+        setCode,
+        rarity,
+        currencyInfo.formatPrice(unitPriceUsd),
+        currencyInfo.formatPrice(subtotalUsd),
+      ]);
+    }
+
+    final totalFormatted = currencyInfo.formatPrice(totalEstimateUsd);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) => [
+          // Header Banner
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.amber100,
+              borderRadius: pw.BorderRadius.circular(8),
+              border: pw.Border.all(color: PdfColors.amber800, width: 1.5),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('YGOBINDER', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.amber900)),
+                    pw.Text('QUOTE ESTIMATE / COTIZACION', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('Date: $dateStr', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text('Currency: ${currencyInfo.code}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Items Table
+          pw.TableHelper.fromTextArray(
+            headers: ['#', 'Qty', 'Card Name', 'Set Code', 'Rarity', 'Unit Price', 'Subtotal'],
+            data: tableData,
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey800),
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            cellAlignment: pw.Alignment.centerLeft,
+            cellAlignments: {
+              0: pw.Alignment.center,
+              1: pw.Alignment.center,
+              5: pw.Alignment.centerRight,
+              6: pw.Alignment.centerRight,
+            },
+            rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+            oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Summary Box
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey200,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: PdfColors.grey400),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Total Quoted Cards: $totalCardCount cards', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                pw.Text('TOTAL ESTIMATE: $totalFormatted', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14, color: PdfColors.green800)),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 12),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text('Generated by YGOBINDER App • Unofficial Yu-Gi-Oh! Manager', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+          ),
+        ],
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+    final fileName = 'Quoted_Cards_Estimate_${year}-${month}-${day}.pdf';
+
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(p.join(tempDir.path, fileName));
+      await tempFile.writeAsBytes(pdfBytes);
+
+      await Share.shareXFiles(
+        [XFile(tempFile.path)],
+        subject: 'YGOBinder Quote Estimate PDF ($totalFormatted)',
+        text: 'YGOBinder Quote Estimate PDF:\nTotal: $totalFormatted ($totalCardCount cards)',
+      );
+    } else {
+      await FilePicker.saveFile(
+        dialogTitle: 'Export Quote Estimate PDF',
+        fileName: fileName,
+        type: FileType.any,
+        bytes: pdfBytes,
       );
     }
   }
