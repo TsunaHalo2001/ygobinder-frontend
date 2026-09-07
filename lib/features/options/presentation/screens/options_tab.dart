@@ -46,6 +46,50 @@ class OptionsTab extends ConsumerWidget {
     );
   }
 
+  void _showClearQuoteConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Quote Collection (#0)?'),
+        content: const Text(
+          'Are you sure you want to delete all temporary quoted cards from Collection #0? '
+          'Your real collection items will remain untouched.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final repo = ref.read(cardRepositoryProvider);
+                final count = await repo.clearQuoteCollection();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Cleared $count quote items from Collection #0')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error clearing quote collection: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orangeAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('CLEAR'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showUpdateOwnedPricesDialog(BuildContext context, WidgetRef ref) {
     var processed = 0;
     var total = 0;
@@ -343,6 +387,19 @@ class OptionsTab extends ConsumerWidget {
             ),
             tileColor: Colors.white.withValues(alpha: 0.05),
             onTap: () => _showUpdateOwnedPricesDialog(context, ref),
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.delete_sweep_rounded, color: Colors.orangeAccent),
+            title: const Text('Clear Quote Collection (#0)'),
+            subtitle: const Text('Remove all temporary quote items from Collection #0.'),
+            trailing: const Icon(Icons.chevron_right),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            tileColor: Colors.white.withValues(alpha: 0.05),
+            onTap: () => _showClearQuoteConfirmation(context, ref),
           ),
 
           const SizedBox(height: 32),

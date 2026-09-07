@@ -16,6 +16,7 @@ class StatsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final totalValueAsync = ref.watch(totalCollectionValueProvider);
+    final quoteValueAsync = ref.watch(quoteCollectionValueProvider);
     final totalCardsAsync = ref.watch(totalCardsCountProvider);
     final uniqueCardsAsync = ref.watch(uniqueCardsCountProvider);
     final newestCardAsync = ref.watch(newestCardProvider);
@@ -43,6 +44,17 @@ class StatsTab extends ConsumerWidget {
               ),
               icon: Icons.account_balance_wallet_rounded,
               color: Colors.greenAccent,
+            ),
+            const SizedBox(height: 16),
+            _StatCard(
+              label: 'Quote Collection Value (#0) (${currencyInfo.code})',
+              value: quoteValueAsync.when(
+                data: (val) => currencyInfo.formatPrice(val),
+                loading: () => '...',
+                error: (_, _) => 'Error',
+              ),
+              icon: Icons.request_quote_rounded,
+              color: Colors.amber,
             ),
             const SizedBox(height: 16),
             _StatCard(

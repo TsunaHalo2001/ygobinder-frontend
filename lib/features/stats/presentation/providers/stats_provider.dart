@@ -42,3 +42,8 @@ final totalCollectionValueProvider = StreamProvider<double>((ref) {
   final repo = ref.watch(cardRepositoryProvider);
   return repo.watchTotalCollectionValue();
 });
+
+final quoteCollectionValueProvider = StreamProvider<double>((ref) {
+  final repo = ref.watch(cardRepositoryProvider);
+  return repo.watchQuoteCollectionValue();
+});

@@ -31,6 +31,9 @@ class InventorySyncRepository {
 
   /// Pushes a single local item to Firestore
   Future<void> syncItem(DriftCollectionItem item) async {
+    // Collection #0 (Cotización) is strictly local and MUST NOT be saved to Firebase!
+    if (item.collectionNumber == 0) return;
+
     final collection = _userCollection;
     if (collection == null) return;
 
@@ -53,6 +56,9 @@ class InventorySyncRepository {
 
   /// Removes an item from Firestore
   Future<void> removeItem(DriftCollectionItem item) async {
+    // Collection #0 (Cotización) is strictly local
+    if (item.collectionNumber == 0) return;
+
     final collection = _userCollection;
     if (collection == null) return;
     final docId = '${item.cardId}_${item.setCode}_${item.rarity}_${item.collectionNumber}';
@@ -72,6 +78,8 @@ class InventorySyncRepository {
       await db.transaction(() async {
         for (final doc in snapshot.docs) {
           final data = doc.data();
+          final colNum = data['collectionNumber'] as int? ?? 1;
+          if (colNum == 0) continue; // Skip quote items
           final cloudUpdatedAt = (data['updatedAt'] as Timestamp).toDate();
 
           // 1. Check if item exists locally

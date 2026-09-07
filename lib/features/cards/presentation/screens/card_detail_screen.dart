@@ -1124,32 +1124,74 @@ class _CardInfo extends ConsumerWidget {
     YgoCard card,
     CurrencyInfo currencyInfo,
   ) {
-    // 1. Try matching SetCardPrices by setCode or rarity
-    final matchingPrices = setPrices.where((p) {
-      final codeMatch = p.setCode != null &&
-          p.setCode!.trim().toUpperCase() == item.setCode.trim().toUpperCase();
-      final rarityMatch = p.printing.toLowerCase().contains(item.rarity.toLowerCase()) ||
-          item.rarity.toLowerCase().contains(p.printing.toLowerCase());
-      return codeMatch || rarityMatch;
-    }).toList();
+    if (setPrices.isNotEmpty) {
+      final itemCode = item.setCode.trim().toUpperCase();
+      final itemRarity = item.rarity.trim().toLowerCase();
 
-    if (matchingPrices.isNotEmpty) {
-      final market = matchingPrices.first.marketPrice ?? matchingPrices.first.lowPrice;
-      if (market != null && market > 0.0) {
-        return currencyInfo.formatPrice(market);
+      // Tier 1: Match BOTH setCode AND rarity (exact match)
+      final exactMatches = setPrices.where((p) {
+        final codeMatch = p.setCode != null && p.setCode!.trim().toUpperCase() == itemCode;
+        final normPrinting = p.printing.trim().toLowerCase();
+        final rarityMatch = normPrinting.contains(itemRarity) || itemRarity.contains(normPrinting);
+        return codeMatch && rarityMatch;
+      }).toList();
+
+      if (exactMatches.isNotEmpty) {
+        final market = exactMatches.first.marketPrice ?? exactMatches.first.lowPrice;
+        if (market != null && market > 0.0) {
+          return currencyInfo.formatPrice(market);
+        }
+      }
+
+      // Tier 2: Match rarity/printing only
+      final rarityMatches = setPrices.where((p) {
+        final normPrinting = p.printing.trim().toLowerCase();
+        return normPrinting.contains(itemRarity) || itemRarity.contains(normPrinting);
+      }).toList();
+
+      if (rarityMatches.isNotEmpty) {
+        final market = rarityMatches.first.marketPrice ?? rarityMatches.first.lowPrice;
+        if (market != null && market > 0.0) {
+          return currencyInfo.formatPrice(market);
+        }
+      }
+
+      // Tier 3: Match setCode only
+      final codeMatches = setPrices.where((p) {
+        return p.setCode != null && p.setCode!.trim().toUpperCase() == itemCode;
+      }).toList();
+
+      if (codeMatches.isNotEmpty) {
+        final market = codeMatches.first.marketPrice ?? codeMatches.first.lowPrice;
+        if (market != null && market > 0.0) {
+          return currencyInfo.formatPrice(market);
+        }
       }
     }
 
     // 2. Try matching CardSets in YgoCard
     if (card.cardSets != null) {
-      final matchingCardSet = card.cardSets!.firstWhereOrNull((cs) =>
-          cs.setCode.trim().toUpperCase() == item.setCode.trim().toUpperCase() ||
-          cs.setRarity.toLowerCase().contains(item.rarity.toLowerCase()));
-      if (matchingCardSet != null && matchingCardSet.setPrice != null) {
-        final p = matchingCardSet.setPrice;
-        if (p != null && p > 0.0) {
-          return currencyInfo.formatPrice(p);
-        }
+      final itemCode = item.setCode.trim().toUpperCase();
+      final itemRarity = item.rarity.trim().toLowerCase();
+
+      // Exact match: setCode & rarity
+      final exactCardSet = card.cardSets!.firstWhereOrNull((cs) {
+        final codeMatch = cs.setCode.trim().toUpperCase() == itemCode;
+        final rarityMatch = cs.setRarity.toLowerCase().contains(itemRarity) || itemRarity.contains(cs.setRarity.toLowerCase());
+        return codeMatch && rarityMatch;
+      });
+
+      if (exactCardSet != null && exactCardSet.setPrice != null && exactCardSet.setPrice! > 0.0) {
+        return currencyInfo.formatPrice(exactCardSet.setPrice!);
+      }
+
+      // Fallback: setCode or rarity match
+      final fallbackCardSet = card.cardSets!.firstWhereOrNull((cs) =>
+          cs.setCode.trim().toUpperCase() == itemCode ||
+          cs.setRarity.toLowerCase().contains(itemRarity));
+
+      if (fallbackCardSet != null && fallbackCardSet.setPrice != null && fallbackCardSet.setPrice! > 0.0) {
+        return currencyInfo.formatPrice(fallbackCardSet.setPrice!);
       }
     }
 
@@ -1171,17 +1213,27 @@ class _CardInfo extends ConsumerWidget {
     DriftCollectionItem item,
     List<DriftSetCardPrice> setPrices,
   ) {
-    final matchingPrices = setPrices.where((p) {
-      final codeMatch = p.setCode != null &&
-          p.setCode!.trim().toUpperCase() == item.setCode.trim().toUpperCase();
-      final rarityMatch = p.printing.toLowerCase().contains(item.rarity.toLowerCase()) ||
-          item.rarity.toLowerCase().contains(p.printing.toLowerCase());
-      return codeMatch || rarityMatch;
+    if (setPrices.isEmpty) return '';
+
+    final itemCode = item.setCode.trim().toUpperCase();
+    final itemRarity = item.rarity.trim().toLowerCase();
+
+    final exactMatches = setPrices.where((p) {
+      final codeMatch = p.setCode != null && p.setCode!.trim().toUpperCase() == itemCode;
+      final normPrinting = p.printing.trim().toLowerCase();
+      final rarityMatch = normPrinting.contains(itemRarity) || itemRarity.contains(normPrinting);
+      return codeMatch && rarityMatch;
     }).toList();
 
-    if (matchingPrices.isNotEmpty) {
-      return formatLastUpdatedTimestamp(matchingPrices.first.lastUpdated);
+    if (exactMatches.isNotEmpty) {
+      return formatLastUpdatedTimestamp(exactMatches.first.lastUpdated);
     }
+
+    final codeMatches = setPrices.where((p) => p.setCode != null && p.setCode!.trim().toUpperCase() == itemCode).toList();
+    if (codeMatches.isNotEmpty) {
+      return formatLastUpdatedTimestamp(codeMatches.first.lastUpdated);
+    }
+
     return '';
   }
 
@@ -1225,6 +1277,7 @@ class _AddCardBottomSheet extends ConsumerStatefulWidget {
 class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
   int _quantity = 1;
   int _collectionNumber = 1;
+  bool _isQuoteMode = false;
   String _searchQuery = '';
   bool _isSaving = false;
 
@@ -1233,6 +1286,8 @@ class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
 
     setState(() => _isSaving = true);
 
+    final targetCollectionNumber = _isQuoteMode ? 0 : _collectionNumber;
+
     try {
       final repo = ref.read(cardRepositoryProvider);
       await repo.addCardToCollection(
@@ -1240,15 +1295,18 @@ class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
         setCode: cardSet.setCode,
         rarity: cardSet.setRarity,
         quantity: _quantity,
-        collectionNumber: _collectionNumber,
+        collectionNumber: targetCollectionNumber,
       );
 
       ref.invalidate(cardInventoryProvider(widget.card.id));
 
       if (mounted) {
+        final colText = targetCollectionNumber == 0
+            ? 'Quote Collection (#0) [Local]'
+            : 'Collection #$targetCollectionNumber';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added $_quantity x ${widget.card.name} to Collection #$_collectionNumber'),
+            content: Text('Added $_quantity x ${widget.card.name} to $colText'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1346,30 +1404,43 @@ class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Collection #', style: theme.textTheme.labelLarge),
+                  Text(
+                    'Collection #',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: _isQuoteMode ? Colors.white38 : null,
+                    ),
+                  ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        onPressed: () => setState(() => _collectionNumber = (_collectionNumber > 1) ? _collectionNumber - 1 : 1),
+                        onPressed: _isQuoteMode
+                            ? null
+                            : () => setState(() => _collectionNumber = (_collectionNumber > 1) ? _collectionNumber - 1 : 1),
                         icon: const Icon(Icons.remove_circle_outline),
                       ),
                       Container(
                         width: 40,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          border: Border.all(color: theme.colorScheme.secondary),
+                          border: Border.all(
+                            color: _isQuoteMode ? Colors.white24 : theme.colorScheme.secondary,
+                          ),
                           borderRadius: BorderRadius.circular(8),
+                          color: _isQuoteMode ? Colors.white10 : Colors.transparent,
                         ),
                         child: Text(
-                          '$_collectionNumber',
+                          _isQuoteMode ? '0' : '$_collectionNumber',
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.titleMedium,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: _isQuoteMode ? Colors.amber : null,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       IconButton(
-                        onPressed: () => setState(() => _collectionNumber++),
+                        onPressed: _isQuoteMode ? null : () => setState(() => _collectionNumber++),
                         icon: const Icon(Icons.add_circle_outline),
                       ),
                     ],
@@ -1378,7 +1449,39 @@ class _AddCardBottomSheetState extends ConsumerState<_AddCardBottomSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Quote Mode Checkbox Card
+          Material(
+            color: _isQuoteMode ? Colors.amber.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.03),
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _isQuoteMode ? Colors.amber : Colors.white10,
+                width: _isQuoteMode ? 1.5 : 1.0,
+              ),
+            ),
+            child: CheckboxListTile(
+              title: const Row(
+                children: [
+                  Icon(Icons.request_quote_rounded, color: Colors.amber, size: 20),
+                  SizedBox(width: 8),
+                  Text('QUOTE MODE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.1)),
+                ],
+              ),
+              subtitle: const Text('Save to Collection #0 (Provisional / Local only)', style: TextStyle(fontSize: 11, color: Colors.white54)),
+              value: _isQuoteMode,
+              activeColor: Colors.amber,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              onChanged: (val) {
+                setState(() {
+                  _isQuoteMode = val ?? false;
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
 
           TextField(
             onChanged: (value) => setState(() => _searchQuery = value),

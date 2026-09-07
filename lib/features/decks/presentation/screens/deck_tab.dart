@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:collection/collection.dart';
 import 'package:ygobinder/features/decks/presentation/providers/deck_file_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_list_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/widgets/card_filter_dialogs.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
+import 'package:ygobinder/core/providers/currency_provider.dart';
+import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/core/database/app_database.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
 
@@ -266,6 +270,15 @@ class _DeckTabState extends ConsumerState<DeckTab> {
   }
 
   @override
+  void deactivate() {
+    final deckState = ref.read(deckFileContentProvider);
+    if (deckState.isQuoteDeck) {
+      ref.read(deckFileContentProvider.notifier).reset();
+    }
+    super.deactivate();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final deckState = ref.watch(deckFileContentProvider);
     final savedDecksAsync = ref.watch(savedDecksProvider);
@@ -330,7 +343,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
             tooltip: 'New Deck',
             visualDensity: VisualDensity.compact,
           ),
-          if (deckState.content.isNotEmpty) ...[
+          if (deckState.content.isNotEmpty && !deckState.isQuoteDeck) ...[
             IconButton(
               onPressed: () => _editDeck(),
               icon: Icon(
@@ -433,16 +446,17 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          IconButton(
-                            onPressed: () => _editDeck(),
-                            icon: Icon(
-                              Icons.edit_rounded,
-                              size: isShortHeight ? 14 : 18,
-                              color: _isEditing ? theme.colorScheme.primary : Colors.amber,
+                          if (!deckState.isQuoteDeck)
+                            IconButton(
+                              onPressed: () => _editDeck(),
+                              icon: Icon(
+                                Icons.edit_rounded,
+                                size: isShortHeight ? 14 : 18,
+                                color: _isEditing ? theme.colorScheme.primary : Colors.amber,
+                              ),
+                              tooltip: 'Edit Deck',
+                              visualDensity: isShortHeight ? VisualDensity.compact : VisualDensity.standard,
                             ),
-                            tooltip: 'Edit Deck',
-                            visualDensity: isShortHeight ? VisualDensity.compact : VisualDensity.standard,
-                          ),
                           IconButton(
                             onPressed: () {
                               setState(() => _isEditing = false);
@@ -460,7 +474,10 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                         slivers: [
                           ..._buildCategorySectionSlivers('MAIN DECK', 'main', deckData.main, theme, cacheManager, _selectedBanlist),
                           ..._buildCategorySectionSlivers('EXTRA DECK', 'extra', deckData.extra, theme, cacheManager, _selectedBanlist),
-                          ..._buildCategorySectionSlivers('SIDE DECK', 'side', deckData.side, theme, cacheManager, _selectedBanlist, isLast: true),
+                          ..._buildCategorySectionSlivers('SIDE DECK', 'side', deckData.side, theme, cacheManager, _selectedBanlist, isLast: false),
+                          SliverToBoxAdapter(
+                            child: _DeckTotalPriceSummary(deckData: deckData),
+                          ),
                         ],
                       ),
                     ),
@@ -546,39 +563,53 @@ class _DeckTabState extends ConsumerState<DeckTab> {
             ),
             const SizedBox(height: 32),
             
-            // Saved Decks Selector
-            savedDecksAsync.when(
-              data: (decks) {
-                if (decks.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  children: [
-                    const Text(
-                      'SAVED DECKS',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white38,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      child: Material(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        clipBehavior: Clip.antiAlias,
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: decks.length,
-                          separatorBuilder: (context, index) => Divider(
-                            height: 1,
-                            color: Colors.white.withValues(alpha: 0.05),
+            // Saved & Mandatory Decks Selector
+            Column(
+              children: [
+                const Text(
+                  'AVAILABLE DECKS',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white38,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 280),
+                  child: Material(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        // Mandatory Quoted Cards (#0) Deck Tile
+                        ListTile(
+                          leading: const Icon(Icons.request_quote_rounded, color: Colors.amber),
+                          title: const Text('Quoted Cards (#0)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('Read-only view of Collection #0 items', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text('MANDATORY', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber)),
                           ),
-                          itemBuilder: (context, index) {
-                            final deck = decks[index];
+                          onTap: () {
+                            ref.read(deckFileContentProvider.notifier).loadQuoteDeck();
+                          },
+                        ),
+                        const Divider(height: 1, color: Colors.white10),
+
+                        // Saved Decks List
+                        ...savedDecksAsync.maybeWhen(
+                          data: (decks) => decks.map((deck) {
                             return ListTile(
-                              leading: const Icon(Icons.folder_special_rounded, color: Colors.amber),
+                              leading: const Icon(Icons.folder_special_rounded, color: Colors.blueAccent),
                               title: Text(deck.name),
                               subtitle: Text(
                                 'Last updated: ${deck.updatedAt.day}/${deck.updatedAt.month}/${deck.updatedAt.year}',
@@ -603,16 +634,15 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                                 ref.read(deckFileContentProvider.notifier).loadFromDatabase(deck.id);
                               },
                             );
-                          },
+                          }).toList(),
+                          orElse: () => [],
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              },
-              loading: () => const CircularProgressIndicator(),
-              error: (err, stack) => Text('Error loading decks: $err'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
 
             Row(
@@ -1236,30 +1266,40 @@ class _DeckCardQuantityTile extends ConsumerWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.redAccent),
-                tooltip: 'Remove 1 copy',
-                onPressed: () {
-                  ref
-                      .read(deckFileContentProvider.notifier)
-                      .removeOneCopyFromCategory(card.id, categoryKey);
-                },
-              ),
-              Text(
-                'x$count',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.add_circle_outline, size: 20, color: theme.colorScheme.primary),
-                tooltip: 'Add 1 copy',
-                onPressed: () {
-                  ref
-                      .read(deckFileContentProvider.notifier)
-                      .addCardToCategory(card.id, categoryKey);
-                },
-              ),
+              if (!ref.watch(deckFileContentProvider).isQuoteDeck) ...[
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.redAccent),
+                  tooltip: 'Remove 1 copy',
+                  onPressed: () {
+                    ref
+                        .read(deckFileContentProvider.notifier)
+                        .removeOneCopyFromCategory(card.id, categoryKey);
+                  },
+                ),
+                Text(
+                  'x$count',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.add_circle_outline, size: 20, color: theme.colorScheme.primary),
+                  tooltip: 'Add 1 copy',
+                  onPressed: () {
+                    ref
+                        .read(deckFileContentProvider.notifier)
+                        .addCardToCategory(card.id, categoryKey);
+                  },
+                ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Text(
+                    'x$count',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.amber),
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -1472,6 +1512,259 @@ class _QuickAddButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DeckTotalPriceSummary extends ConsumerWidget {
+  final VisualDeckData deckData;
+
+  const _DeckTotalPriceSummary({required this.deckData});
+
+  double _getCardPriceInUsd(
+    YgoCard card,
+    Map<String, double> liveSetPricesMap,
+    Map<int, double> globalPricesMap,
+  ) {
+    final tcgPrice = card.cardPrices?.firstOrNull?.tcgPlayerPrice ??
+        card.cardPrices?.firstOrNull?.cardMarketPrice;
+    if (tcgPrice != null && tcgPrice > 0.0) return tcgPrice;
+
+    final setP = card.cardSets?.firstOrNull?.setPrice;
+    if (setP != null && setP > 0.0) return setP;
+
+    return 0.0;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final currencyInfo = ref.watch(activeCurrencyInfoProvider);
+    final db = ref.watch(databaseProvider);
+
+    final allCardIds = [
+      ...deckData.main.map((vc) => vc.card.id),
+      ...deckData.extra.map((vc) => vc.card.id),
+      ...deckData.side.map((vc) => vc.card.id),
+    ].toSet().toList();
+
+    return StreamBuilder<List<CollectionItemWithCard>>(
+      stream: db.watchCollection(),
+      builder: (context, collectionSnapshot) {
+        final collectionList = collectionSnapshot.data ?? [];
+
+        final collectionByCardId = <int, List<DriftCollectionItem>>{};
+        for (final row in collectionList) {
+          final item = row.collectionItem;
+          collectionByCardId.putIfAbsent(item.cardId, () => []).add(item);
+        }
+
+        return StreamBuilder<List<DriftSetCardPrice>>(
+          stream: db.watchPricesForCardIds(allCardIds),
+          builder: (context, pricesSnapshot) {
+            final livePricesList = pricesSnapshot.data ?? [];
+
+            final livePricesBySetCode = <String, double>{};
+            final maxLivePriceByCardId = <int, double>{};
+
+            for (final sp in livePricesList) {
+              final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+              if (sp.setCode != null && sp.setCode!.isNotEmpty) {
+                livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
+              }
+              final currMax = maxLivePriceByCardId[sp.cardId] ?? 0.0;
+              if (p > currMax) {
+                maxLivePriceByCardId[sp.cardId] = p;
+              }
+            }
+
+            double ownedTotalUsd = 0.0;
+            double unownedTotalUsd = 0.0;
+            double mainTotalUsd = 0.0;
+            double extraTotalUsd = 0.0;
+            double sideTotalUsd = 0.0;
+            int missingCardsCount = 0;
+
+            final usedOwnedCountByCardId = <int, int>{};
+
+            void processCategory(
+              List<DeckVisualCard> visualCards,
+              void Function(double price) addToCategory,
+            ) {
+              for (final vc in visualCards) {
+                final card = vc.card;
+                final ownedItems = collectionByCardId[card.id] ?? [];
+                final usedCount = usedOwnedCountByCardId[card.id] ?? 0;
+                final totalOwnedQty = ownedItems.fold(0, (sum, i) => sum + i.quantity);
+
+                double price = 0.0;
+
+                if (usedCount < totalOwnedQty) {
+                  // Card copy IS OWNED in collection!
+                  usedOwnedCountByCardId[card.id] = usedCount + 1;
+
+                  if (ownedItems.isNotEmpty) {
+                    final item = ownedItems.first;
+                    final baseCode = item.setCode.trim().toUpperCase();
+                    final itemRarity = item.rarity.trim().toLowerCase();
+
+                    // Match exact setCode AND rarity in livePricesList
+                    final matchingSetPrices = livePricesList.where((sp) {
+                      final codeMatch = sp.cardId == card.id &&
+                          sp.setCode != null &&
+                          sp.setCode!.trim().toUpperCase() == baseCode;
+                      final normPrinting = sp.printing.trim().toLowerCase();
+                      final rarityMatch = normPrinting.contains(itemRarity) || itemRarity.contains(normPrinting);
+                      return codeMatch && rarityMatch;
+                    }).toList();
+
+                    if (matchingSetPrices.isNotEmpty) {
+                      price = matchingSetPrices.first.marketPrice ?? matchingSetPrices.first.lowPrice ?? 0.0;
+                    } else {
+                      // Fallback by setCode
+                      final codeMatches = livePricesList.where((sp) =>
+                          sp.cardId == card.id &&
+                          sp.setCode != null &&
+                          sp.setCode!.trim().toUpperCase() == baseCode).toList();
+                      if (codeMatches.isNotEmpty) {
+                        price = codeMatches.first.marketPrice ?? codeMatches.first.lowPrice ?? 0.0;
+                      } else if (item.priceAtPurchase != null && item.priceAtPurchase! > 0.0) {
+                        price = item.priceAtPurchase!;
+                      }
+                    }
+                  }
+
+                  if (price <= 0.0) {
+                    price = _getCardPriceInUsd(card, livePricesBySetCode, maxLivePriceByCardId);
+                  }
+
+                  ownedTotalUsd += price;
+                } else {
+                  // Card copy IS MISSING / NOT IN INVENTORY!
+                  price = maxLivePriceByCardId[card.id] ??
+                      _getCardPriceInUsd(card, livePricesBySetCode, maxLivePriceByCardId);
+
+                  unownedTotalUsd += price;
+                  missingCardsCount++;
+                }
+
+                addToCategory(price);
+              }
+            }
+
+            processCategory(deckData.main, (p) => mainTotalUsd += p);
+            processCategory(deckData.extra, (p) => extraTotalUsd += p);
+            processCategory(deckData.side, (p) => sideTotalUsd += p);
+
+            final overallTotalUsd = ownedTotalUsd + unownedTotalUsd;
+
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet_rounded,
+                          color: theme.colorScheme.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'DECK TOTAL VALUE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: theme.colorScheme.primary,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.greenAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          currencyInfo.formatPrice(overallTotalUsd),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.greenAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: Colors.white10),
+                  const SizedBox(height: 12),
+
+                  // Owned vs Missing Cards Summary
+                  _buildSummaryRow(
+                    'Cards Owned Value',
+                    currencyInfo.formatPrice(ownedTotalUsd),
+                    color: Colors.greenAccent,
+                  ),
+                  const SizedBox(height: 6),
+                  _buildSummaryRow(
+                    'Missing Cards Cost ($missingCardsCount missing)',
+                    currencyInfo.formatPrice(unownedTotalUsd),
+                    color: missingCardsCount > 0 ? Colors.orangeAccent : Colors.white70,
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: Colors.white10),
+                  const SizedBox(height: 12),
+
+                  // Section breakdown
+                  _buildSummaryRow(
+                    'Main Deck (${deckData.main.length} cards)',
+                    currencyInfo.formatPrice(mainTotalUsd),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildSummaryRow(
+                    'Extra Deck (${deckData.extra.length} cards)',
+                    currencyInfo.formatPrice(extraTotalUsd),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildSummaryRow(
+                    'Side Deck (${deckData.side.length} cards)',
+                    currencyInfo.formatPrice(sideTotalUsd),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value, {Color color = Colors.white70}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

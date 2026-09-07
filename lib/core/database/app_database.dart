@@ -497,6 +497,12 @@ class AppDatabase extends _$AppDatabase {
     await refreshUserOwnedSets();
   }
 
+  Future<int> deleteQuoteCollection() async {
+    final deletedCount = await (delete(collectionItems)..where((t) => t.collectionNumber.equals(0))).go();
+    await refreshUserOwnedSets();
+    return deletedCount;
+  }
+
   Future<int> getCollectionSize() async {
     final query = selectOnly(collectionItems)..addColumns([collectionItems.id.count()]);
     final result = await query.getSingle();
@@ -673,7 +679,83 @@ class AppDatabase extends _$AppDatabase {
 
     Future<void> recalculate() async {
       try {
-        final items = await select(collectionItems).get();
+        final items = await (select(collectionItems)..where((t) => t.collectionNumber.isNotValue(0))).get();
+        if (items.isEmpty) {
+          if (!controller.isClosed) controller.add(0.0);
+          return;
+        }
+
+        final cardIds = items.map((i) => i.cardId).toSet().toList();
+
+        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+        final globalPriceById = <int, double>{};
+        for (final p in gPrices) {
+          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
+          globalPriceById[p.cardId] = price;
+        }
+
+        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+        final setPricesMap = <String, double>{};
+        for (final sp in sPrices) {
+          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+          if (sp.setCode != null) {
+            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
+          }
+          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
+          if (price > currentMax) {
+            setPricesMap['${sp.cardId}'] = price;
+          }
+        }
+
+        double totalValue = 0.0;
+
+        for (final item in items) {
+          final baseSetCode = item.setCode.trim().toUpperCase();
+          final setPriceKey = '${item.cardId}_$baseSetCode';
+
+          final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
+          final globalPrice = globalPriceById[item.cardId] ?? 0.0;
+          final purchasePrice = item.priceAtPurchase ?? 0.0;
+
+          double cardPrice = setPrice;
+          if (cardPrice <= 0.0) cardPrice = globalPrice;
+          if (cardPrice <= 0.0) cardPrice = purchasePrice;
+
+          totalValue += cardPrice * item.quantity;
+        }
+
+        if (!controller.isClosed) {
+          controller.add(totalValue);
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
+    controller = StreamController<double>(
+      onListen: () {
+        recalculate();
+        sub1 = select(collectionItems).watch().listen((_) => recalculate());
+        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
+      },
+      onCancel: () {
+        sub1?.cancel();
+        sub2?.cancel();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Stream<double> watchQuoteCollectionValue() {
+    late StreamController<double> controller;
+    StreamSubscription? sub1;
+    StreamSubscription? sub2;
+
+    Future<void> recalculate() async {
+      try {
+        final items = await (select(collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
         if (items.isEmpty) {
           if (!controller.isClosed) controller.add(0.0);
           return;
@@ -1423,6 +1505,11 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<List<DriftSetCardPrice>> watchPricesForCard(int cardId) {
     return (select(setCardPrices)..where((t) => t.cardId.equals(cardId))).watch();
+  }
+
+  Stream<List<DriftSetCardPrice>> watchPricesForCardIds(List<int> cardIds) {
+    if (cardIds.isEmpty) return Stream.value([]);
+    return (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).watch();
   }
 
   // ==========================================

@@ -277,8 +277,15 @@ class CardRepository {
 
     final imagesFuture = (_db.select(_db.cardImages)..where((t) => t.cardId.isIn(cardIds))).get();
     final banlistFuture = (_db.select(_db.banlistInfos)..where((t) => t.cardId.isIn(cardIds))).get();
+    final pricesFuture = (_db.select(_db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+    final setsFuture = (_db.select(_db.cardSets)..where((t) => t.cardId.isIn(cardIds))).get();
 
-    final [allImages, allBanlists] = await Future.wait([imagesFuture, banlistFuture]);
+    final [allImages, allBanlists, allPrices, allSets] = await Future.wait([
+      imagesFuture,
+      banlistFuture,
+      pricesFuture,
+      setsFuture,
+    ]);
 
     final imagesByCardId = <int, List<DriftCardImage>>{};
     for (final img in allImages as List<DriftCardImage>) {
@@ -287,11 +294,23 @@ class CardRepository {
 
     final banlistByCardId = {for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b};
 
+    final pricesByCardId = <int, List<DriftCardPrice>>{};
+    for (final p in allPrices as List<DriftCardPrice>) {
+      pricesByCardId.putIfAbsent(p.cardId, () => []).add(p);
+    }
+
+    final setsByCardId = <int, List<DriftCardSet>>{};
+    for (final s in allSets as List<DriftCardSet>) {
+      setsByCardId.putIfAbsent(s.cardId, () => []).add(s);
+    }
+
     return driftCards.map((card) {
       return CardMapper.toYgoCard(
         card,
         images: imagesByCardId[card.id] ?? [],
         banlist: banlistByCardId[card.id],
+        prices: pricesByCardId[card.id] ?? [],
+        sets: setsByCardId[card.id] ?? [],
       );
     }).toList();
   }
@@ -322,6 +341,10 @@ class CardRepository {
         await _syncRepo.syncItem(updatedItem);
       }
     }
+  }
+
+  Future<int> clearQuoteCollection() async {
+    return _db.deleteQuoteCollection();
   }
 
   Future<void> removeCardFromCollection({
@@ -375,6 +398,10 @@ class CardRepository {
 
   Stream<double> watchTotalCollectionValue() {
     return _db.watchTotalCollectionValue();
+  }
+
+  Stream<double> watchQuoteCollectionValue() {
+    return _db.watchQuoteCollectionValue();
   }
 
   Stream<YgoCard?> watchNewestCard() {

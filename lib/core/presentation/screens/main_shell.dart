@@ -18,6 +18,16 @@ class _MainShellState extends ConsumerState<MainShell> {
   int _currentIndex = 0;
   bool _dragging = false;
 
+  void _onTabSelected(int index) {
+    if (_currentIndex == 2 && index != 2) {
+      final deckState = ref.read(deckFileContentProvider);
+      if (deckState.isQuoteDeck) {
+        ref.read(deckFileContentProvider.notifier).reset();
+      }
+    }
+    setState(() => _currentIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     // ✅ Move tab definition inside build to ensure children are rebuilt correctly
@@ -112,9 +122,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                       children: [
                         NavigationRail(
                           selectedIndex: _currentIndex,
-                          onDestinationSelected: (index) {
-                            setState(() => _currentIndex = index);
-                          },
+                          onDestinationSelected: _onTabSelected,
                           destinations: sideDestinations,
                           labelType: NavigationRailLabelType.none,
                           extended: false,
@@ -142,9 +150,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                   ),
                   bottomNavigationBar: NavigationBar(
                     selectedIndex: _currentIndex,
-                    onDestinationSelected: (index) {
-                      setState(() => _currentIndex = index);
-                    },
+                    onDestinationSelected: _onTabSelected,
                     destinations: bottomDestinations,
                   ),
                 );

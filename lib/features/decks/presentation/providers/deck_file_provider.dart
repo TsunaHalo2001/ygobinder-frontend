@@ -20,8 +20,15 @@ part 'deck_file_provider.g.dart';
 class DeckState {
   final String content;
   final String? name;
+  final bool _isQuoteDeck;
 
-  DeckState({required this.content, this.name});
+  bool get isQuoteDeck => _isQuoteDeck;
+
+  DeckState({
+    required this.content,
+    this.name,
+    bool? isQuoteDeck,
+  }) : _isQuoteDeck = isQuoteDeck ?? false;
 }
 
 @riverpod
@@ -150,19 +157,69 @@ class DeckFileContent extends _$DeckFileContent {
     return categorizedCards;
   }
 
+  Future<void> loadQuoteDeck() async {
+    final db = ref.read(databaseProvider);
+    final quoteItems = await (db.select(db.collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
+
+    final mainCards = <int>[];
+    final extraCards = <int>[];
+
+    final cardIds = quoteItems.map((i) => i.cardId).toSet().toList();
+    if (cardIds.isNotEmpty) {
+      final driftCards = await (db.select(db.cards)..where((t) => t.id.isIn(cardIds))).get();
+      final cardTypeMap = {for (final c in driftCards) c.id: c.type.toLowerCase()};
+
+      for (final item in quoteItems) {
+        final cardType = cardTypeMap[item.cardId] ?? '';
+        final isExtra = cardType.contains('fusion') ||
+            cardType.contains('synchro') ||
+            cardType.contains('xyz') ||
+            cardType.contains('link');
+
+        for (var i = 0; i < item.quantity; i++) {
+          if (isExtra) {
+            extraCards.add(item.cardId);
+          } else {
+            mainCards.add(item.cardId);
+          }
+        }
+      }
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('#main');
+    for (final id in mainCards) {
+      buffer.writeln(id);
+    }
+    buffer.writeln('#extra');
+    for (final id in extraCards) {
+      buffer.writeln(id);
+    }
+    buffer.writeln('!side');
+
+    state = DeckState(
+      content: buffer.toString(),
+      name: 'Quoted Cards (#0)',
+      isQuoteDeck: true,
+    );
+  }
+
   void addCardToCategory(int cardId, String category) {
+    if (state.isQuoteDeck) return;
     final categorized = parseYdk();
     categorized[category]?.add(cardId);
     _updateContentFromCategorized(categorized);
   }
 
   void removeOneCopyFromCategory(int cardId, String category) {
+    if (state.isQuoteDeck) return;
     final categorized = parseYdk();
     categorized[category]?.remove(cardId);
     _updateContentFromCategorized(categorized);
   }
 
   void removeOneCopyFromAnyCategory(int cardId) {
+    if (state.isQuoteDeck) return;
     final categorized = parseYdk();
     if (categorized['main']?.contains(cardId) ?? false) {
       categorized['main']?.remove(cardId);
@@ -188,7 +245,7 @@ class DeckFileContent extends _$DeckFileContent {
     for (final id in categorized['side'] ?? []) {
       buffer.writeln(id);
     }
-    state = DeckState(content: buffer.toString(), name: state.name);
+    state = DeckState(content: buffer.toString(), name: state.name, isQuoteDeck: state.isQuoteDeck);
   }
 
   Future<void> saveToDatabase(String name) async {
@@ -201,7 +258,7 @@ class DeckFileContent extends _$DeckFileContent {
     // Sync to cloud (Non-blocking and safe)
     _syncDeckToCloud(deckId);
 
-    state = DeckState(content: state.content, name: name);
+    state = DeckState(content: state.content, name: name, isQuoteDeck: false);
   }
 
   Future<void> _syncDeckToCloud(int deckId) async {
@@ -241,7 +298,7 @@ class DeckFileContent extends _$DeckFileContent {
       buffer.writeln(id);
     }
 
-    state = DeckState(content: buffer.toString(), name: deck?.name);
+    state = DeckState(content: buffer.toString(), name: deck?.name, isQuoteDeck: false);
   }
 
   Future<void> deleteDeck(int deckId) async {
