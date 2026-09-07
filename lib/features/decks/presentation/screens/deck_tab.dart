@@ -14,6 +14,18 @@ import 'package:ygobinder/core/database/app_database.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
 
+Color getThemeGreen(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade800;
+}
+
+Color getThemeAmber(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.amber : Colors.amber.shade900;
+}
+
+Color getThemeOrange(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.orangeAccent : Colors.orange.shade800;
+}
+
 enum BanlistStatus { forbidden, limited, semiLimited, unlimited }
 
 BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
@@ -523,10 +535,10 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                         horizontal: 12,
                         vertical: isShortHeight ? 4 : 10,
                       ),
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
                       child: Row(
                         children: [
-                          Icon(Icons.style_rounded, size: isShortHeight ? 14 : 18, color: Colors.white60),
+                          Icon(Icons.style_rounded, size: isShortHeight ? 14 : 18, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -534,7 +546,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                               style: TextStyle(
                                 fontSize: isShortHeight ? 10 : 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white60,
+                                color: theme.colorScheme.onSurface,
                                 letterSpacing: 1.2,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -672,9 +684,13 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                 const SizedBox(height: 12),
                 Container(
                   constraints: const BoxConstraints(maxHeight: 280),
-                  child: Material(
-                    color: Colors.white.withValues(alpha: 0.05),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
                     clipBehavior: Clip.antiAlias,
                     child: ListView(
                       shrinkWrap: true,
@@ -682,8 +698,8 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                         // Mandatory Quoted Cards (#0) Deck Tile
                         ListTile(
                           leading: const Icon(Icons.request_quote_rounded, color: Colors.amber),
-                          title: const Text('Quoted Cards (#0)', style: TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: const Text('Read-only view of Collection #0 items', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                          title: Text('Quoted Cards (#0)', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+                          subtitle: Text('Read-only view of Collection #0 items', style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
@@ -697,17 +713,19 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                             ref.read(deckFileContentProvider.notifier).loadQuoteDeck();
                           },
                         ),
-                        const Divider(height: 1, color: Colors.white10),
+                        Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
 
                         // Saved Decks List
                         ...savedDecksAsync.maybeWhen(
                           data: (decks) => decks.map((deck) {
                             return ListTile(
                               leading: const Icon(Icons.folder_special_rounded, color: Colors.blueAccent),
-                              title: Text(deck.name),
+                              title: Text(deck.name, style: TextStyle(color: theme.colorScheme.onSurface)),
                               subtitle: Text(
-                                'Last updated: ${deck.updatedAt.day}/${deck.updatedAt.month}/${deck.updatedAt.year}',
-                                style: const TextStyle(fontSize: 10, color: Colors.white38),
+                                deck.updatedAt != null
+                                    ? 'Last updated: ${deck.updatedAt!.day}/${deck.updatedAt!.month}/${deck.updatedAt!.year}'
+                                    : 'Saved deck',
+                                style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1756,10 +1774,10 @@ class _DeckTotalPriceSummary extends ConsumerWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -1776,7 +1794,7 @@ class _DeckTotalPriceSummary extends ConsumerWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: theme.colorScheme.primary,
+                          color: theme.colorScheme.onSurface,
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -1784,54 +1802,57 @@ class _DeckTotalPriceSummary extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.greenAccent.withValues(alpha: 0.15),
+                          color: getThemeGreen(context).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           currencyInfo.formatPrice(overallTotalUsd),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: Colors.greenAccent,
+                            color: getThemeGreen(context),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1, color: Colors.white10),
+                  Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                   const SizedBox(height: 12),
 
                   // Owned vs Missing Cards Summary
                   _buildSummaryRow(
                     'Cards Owned Value',
                     currencyInfo.formatPrice(ownedTotalUsd),
-                    color: Colors.greenAccent,
+                    color: getThemeGreen(context),
                   ),
                   const SizedBox(height: 6),
                   _buildSummaryRow(
                     'Missing Cards Cost ($missingCardsCount missing)',
                     currencyInfo.formatPrice(unownedTotalUsd),
-                    color: missingCardsCount > 0 ? Colors.orangeAccent : Colors.white70,
+                    color: missingCardsCount > 0 ? getThemeOrange(context) : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                   const SizedBox(height: 12),
-                  const Divider(height: 1, color: Colors.white10),
+                  Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                   const SizedBox(height: 12),
 
                   // Section breakdown
                   _buildSummaryRow(
                     'Main Deck (${deckData.main.length} cards)',
                     currencyInfo.formatPrice(mainTotalUsd),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                   const SizedBox(height: 6),
                   _buildSummaryRow(
                     'Extra Deck (${deckData.extra.length} cards)',
                     currencyInfo.formatPrice(extraTotalUsd),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                   const SizedBox(height: 6),
                   _buildSummaryRow(
                     'Side Deck (${deckData.side.length} cards)',
                     currencyInfo.formatPrice(sideTotalUsd),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                 ],
               ),

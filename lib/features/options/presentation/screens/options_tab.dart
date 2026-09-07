@@ -4,6 +4,7 @@ import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dar
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
+import 'package:ygobinder/core/providers/theme_provider.dart';
 import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
@@ -108,21 +109,27 @@ class OptionsTab extends ConsumerWidget {
               final repo = ref.read(cardRepositoryProvider);
               repo.updateOwnedSetCardPrices(
                 onProgress: (p, t, setName) {
-                  setDialogState(() {
-                    processed = p;
-                    total = t;
-                    currentSetName = setName;
-                  });
+                  if (context.mounted) {
+                    setDialogState(() {
+                      processed = p;
+                      total = t;
+                      currentSetName = setName;
+                    });
+                  }
                 },
                 isCancelled: () => isCancelled,
               ).then((_) {
-                setDialogState(() {
-                  isCompleted = true;
-                });
+                if (context.mounted) {
+                  setDialogState(() {
+                    isCompleted = true;
+                  });
+                }
               }).catchError((e) {
-                setDialogState(() {
-                  errorMessage = e.toString().replaceAll('Exception: ', '');
-                });
+                if (context.mounted) {
+                  setDialogState(() {
+                    errorMessage = e.toString().replaceAll('Exception: ', '');
+                  });
+                }
               });
             }
 
@@ -327,12 +334,12 @@ class OptionsTab extends ConsumerWidget {
           const SizedBox(height: 28),
 
           // Preferences Section
-          const Text(
+          Text(
             'PREFERENCES',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.white38,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               letterSpacing: 1.5,
             ),
           ),
@@ -340,25 +347,38 @@ class OptionsTab extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.currency_exchange_rounded, color: Colors.amber),
             title: const Text('Currency Conversion'),
-            subtitle: const Text('Select preferred display currency for card values.'),
+            subtitle: Text('Select preferred display currency for card values.', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             trailing: const Icon(Icons.chevron_right),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
             ),
-            tileColor: Colors.white.withValues(alpha: 0.05),
+            tileColor: theme.colorScheme.surfaceContainerHighest,
             onTap: () => _showCurrencySelectorBottomSheet(context),
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.brightness_medium_rounded, color: Colors.purpleAccent),
+            title: const Text('App Theme'),
+            subtitle: Text('Select Light, Dark, or System Default theme.', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+            trailing: const Icon(Icons.chevron_right),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+            ),
+            tileColor: theme.colorScheme.surfaceContainerHighest,
+            onTap: () => _showThemeSelectorBottomSheet(context),
           ),
 
           const SizedBox(height: 28),
 
           // Database Management Section
-          const Text(
+          Text(
             'DATABASE MANAGEMENT',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.white38,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               letterSpacing: 1.5,
             ),
           ),
@@ -366,39 +386,39 @@ class OptionsTab extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.refresh_rounded, color: Colors.blueAccent),
             title: const Text('Re-fetch Card Data'),
-            subtitle: const Text('Redownload all card info and sets from the server.'),
+            subtitle: Text('Redownload all card info and sets from the server.', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             trailing: const Icon(Icons.chevron_right),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
             ),
-            tileColor: Colors.white.withValues(alpha: 0.05),
+            tileColor: theme.colorScheme.surfaceContainerHighest,
             onTap: () => _showSyncConfirmation(context),
           ),
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.price_change_rounded, color: Colors.greenAccent),
             title: const Text('Update owned card prices'),
-            subtitle: const Text('Download latest set pricing for sets in your collection (1 set/sec).'),
+            subtitle: Text('Download latest set pricing for sets in your collection (1 set/sec).', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             trailing: const Icon(Icons.chevron_right),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
             ),
-            tileColor: Colors.white.withValues(alpha: 0.05),
+            tileColor: theme.colorScheme.surfaceContainerHighest,
             onTap: () => _showUpdateOwnedPricesDialog(context, ref),
           ),
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.delete_sweep_rounded, color: Colors.orangeAccent),
             title: const Text('Clear Quote Collection (#0)'),
-            subtitle: const Text('Remove all temporary quote items from Collection #0.'),
+            subtitle: Text('Remove all temporary quote items from Collection #0.', style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             trailing: const Icon(Icons.chevron_right),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
             ),
-            tileColor: Colors.white.withValues(alpha: 0.05),
+            tileColor: theme.colorScheme.surfaceContainerHighest,
             onTap: () => _showClearQuoteConfirmation(context, ref),
           ),
 
@@ -408,39 +428,39 @@ class OptionsTab extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.03),
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.gavel_rounded, size: 16, color: Colors.white38),
-                    SizedBox(width: 8),
+                    Icon(Icons.gavel_rounded, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                    const SizedBox(width: 8),
                     Text(
                       'LEGAL DISCLAIMER & ATTRIBUTION',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white38,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         letterSpacing: 1.2,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'YGOBinder is an unofficial fan-made application and is not affiliated with, endorsed by, or sponsored by Konami Digital Entertainment or Studio Dice.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
+                  style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 11, height: 1.4),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Yu-Gi-Oh! and all related card text, images, and trademarks belong to Studio Dice, SHUEISHA, TV TOKYO, and KONAMI.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.4),
+                  style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 11, height: 1.4),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -616,7 +636,7 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
           Container(
             width: 40,
             height: 4,
-            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
           Padding(
@@ -625,31 +645,31 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
               children: [
                 Icon(Icons.currency_exchange_rounded, color: theme.colorScheme.primary, size: 24),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'CURRENCY CONVERSION',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, size: 20),
+                  icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
                 ),
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Select your preferred currency for card prices and statistics.',
-                style: TextStyle(fontSize: 12, color: Colors.white54),
+                style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
 
           // Stream of exchange rates
           Expanded(
@@ -692,12 +712,12 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
                       child: Material(
                         color: isSelected
                             ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                            : Colors.white.withValues(alpha: 0.03),
+                            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                         clipBehavior: Clip.antiAlias,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
-                            color: isSelected ? theme.colorScheme.primary : Colors.white10,
+                            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3),
                             width: isSelected ? 1.5 : 1.0,
                           ),
                         ),
@@ -710,14 +730,14 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color: isSelected ? theme.colorScheme.primary : Colors.white,
+                                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
                                 ),
                               ),
                               subtitle: Text(
                                 subtitleText,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.8) : Colors.white54,
+                                  color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.8) : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                               trailing: Radio<String>(
@@ -735,14 +755,14 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
                               },
                             ),
                             if (isSelected && isCustom) ...[
-                              const Divider(height: 1, color: Colors.white10),
+                              Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                 child: Row(
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Multiplier (1 USD = ):',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70),
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -778,6 +798,153 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showThemeSelectorBottomSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) => const _ThemeSelectorBottomSheet(),
+  );
+}
+
+class _ThemeSelectorBottomSheet extends ConsumerWidget {
+  const _ThemeSelectorBottomSheet();
+
+  static const _themes = [
+    {
+      'mode': ThemeMode.system,
+      'name': 'System Default',
+      'desc': 'Follow device system theme settings',
+      'icon': Icons.brightness_auto_rounded,
+      'color': Colors.blueAccent,
+    },
+    {
+      'mode': ThemeMode.light,
+      'name': 'Light Mode',
+      'desc': 'Bright and clean light appearance',
+      'icon': Icons.light_mode_rounded,
+      'color': Colors.amber,
+    },
+    {
+      'mode': ThemeMode.dark,
+      'name': 'Dark Mode',
+      'desc': 'Pharaoh & Shadow Void dark appearance',
+      'icon': Icons.dark_mode_rounded,
+      'color': Colors.purpleAccent,
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final currentMode = ref.watch(themeModeProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Icon(Icons.palette_rounded, color: theme.colorScheme.primary, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'APP THEME',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Choose your preferred visual appearance for YGOBinder.',
+                style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+          const SizedBox(height: 12),
+
+          // Theme Options List
+          ..._themes.map((opt) {
+            final mode = opt['mode'] as ThemeMode;
+            final name = opt['name'] as String;
+            final desc = opt['desc'] as String;
+            final icon = opt['icon'] as IconData;
+            final color = opt['color'] as Color;
+            final isSelected = currentMode == mode;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: Material(
+                color: isSelected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3),
+                    width: isSelected ? 1.5 : 1.0,
+                  ),
+                ),
+                child: ListTile(
+                  leading: Icon(icon, color: color, size: 26),
+                  title: Text(
+                    name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  subtitle: Text(desc, style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                  trailing: Radio<ThemeMode>(
+                    value: mode,
+                    groupValue: currentMode,
+                    activeColor: theme.colorScheme.primary,
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(themeModeProvider.notifier).setThemeMode(val);
+                      }
+                    },
+                  ),
+                  onTap: () {
+                    ref.read(themeModeProvider.notifier).setThemeMode(mode);
+                  },
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 12),
         ],
       ),
     );

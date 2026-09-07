@@ -18,6 +18,18 @@ import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
+Color getThemeGreen(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade800;
+}
+
+Color getThemeAmber(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.amber : Colors.amber.shade900;
+}
+
+Color getThemeRed(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800;
+}
+
 String formatWithThousandSeparators(double value, {int decimals = 2}) {
   final parts = value.toStringAsFixed(decimals).split('.');
   final integerPart = parts[0];
@@ -1096,7 +1108,7 @@ class _CardInfo extends ConsumerWidget {
                                           priceString,
                                           style: theme.textTheme.bodySmall?.copyWith(
                                             fontWeight: FontWeight.bold,
-                                            color: !priceString.contains('N/A') ? Colors.greenAccent : foregroundColor.withValues(alpha: 0.5),
+                                            color: !priceString.contains('N/A') ? getThemeGreen(context) : foregroundColor.withValues(alpha: 0.5),
                                           ),
                                           textAlign: TextAlign.end,
                                         ),
@@ -2115,7 +2127,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
           Container(
             width: 40,
             height: 4,
-            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
           Padding(
@@ -2127,18 +2139,18 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                 Expanded(
                   child: Text(
                     'PRINTING PRICES - ${widget.card.name}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.1),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.1, color: theme.colorScheme.onSurface),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
                   onPressed: _isFetching ? null : () => _startFetchingPrices(forceRefresh: true),
-                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  icon: Icon(Icons.refresh_rounded, size: 20, color: theme.colorScheme.onSurface),
                   tooltip: 'Refresh prices from API',
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, size: 20),
+                  icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
                 ),
               ],
             ),
@@ -2163,7 +2175,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: _isFetching ? Colors.amber : Colors.greenAccent,
+                        color: _isFetching ? getThemeAmber(context) : getThemeGreen(context),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -2176,14 +2188,14 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 child: LinearProgressIndicator(
                   value: _processedCount / _totalCount,
-                  backgroundColor: Colors.white10,
-                  valueColor: const AlwaysStoppedAnimation(Colors.amber),
+                  backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation(getThemeAmber(context)),
                   minHeight: 3,
                 ),
               ),
           ],
 
-          const Divider(height: 1, color: Colors.white10),
+          Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
 
           // Stream of cached prices for this card
           Expanded(
@@ -2226,9 +2238,9 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                     return Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2254,7 +2266,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                               Expanded(
                                 child: Text(
                                   setName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.onSurface),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -2282,8 +2294,8 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                               fontWeight: FontWeight.bold,
                                               color: p.printing.toLowerCase().contains('quarter') ||
                                                       p.printing.toLowerCase().contains('1st')
-                                                  ? Colors.amber
-                                                  : Colors.white70,
+                                                  ? getThemeAmber(context)
+                                                  : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -2292,13 +2304,13 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                         Row(
                                           children: [
                                             if (p.marketPrice != null) ...[
-                                              const Text('Market: ', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                                              Text('Market: ', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
                                               Text(
                                                 currencyInfo.formatPrice(p.marketPrice!),
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Colors.greenAccent,
+                                                  color: getThemeGreen(context),
                                                 ),
                                               ),
                                               if (p.previousMarketPrice != null && p.previousMarketPrice! > 0.0) ...[
@@ -2307,13 +2319,13 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                               ],
                                               if (currencyInfo.code != 'USD') ...[
                                                 const SizedBox(width: 10),
-                                                const Text('USD: ', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                                                Text('USD: ', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
                                                 Text(
                                                   '\$${formatWithThousandSeparators(p.marketPrice!)}',
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.bold,
-                                                    color: Colors.white70,
+                                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                                                   ),
                                                 ),
                                               ],
@@ -2328,7 +2340,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                         alignment: Alignment.centerRight,
                                         child: Text(
                                           'Updated: $ts',
-                                          style: const TextStyle(fontSize: 10, color: Colors.white38),
+                                          style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
                                         ),
                                       ),
                                     ],
@@ -2337,11 +2349,11 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                               );
                             }),
                           ] else if (_isFetching) ...[
-                            const Row(
+                            Row(
                               children: [
-                                SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
-                                SizedBox(width: 6),
-                                Text('Fetching prices...', style: TextStyle(fontSize: 12, color: Colors.amber)),
+                                const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
+                                const SizedBox(width: 6),
+                                Text('Fetching prices...', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
                               ],
                             ),
                           ] else ...[
@@ -2349,7 +2361,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                               item['basePrice'] != null
                                   ? currencyInfo.formatPrice(double.tryParse(item['basePrice'].toString()) ?? 0.0)
                                   : 'N/A',
-                              style: const TextStyle(fontSize: 14, color: Colors.white54),
+                              style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                             ),
                           ],
                         ],
@@ -2371,7 +2383,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
 
     final percent = oldPrice > 0 ? (diff / oldPrice) * 100 : 0.0;
     final isUp = diff > 0;
-    final color = isUp ? Colors.greenAccent : Colors.redAccent;
+    final color = isUp ? getThemeGreen(context) : getThemeRed(context);
     final arrow = isUp ? '▲' : '▼';
     final sign = isUp ? '+' : '';
     final formattedDiff = currencyInfo.formatPrice(diff.abs());

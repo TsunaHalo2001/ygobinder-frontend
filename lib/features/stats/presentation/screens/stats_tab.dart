@@ -9,11 +9,33 @@ import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 
+Color getThemeGreen(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade800;
+}
+
+Color getThemeAmber(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.amber : Colors.amber.shade900;
+}
+
+Color getThemeAccent(BuildContext context, Color baseColor) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  if (!isDark) {
+    if (baseColor == Colors.tealAccent) return Colors.teal.shade800;
+    if (baseColor == Colors.amber) return Colors.amber.shade900;
+  }
+  return baseColor;
+}
+
+Color getThemeOrange(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark ? Colors.orangeAccent : Colors.orange.shade800;
+}
+
 class StatsTab extends ConsumerWidget {
   const StatsTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final totalValueAsync = ref.watch(totalCollectionValueProvider);
     final quoteValueAsync = ref.watch(quoteCollectionValueProvider);
@@ -43,7 +65,7 @@ class StatsTab extends ConsumerWidget {
                 error: (_, _) => 'Error',
               ),
               icon: Icons.account_balance_wallet_rounded,
-              color: Colors.greenAccent,
+              color: getThemeGreen(context),
             ),
             const SizedBox(height: 16),
             _StatCard(
@@ -54,7 +76,7 @@ class StatsTab extends ConsumerWidget {
                 error: (_, _) => 'Error',
               ),
               icon: Icons.request_quote_rounded,
-              color: Colors.amber,
+              color: getThemeAmber(context),
             ),
             const SizedBox(height: 16),
             _StatCard(
@@ -107,7 +129,7 @@ class StatsTab extends ConsumerWidget {
                     primaryXAxis: CategoryAxis(
                       isVisible: true,
                       majorGridLines: const MajorGridLines(width: 0),
-                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 10),
+                      labelStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface.withValues(alpha: 0.8), fontSize: 10),
                     ),
                     primaryYAxis: NumericAxis(
                       isVisible: false,
@@ -127,9 +149,9 @@ class StatsTab extends ConsumerWidget {
                             Theme.of(context).colorScheme.secondary,
                           ],
                         ),
-                        dataLabelSettings: const DataLabelSettings(
+                        dataLabelSettings: DataLabelSettings(
                           isVisible: true,
-                          textStyle: TextStyle(fontWeight: FontWeight.bold),
+                          textStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                           labelAlignment: ChartDataLabelAlignment.outer,
                         ),
                       ),
@@ -155,7 +177,7 @@ class StatsTab extends ConsumerWidget {
                     primaryXAxis: CategoryAxis(
                       isVisible: true,
                       majorGridLines: const MajorGridLines(width: 0),
-                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 10),
+                      labelStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface.withValues(alpha: 0.8), fontSize: 10),
                     ),
                     primaryYAxis: NumericAxis(
                       isVisible: false,
@@ -175,9 +197,9 @@ class StatsTab extends ConsumerWidget {
                             Colors.orangeAccent,
                           ],
                         ),
-                        dataLabelSettings: const DataLabelSettings(
+                        dataLabelSettings: DataLabelSettings(
                           isVisible: true,
-                          textStyle: TextStyle(fontWeight: FontWeight.bold),
+                          textStyle: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                           labelAlignment: ChartDataLabelAlignment.outer,
                         ),
                       ),
@@ -207,10 +229,14 @@ class StatsTab extends ConsumerWidget {
                   child: SfCartesianChart(
                     margin: const EdgeInsets.only(right: 24),
                     plotAreaBorderWidth: 0,
-                    primaryXAxis: const CategoryAxis(
+                    primaryXAxis: CategoryAxis(
                       isVisible: true,
-                      majorGridLines: MajorGridLines(width: 0),
-                      labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 10),
+                      majorGridLines: const MajorGridLines(width: 0),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        fontSize: 10,
+                      ),
                     ),
                     primaryYAxis: const NumericAxis(
                       isVisible: false,
@@ -224,10 +250,10 @@ class StatsTab extends ConsumerWidget {
                         yValueMapper: (CardPriceStat data, _) => data.price * currencyInfo.rateToUsd,
                         name: 'Price (${currencyInfo.code})',
                         borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: [
-                            Colors.amber,
-                            Colors.greenAccent,
+                            getThemeAmber(context),
+                            getThemeGreen(context),
                           ],
                         ),
                         dataLabelSettings: DataLabelSettings(
@@ -238,14 +264,14 @@ class StatsTab extends ConsumerWidget {
                             return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.black87,
+                                color: theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5), width: 1),
+                                border: Border.all(color: getThemeGreen(context).withValues(alpha: 0.5), width: 1),
                               ),
                               child: Text(
                                 currencyInfo.formatPrice(item.price),
-                                style: const TextStyle(
-                                  color: Colors.greenAccent,
+                                style: TextStyle(
+                                  color: getThemeGreen(context),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 10,
                                 ),
@@ -274,12 +300,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+      style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
-            color: Colors.white70,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
           ),
     );
   }
@@ -300,6 +327,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -334,9 +362,10 @@ class _StatCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -363,7 +392,9 @@ class _CardDateStatCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final cacheManager = ref.watch(imageCacheManagerProvider);
+    final effectiveColor = getThemeAccent(context, color);
 
     return cardAsync.when(
       data: (card) {
@@ -381,9 +412,9 @@ class _CardDateStatCard extends ConsumerWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: effectiveColor.withValues(alpha: theme.brightness == Brightness.dark ? 0.1 : 0.15),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+            border: Border.all(color: effectiveColor.withValues(alpha: theme.brightness == Brightness.dark ? 0.3 : 0.6), width: 2),
           ),
           child: InkWell(
             onTap: card != null ? () => context.push('/card/${card.id}') : null,
@@ -404,7 +435,7 @@ class _CardDateStatCard extends ConsumerWidget {
                           fit: BoxFit.cover,
                           memCacheWidth: 120,
                           placeholder: (context, url) => Container(color: Colors.black12),
-                          errorWidget: (context, url, error) => Icon(icon, color: color, size: 28),
+                          errorWidget: (context, url, error) => Icon(icon, color: effectiveColor, size: 28),
                         ),
                       ),
                     )
@@ -412,10 +443,10 @@ class _CardDateStatCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.2),
+                        color: effectiveColor.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, color: color, size: 28),
+                      child: Icon(icon, color: effectiveColor, size: 28),
                     ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -427,16 +458,17 @@ class _CardDateStatCard extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: color.withValues(alpha: 0.8),
+                            color: effectiveColor,
                             letterSpacing: 1.2,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           card?.name ?? 'No cards in collection',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -445,14 +477,14 @@ class _CardDateStatCard extends ConsumerWidget {
                           const SizedBox(height: 2),
                           Text(
                             'Released: $dateString',
-                            style: const TextStyle(fontSize: 12, color: Colors.white60),
+                            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                           ),
                         ],
                       ],
                     ),
                   ),
                   if (card != null)
-                    const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+                    Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
                 ],
               ),
             ),

@@ -11,6 +11,7 @@ import 'package:ygobinder/core/presentation/screens/main_shell.dart';
 import 'package:ygobinder/features/scanner/presentation/screens/camera_scanner_screen.dart';
 import 'package:ygobinder/features/auth/presentation/screens/login_screen.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
+import 'package:ygobinder/core/providers/theme_provider.dart';
 
 import 'package:flutter/foundation.dart';
 import 'dart:io';
@@ -35,74 +36,106 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // 1. Detect device type using shortestSide (tablets vs phones in portrait/landscape)
     final bool isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
+    final themeMode = ref.watch(themeModeProvider);
+
+    final darkTheme = ThemeData(
+      useMaterial3: true,
+      fontFamily: 'YuGiOh',
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme.dark(
+        primary: Color(0xFFD4AF37), // Pharaoh's Gold
+        onPrimary: Color(0xFF1A1A1A), // Obsidian
+        secondary: Color(0xFF7E57C2), // Dark Magician
+        surface: Color(0xFF0B0C10), // Shadow Void (Main background)
+        onSurface: Color(0xFFF0F0F0), // Starlight
+        surfaceContainerHighest: Color(0xFF1F2833), // Dark Slate (Cards, etc.)
+        onSurfaceVariant: Color(0xFFF0F0F0),
+        outline: Color(0xFF45A29E), // Teal/Faint Gold
+      ),
+      textTheme: _buildTextTheme(isTablet, isDark: true),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1F2833),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1F2833),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF45A29E)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF333333)),
+        ),
+      ),
+    );
+
+    final lightTheme = ThemeData(
+      useMaterial3: true,
+      fontFamily: 'YuGiOh',
+      brightness: Brightness.light,
+      colorScheme: const ColorScheme.light(
+        primary: Color(0xFFB8860B),
+        onPrimary: Colors.white,
+        secondary: Color(0xFF673AB7),
+        surface: Color(0xFFF0F2F5),
+        onSurface: Color(0xFF111111),
+        surfaceContainerHighest: Color(0xFFFFFFFF),
+        onSurfaceVariant: Color(0xFF333333),
+        outline: Color(0xFFB0B0B0),
+      ),
+      textTheme: _buildTextTheme(isTablet, isDark: false),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFB8860B)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+        ),
+      ),
+    );
 
     return MaterialApp.router(
       title: 'YGOBinder',
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'YuGiOh',
-        brightness: Brightness.dark,
-        
-        // Custom ColorScheme based on your YGO palette
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFD4AF37), // Pharaoh's Gold
-          onPrimary: Color(0xFF1A1A1A), // Obsidian
-          secondary: Color(0xFF7E57C2), // Dark Magician
-          surface: Color(0xFF0B0C10), // Shadow Void (Main background)
-          onSurface: Color(0xFFF0F0F0), // Starlight
-          surfaceContainerHighest: Color(0xFF1F2833), // Dark Slate (Cards, etc.)
-          onSurfaceVariant: Color(0xFFF0F0F0),
-          outline: Color(0xFF45A29E), // Teal/Faint Gold
-        ),
-
-        // Applying the adaptive TextTheme
-        textTheme: _buildTextTheme(isTablet),
-        
-        // Themed Card appearance
-        cardTheme: CardThemeData(
-          color: const Color(0xFF1F2833),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-
-        // Themed Input appearance for your search bar
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1F2833),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF45A29E)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF333333)),
-          ),
-        ),
-      ),
+      themeMode: themeMode,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       routerConfig: _router,
     );
   }
 
-  TextTheme _buildTextTheme(bool isTablet) {
+  TextTheme _buildTextTheme(bool isTablet, {required bool isDark}) {
     // Scale 1.0 for phones (portrait & landscape), 1.2 for tablet devices
     final double scale = isTablet ? 1.2 : 1.0;
     const double lineHeight = 1.1;
     
-    // Subtle shadow to help text pop against varied backgrounds
-    final List<Shadow> textShadows = [
-      Shadow(
-        offset: const Offset(0.5, 0.5),
-        blurRadius: 1.0,
-        color: Colors.black.withValues(alpha: 0.4),
-      ),
-    ];
+    final List<Shadow>? textShadows = isDark
+        ? [
+            Shadow(
+              offset: const Offset(0.5, 0.5),
+              blurRadius: 1.0,
+              color: Colors.black.withValues(alpha: 0.4),
+            ),
+          ]
+        : null;
 
     return TextTheme(
       displayLarge: TextStyle(fontSize: 48 * scale, height: lineHeight, shadows: textShadows),
