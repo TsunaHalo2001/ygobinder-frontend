@@ -365,7 +365,7 @@ class OptionsTab extends ConsumerWidget {
                     const Icon(Icons.api_rounded, size: 14, color: Colors.blueAccent),
                     const SizedBox(width: 6),
                     const Text(
-                      'Card data & images powered by ',
+                      'Card data, prices & sets powered by ',
                       style: TextStyle(color: Colors.white54, fontSize: 11),
                     ),
                     InkWell(
@@ -378,7 +378,27 @@ class OptionsTab extends ConsumerWidget {
                         }
                       },
                       child: const Text(
-                        'YGOPRODeck API',
+                        'YGOPRODeck',
+                        style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Text(' & ', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    InkWell(
+                      onTap: () async {
+                        final uri = Uri.parse('https://openapi.tcgtracking.com');
+                        try {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (e) {
+                          debugPrint('Could not launch URL: $e');
+                        }
+                      },
+                      child: const Text(
+                        'TCGTracking API',
                         style: TextStyle(
                           color: Colors.blueAccent,
                           fontSize: 11,

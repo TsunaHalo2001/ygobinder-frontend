@@ -99,4 +99,4 @@ If you enjoy using **YGOBinder** and would like to support its continued develop
 > **YGOBinder** is an **unofficial fan-made application** and is not affiliated with, endorsed by, or sponsored by **Konami Digital Entertainment**, **Studio Dice**, **SHUEISHA**, or **TV TOKYO**.
 
 - **Yu-Gi-Oh! Trademarks & Copyrights**: All Yu-Gi-Oh! card text, imagery, artwork, graphics, and trademarks belong to **Studio Dice**, **SHUEISHA**, **TV TOKYO**, and **KONAMI**.
-- **Card Data & Image Attribution**: All card information, prices, set lists, and card image assets are provided by the [YGOPRODeck API](https://ygoprodeck.com).
+- **Card Data, Image & Pricing Attribution**: All card information, market prices, set lists, and card image assets are provided by the [YGOPRODeck API](https://ygoprodeck.com) and [TCGTracking API](https://openapi.tcgtracking.com).
