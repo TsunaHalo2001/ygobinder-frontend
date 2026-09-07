@@ -1373,6 +1373,10 @@ class AppDatabase extends _$AppDatabase {
   // SET CARD PRICES QUERIES
   // ==========================================
 
+  Future<List<DriftSetCardPrice>> getPricesForCard(int cardId) {
+    return (select(setCardPrices)..where((t) => t.cardId.equals(cardId))).get();
+  }
+
   Future<void> deleteSetCardPricesForCard(int cardId) async {
     await (delete(setCardPrices)..where((t) => t.cardId.equals(cardId))).go();
   }

@@ -17,6 +17,21 @@ import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
+String formatLastUpdatedTimestamp(String? isoString) {
+  if (isoString == null || isoString.trim().isEmpty) return '';
+  final dt = DateTime.tryParse(isoString);
+  if (dt == null) return '';
+
+  final local = dt.toLocal();
+  final day = local.day.toString().padLeft(2, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  final year = local.year;
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+
+  return '$day/$month/$year $hour:$minute';
+}
+
 class CardDetailScreen extends ConsumerWidget {
   final int cardId;
 
@@ -1050,20 +1065,36 @@ class _CardInfo extends ConsumerWidget {
                             ),
                             ...collectionItems.map((item) {
                               final priceString = _getInventoryItemPriceString(item, setPricesList, card);
+                              final timestampStr = _getInventoryItemTimestampString(item, setPricesList);
                               return TableRow(
                                 children: [
                                   _tableCell(item.setCode, theme),
                                   _tableCell(item.rarity, theme),
                                   _tableCell(item.quantity.toString(), theme, textAlign: TextAlign.center),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                                    child: Text(
-                                      priceString,
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: priceString.startsWith('\$') ? Colors.greenAccent : foregroundColor.withValues(alpha: 0.5),
-                                      ),
-                                      textAlign: TextAlign.end,
+                                    padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          priceString,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: priceString.startsWith('\$') ? Colors.greenAccent : foregroundColor.withValues(alpha: 0.5),
+                                          ),
+                                          textAlign: TextAlign.end,
+                                        ),
+                                        if (timestampStr.isNotEmpty)
+                                          Text(
+                                            timestampStr,
+                                            style: TextStyle(
+                                              fontSize: 8,
+                                              color: foregroundColor.withValues(alpha: 0.4),
+                                            ),
+                                            textAlign: TextAlign.end,
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1131,6 +1162,24 @@ class _CardInfo extends ConsumerWidget {
     }
 
     return 'N/A';
+  }
+
+  String _getInventoryItemTimestampString(
+    DriftCollectionItem item,
+    List<DriftSetCardPrice> setPrices,
+  ) {
+    final matchingPrices = setPrices.where((p) {
+      final codeMatch = p.setCode != null &&
+          p.setCode!.trim().toUpperCase() == item.setCode.trim().toUpperCase();
+      final rarityMatch = p.printing.toLowerCase().contains(item.rarity.toLowerCase()) ||
+          item.rarity.toLowerCase().contains(p.printing.toLowerCase());
+      return codeMatch || rarityMatch;
+    }).toList();
+
+    if (matchingPrices.isNotEmpty) {
+      return formatLastUpdatedTimestamp(matchingPrices.first.lastUpdated);
+    }
+    return '';
   }
 
   Widget _tableHeader(String text, ThemeData theme, {TextAlign textAlign = TextAlign.start}) {
@@ -1698,11 +1747,26 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
     super.dispose();
   }
 
-  Future<void> _startFetchingPrices() async {
+  Future<void> _startFetchingPrices({bool forceRefresh = false}) async {
     if (!mounted || _isFetching) return;
 
     final db = ref.read(databaseProvider);
     final dataService = CardDataService();
+
+    // Check if prices for this card already exist in local SQLite cache
+    final cachedPrices = await db.getPricesForCard(widget.card.id);
+    if (cachedPrices.isNotEmpty && !forceRefresh) {
+      final tsStr = formatLastUpdatedTimestamp(cachedPrices.first.lastUpdated);
+      if (mounted) {
+        setState(() {
+          _isFetching = false;
+          _currentStatus = tsStr.isNotEmpty
+              ? 'Cached prices (Updated: $tsStr). Tap 🔄 to refresh.'
+              : 'Displaying cached prices. Tap 🔄 to update.';
+        });
+      }
+      return; // Do NOT call API if already cached!
+    }
 
     final cardSets = widget.card.cardSets ?? [];
     if (cardSets.isEmpty) {
@@ -1933,6 +1997,11 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                   ),
                 ),
                 IconButton(
+                  onPressed: _isFetching ? null : () => _startFetchingPrices(forceRefresh: true),
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  tooltip: 'Refresh prices from API',
+                ),
+                IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close_rounded, size: 20),
                 ),
@@ -2060,52 +2129,68 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
 
                           // Display all printings & prices for this set code
                           if (setPrices.isNotEmpty) ...[
-                            ...setPrices.map((p) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 6.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        p.printing,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: p.printing.toLowerCase().contains('quarter') ||
-                                                  p.printing.toLowerCase().contains('1st')
-                                              ? Colors.amber
-                                              : Colors.white70,
+                            ...setPrices.map((p) {
+                              final ts = formatLastUpdatedTimestamp(p.lastUpdated);
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          p.printing,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: p.printing.toLowerCase().contains('quarter') ||
+                                                    p.printing.toLowerCase().contains('1st')
+                                                ? Colors.amber
+                                                : Colors.white70,
+                                          ),
+                                        ),
+                                        Row(
+                                          children: [
+                                            if (p.marketPrice != null) ...[
+                                              const Text('Market: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                                              Text(
+                                                '\$${p.marketPrice!.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.greenAccent,
+                                                ),
+                                              ),
+                                            ],
+                                            if (p.lowPrice != null) ...[
+                                              const SizedBox(width: 12),
+                                              const Text('Low: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                                              Text(
+                                                '\$${p.lowPrice!.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    if (ts.isNotEmpty)
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          'Updated: $ts',
+                                          style: const TextStyle(fontSize: 9, color: Colors.white38),
                                         ),
                                       ),
-                                      Row(
-                                        children: [
-                                          if (p.marketPrice != null) ...[
-                                            const Text('Market: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
-                                            Text(
-                                              '\$${p.marketPrice!.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.greenAccent,
-                                              ),
-                                            ),
-                                          ],
-                                          if (p.lowPrice != null) ...[
-                                            const SizedBox(width: 12),
-                                            const Text('Low: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
-                                            Text(
-                                              '\$${p.lowPrice!.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white70,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                )),
+                                  ],
+                                ),
+                              );
+                            }),
                           ] else if (_isFetching) ...[
                             const Row(
                               children: [
