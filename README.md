@@ -6,7 +6,7 @@
 
 ## 📌 App Information
 
-- **Current Version**: `1.2.0+15` (Version 1.2.0)
+- **Current Version**: `1.3.0+16` (Version 1.3.0)
 - **Developer**: Tsuna2001
 - **Framework**: Flutter 3.x (Dart 3.x)
 - **State Management**: Flutter Riverpod
@@ -38,6 +38,8 @@
 ## ✨ Key Features
 
 - 📚 **Collection & Binder Management**: Track your cards, quantities, conditions, rarities, set codes, purchase prices, and custom collection numbers.
+- 🎨 **App Theme Management (Light, Dark, System Default)**:
+  - Seamlessly switch between Light Mode, Dark Mode, and System Default theme in Settings with real-time reactivity and local SQLite persistence.
 - 📋 **Quote Mode & Quoted Cards Deck (#0)**:
   - Toggle **Quote Mode** when adding cards to store temporary estimation items in **Collection #0** (strictly local, excluded from Cloud sync).
   - Built-in, mandatory **`Quoted Cards (#0)`** deck in the Deck Builder with read-only protection, real-time collection #0 categorization, and auto-close on navigation.
