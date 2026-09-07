@@ -37,3 +37,8 @@ final topExpensiveCardsProvider = StreamProvider<List<drift.CardPriceStat>>((ref
   final repo = ref.watch(cardRepositoryProvider);
   return repo.watchTopExpensiveCards(5);
 });
+
+final totalCollectionValueProvider = StreamProvider<double>((ref) {
+  final repo = ref.watch(cardRepositoryProvider);
+  return repo.watchTotalCollectionValue();
+});

@@ -13,6 +13,7 @@ class StatsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final totalValueAsync = ref.watch(totalCollectionValueProvider);
     final totalCardsAsync = ref.watch(totalCardsCountProvider);
     final uniqueCardsAsync = ref.watch(uniqueCardsCountProvider);
     final newestCardAsync = ref.watch(newestCardProvider);
@@ -31,6 +32,17 @@ class StatsTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _StatCard(
+              label: 'Total Collection Value',
+              value: totalValueAsync.when(
+                data: (val) => '\$${val.toStringAsFixed(2)}',
+                loading: () => '...',
+                error: (_, _) => 'Error',
+              ),
+              icon: Icons.account_balance_wallet_rounded,
+              color: Colors.greenAccent,
+            ),
+            const SizedBox(height: 16),
             _StatCard(
               label: 'Total Cards',
               value: totalCardsAsync.when(

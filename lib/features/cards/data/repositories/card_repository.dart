@@ -336,6 +336,10 @@ class CardRepository {
     return _db.watchTopExpensiveCards(limit);
   }
 
+  Stream<double> watchTotalCollectionValue() {
+    return _db.watchTotalCollectionValue();
+  }
+
   Stream<YgoCard?> watchNewestCard() {
     return _db.watchNewestCard();
   }

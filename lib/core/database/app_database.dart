@@ -575,12 +575,15 @@ class AppDatabase extends _$AppDatabase {
         }
 
         final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final maxSetPriceById = <int, double>{};
+        final setPricesMap = <String, double>{};
         for (final sp in sPrices) {
           final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          final currentMax = maxSetPriceById[sp.cardId] ?? 0.0;
+          if (sp.setCode != null && sp.setCode!.isNotEmpty) {
+            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
+          }
+          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
           if (price > currentMax) {
-            maxSetPriceById[sp.cardId] = price;
+            setPricesMap['${sp.cardId}'] = price;
           }
         }
 
@@ -589,26 +592,32 @@ class AppDatabase extends _$AppDatabase {
           final name = cardNameById[cardId];
           if (name == null) continue;
 
-          final purchasePrices = items
-              .where((i) => i.cardId == cardId)
-              .map((i) => i.priceAtPurchase ?? 0.0)
-              .where((p) => p > 0.0);
-          final maxPurchasePrice =
-              purchasePrices.isNotEmpty ? purchasePrices.reduce((a, b) => a > b ? a : b) : 0.0;
+          final cardItems = items.where((i) => i.cardId == cardId);
 
-          final maxSetP = maxSetPriceById[cardId] ?? 0.0;
-          final globalP = globalPriceById[cardId] ?? 0.0;
+          double maxOwnedCardPrice = 0.0;
 
-          // Effective price: setCardPrices -> globalPrice -> purchasePrice
-          double effectivePrice = maxSetP;
-          if (effectivePrice <= 0.0) effectivePrice = globalP;
-          if (effectivePrice <= 0.0) effectivePrice = maxPurchasePrice;
+          for (final item in cardItems) {
+            final baseSetCode = item.setCode.trim().toUpperCase();
+            final setPriceKey = '${item.cardId}_$baseSetCode';
 
-          if (effectivePrice > 0.0) {
+            final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
+            final globalPrice = globalPriceById[item.cardId] ?? 0.0;
+            final purchasePrice = item.priceAtPurchase ?? 0.0;
+
+            double itemPrice = setPrice;
+            if (itemPrice <= 0.0) itemPrice = globalPrice;
+            if (itemPrice <= 0.0) itemPrice = purchasePrice;
+
+            if (itemPrice > maxOwnedCardPrice) {
+              maxOwnedCardPrice = itemPrice;
+            }
+          }
+
+          if (maxOwnedCardPrice > 0.0) {
             stats.add(CardPriceStat(
               cardId: cardId,
               cardName: name,
-              price: effectivePrice,
+              price: maxOwnedCardPrice,
             ));
           }
         }
@@ -623,6 +632,82 @@ class AppDatabase extends _$AppDatabase {
     }
 
     controller = StreamController<List<CardPriceStat>>(
+      onListen: () {
+        recalculate();
+        sub1 = select(collectionItems).watch().listen((_) => recalculate());
+        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
+      },
+      onCancel: () {
+        sub1?.cancel();
+        sub2?.cancel();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Stream<double> watchTotalCollectionValue() {
+    late StreamController<double> controller;
+    StreamSubscription? sub1;
+    StreamSubscription? sub2;
+
+    Future<void> recalculate() async {
+      try {
+        final items = await select(collectionItems).get();
+        if (items.isEmpty) {
+          if (!controller.isClosed) controller.add(0.0);
+          return;
+        }
+
+        final cardIds = items.map((i) => i.cardId).toSet().toList();
+
+        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+        final globalPriceById = <int, double>{};
+        for (final p in gPrices) {
+          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
+          globalPriceById[p.cardId] = price;
+        }
+
+        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+        final setPricesMap = <String, double>{};
+        for (final sp in sPrices) {
+          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+          if (sp.setCode != null) {
+            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
+          }
+          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
+          if (price > currentMax) {
+            setPricesMap['${sp.cardId}'] = price;
+          }
+        }
+
+        double totalValue = 0.0;
+
+        for (final item in items) {
+          final baseSetCode = item.setCode.trim().toUpperCase();
+          final setPriceKey = '${item.cardId}_$baseSetCode';
+
+          final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
+          final globalPrice = globalPriceById[item.cardId] ?? 0.0;
+          final purchasePrice = item.priceAtPurchase ?? 0.0;
+
+          double cardPrice = setPrice;
+          if (cardPrice <= 0.0) cardPrice = globalPrice;
+          if (cardPrice <= 0.0) cardPrice = purchasePrice;
+
+          totalValue += cardPrice * item.quantity;
+        }
+
+        if (!controller.isClosed) {
+          controller.add(totalValue);
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
+    controller = StreamController<double>(
       onListen: () {
         recalculate();
         sub1 = select(collectionItems).watch().listen((_) => recalculate());
