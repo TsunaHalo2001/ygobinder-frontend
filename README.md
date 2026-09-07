@@ -6,13 +6,13 @@
 
 ## 📌 App Information
 
-- **Current Version**: `1.0.1+13` (Version 1.0.1)
+- **Current Version**: `1.1.0+14` (Version 1.1.0)
 - **Developer**: Tsuna2001
 - **Framework**: Flutter 3.x (Dart 3.x)
 - **State Management**: Flutter Riverpod
 - **Local Database**: Drift (SQLite)
 - **Cloud Backend**: Firebase Authentication & Firestore Sync
-- **Card Data Source**: YGOPRODeck API
+- **Card Data Source**: YGOPRODeck & TCGTracking APIs
 
 ---
 
@@ -43,9 +43,13 @@
   - Search catalog, add (`+ MAIN`, `+ EXTRA`, `+ SIDE`), and remove (`- REMOVE`) cards seamlessly in both landscape and portrait modes.
   - Create decks from scratch (`+ NEW DECK`) or import `.ydk` files.
   - Automatic replace-on-save for decks with duplicate names.
+- 🚫 **Banlist Formats & Legality Badges**: Select between **TCG, OCG, GOAT, and EDISON** formats in the Deck Builder with live legality badges (🔴 `0` Forbidden, 🟡 `1` Limited, 🟠 `2` Semi-Limited).
+- 💎 **Live TCGTracking Set Pricing**: Fetch real-time market and low prices for every expansion printing (`See prices` and batch `Update owned card prices`).
+- 📈 **Price Trend Indicators**: Live price variation badges showing whether market prices increased (`▲ +$2.50 (+20.8%)`) or decreased (`▼ -$1.20 (-8.3%)`) since last update.
+- 💰 **Total Collection Value & Most Expensive Cards**: Real-time monetary collection valuation and top 5 most expensive cards chart.
 - ⭐ **Favorites & 📜 Wanted Cards**: Mark cards as favorites or wanted with instant local SQLite updates and Cloud Firestore sync.
 - 🛍️ **TCGPlayer Direct Search**: Open any card directly in TCGPlayer search with a single tap (`Open in TCGPlayer`).
-- 📊 **Collection Statistics**: Overview of total cards, unique cards, top sets, newest card owned, and oldest card owned.
+- 📊 **Collection Statistics**: Overview of total collection value, total cards, unique cards, top sets, newest card owned, and oldest card owned.
 - 📷 **Camera OCR Scanner**: Scan card set codes using Google ML Kit.
 - ☁️ **Firebase Cloud Sync**: Cross-device sync for inventory, decks, favorites, and wanted cards.
 - 📱 **Adaptive Responsive Layout**: Optimized for mobile phones (portrait/landscape), tablets, and desktop.
