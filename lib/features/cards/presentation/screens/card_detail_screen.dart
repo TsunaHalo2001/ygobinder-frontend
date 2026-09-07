@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:collection/collection.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_detail_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/favorite_providers.dart';
@@ -903,9 +906,29 @@ class _CardInfo extends ConsumerWidget {
         const SizedBox(height: 16),
         _buildInventoryTable(context, ref),
         const SizedBox(height: 24),
+        _buildSeePricesButton(context),
+        const SizedBox(height: 12),
         _buildOpenInTcgPlayerButton(context),
         const SizedBox(height: 32),
       ],
+    );
+  }
+
+  Widget _buildSeePricesButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return ElevatedButton.icon(
+      onPressed: () => _showSeePricesBottomSheet(context, card),
+      icon: const Icon(Icons.price_change_rounded, size: 18),
+      label: const Text(
+        'See prices',
+        style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.black,
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
@@ -944,6 +967,7 @@ class _CardInfo extends ConsumerWidget {
 
   Widget _buildInventoryTable(BuildContext context, WidgetRef ref) {
     final inventoryAsync = ref.watch(cardInventoryProvider(card.id));
+    final db = ref.watch(databaseProvider);
     final theme = Theme.of(context);
 
     return inventoryAsync.when(
@@ -957,80 +981,103 @@ class _CardInfo extends ConsumerWidget {
         }
         final sortedCollectionNumbers = grouped.keys.toList()..sort();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              'INVENTORY',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: foregroundColor.withValues(alpha: 0.6),
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-            // 2. Build a grouped section for each collection
-            ...sortedCollectionNumbers.map((colNum) {
-              final collectionItems = grouped[colNum]!;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: foregroundColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.4),
-                    width: 1.5,
+        return StreamBuilder<List<DriftSetCardPrice>>(
+          stream: db.watchPricesForCard(card.id),
+          builder: (context, snapshot) {
+            final setPricesList = snapshot.data ?? [];
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(),
+                const SizedBox(height: 8),
+                Text(
+                  'INVENTORY',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: foregroundColor.withValues(alpha: 0.6),
+                    letterSpacing: 1.5,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.folder_copy_rounded, size: 16, color: theme.colorScheme.secondary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'COLLECTION #$colNum',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.secondary,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                      ],
+                const SizedBox(height: 12),
+                // 2. Build a grouped section for each collection
+                ...sortedCollectionNumbers.map((colNum) {
+                  final collectionItems = grouped[colNum]!;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: foregroundColor.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.colorScheme.secondary.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(2),
-                        1: FlexColumnWidth(2),
-                        2: IntrinsicColumnWidth(),
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TableRow(
+                        Row(
                           children: [
-                            _tableHeader('SET', theme),
-                            _tableHeader('RARITY', theme),
-                            _tableHeader('QTY', theme),
+                            Icon(Icons.folder_copy_rounded, size: 16, color: theme.colorScheme.secondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'COLLECTION #$colNum',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.secondary,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
                           ],
                         ),
-                        ...collectionItems.map((item) => TableRow(
+                        const SizedBox(height: 4),
+                        Table(
+                          columnWidths: const {
+                            0: FlexColumnWidth(2.2),
+                            1: FlexColumnWidth(2.5),
+                            2: FlexColumnWidth(1.0),
+                            3: FlexColumnWidth(1.8),
+                          },
+                          children: [
+                            TableRow(
                               children: [
-                                _tableCell(item.setCode, theme),
-                                _tableCell(item.rarity, theme),
-                                _tableCell(item.quantity.toString(), theme, textAlign: TextAlign.center),
+                                _tableHeader('SET', theme),
+                                _tableHeader('RARITY', theme),
+                                _tableHeader('QTY', theme, textAlign: TextAlign.center),
+                                _tableHeader('PRICE', theme, textAlign: TextAlign.end),
                               ],
-                            )),
+                            ),
+                            ...collectionItems.map((item) {
+                              final priceString = _getInventoryItemPriceString(item, setPricesList, card);
+                              return TableRow(
+                                children: [
+                                  _tableCell(item.setCode, theme),
+                                  _tableCell(item.rarity, theme),
+                                  _tableCell(item.quantity.toString(), theme, textAlign: TextAlign.center),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                                    child: Text(
+                                      priceString,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: priceString.startsWith('\$') ? Colors.greenAccent : foregroundColor.withValues(alpha: 0.5),
+                                      ),
+                                      textAlign: TextAlign.end,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              );
-            }),
-          ],
+                  );
+                }),
+              ],
+            );
+          },
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -1038,15 +1085,64 @@ class _CardInfo extends ConsumerWidget {
     );
   }
 
-  Widget _tableHeader(String text, ThemeData theme) {
+  String _getInventoryItemPriceString(
+    DriftCollectionItem item,
+    List<DriftSetCardPrice> setPrices,
+    YgoCard card,
+  ) {
+    // 1. Try matching SetCardPrices by setCode or rarity
+    final matchingPrices = setPrices.where((p) {
+      final codeMatch = p.setCode != null &&
+          p.setCode!.trim().toUpperCase() == item.setCode.trim().toUpperCase();
+      final rarityMatch = p.printing.toLowerCase().contains(item.rarity.toLowerCase()) ||
+          item.rarity.toLowerCase().contains(p.printing.toLowerCase());
+      return codeMatch || rarityMatch;
+    }).toList();
+
+    if (matchingPrices.isNotEmpty) {
+      final market = matchingPrices.first.marketPrice ?? matchingPrices.first.lowPrice;
+      if (market != null && market > 0.0) {
+        return '\$${market.toStringAsFixed(2)}';
+      }
+    }
+
+    // 2. Try matching CardSets in YgoCard
+    if (card.cardSets != null) {
+      final matchingCardSet = card.cardSets!.firstWhereOrNull((cs) =>
+          cs.setCode.trim().toUpperCase() == item.setCode.trim().toUpperCase() ||
+          cs.setRarity.toLowerCase().contains(item.rarity.toLowerCase()));
+      if (matchingCardSet != null && matchingCardSet.setPrice != null) {
+        final p = matchingCardSet.setPrice;
+        if (p != null && p > 0.0) {
+          return '\$${p.toStringAsFixed(2)}';
+        }
+      }
+    }
+
+    // 3. Try priceAtPurchase in item
+    if (item.priceAtPurchase != null && item.priceAtPurchase! > 0.0) {
+      return '\$${item.priceAtPurchase!.toStringAsFixed(2)}';
+    }
+
+    // 4. Try global cardPrices in card
+    final globalTcg = card.cardPrices?.firstOrNull?.tcgPlayerPrice;
+    if (globalTcg != null && globalTcg > 0.0) {
+      return '\$${globalTcg.toStringAsFixed(2)}';
+    }
+
+    return 'N/A';
+  }
+
+  Widget _tableHeader(String text, ThemeData theme, {TextAlign textAlign = TextAlign.start}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
       child: Text(
         text,
         style: theme.textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.bold,
           color: foregroundColor.withValues(alpha: 0.5),
         ),
+        textAlign: textAlign,
       ),
     );
   }
@@ -1561,4 +1657,493 @@ class _RemoveCardBottomSheetState extends ConsumerState<_RemoveCardBottomSheet> 
       ),
     );
   }
+}
+
+void _showSeePricesBottomSheet(BuildContext context, YgoCard card) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => _CardPricesBottomSheet(card: card),
+  );
+}
+
+class _CardPricesBottomSheet extends ConsumerStatefulWidget {
+  final YgoCard card;
+
+  const _CardPricesBottomSheet({required this.card});
+
+  @override
+  ConsumerState<_CardPricesBottomSheet> createState() => _CardPricesBottomSheetState();
+}
+
+class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> {
+  int _processedCount = 0;
+  int _totalCount = 0;
+  String _currentStatus = 'Initializing...';
+  bool _isFetching = false;
+  bool _isCancelled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startFetchingPrices();
+    });
+  }
+
+  @override
+  void dispose() {
+    _isCancelled = true;
+    super.dispose();
+  }
+
+  Future<void> _startFetchingPrices() async {
+    if (!mounted || _isFetching) return;
+
+    final db = ref.read(databaseProvider);
+    final dataService = CardDataService();
+
+    final cardSets = widget.card.cardSets ?? [];
+    if (cardSets.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _currentStatus = 'No set printings found for this card.';
+        });
+      }
+      return;
+    }
+
+    // Extract unique base set codes
+    final allSetInfos = await db.getAllSetInfos();
+    final setInfoByAbbr = {
+      for (final info in allSetInfos)
+        if (info.abbreviation != null && info.abbreviation!.isNotEmpty)
+          info.abbreviation!.toUpperCase(): info
+    };
+    final setInfoByName = {
+      for (final info in allSetInfos) info.name.toUpperCase(): info
+    };
+
+    final setTasks = <_CardSetTask>[];
+    final addedSetIds = <int>{};
+
+    for (final cs in cardSets) {
+      final rawCode = cs.setCode.trim();
+      final baseCode = rawCode.contains('-') ? rawCode.split('-').first.toUpperCase() : rawCode.toUpperCase();
+      final setInfo = setInfoByAbbr[baseCode] ?? setInfoByName[cs.setName.toUpperCase()];
+
+      if (setInfo != null && !addedSetIds.contains(setInfo.id)) {
+        addedSetIds.add(setInfo.id);
+        setTasks.add(_CardSetTask(
+          setId: setInfo.id,
+          setCode: cs.setCode,
+          setName: cs.setName,
+          setSymbolUrl: setInfo.setSymbolUrl,
+        ));
+      }
+    }
+
+    if (setTasks.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _currentStatus = 'No set metadata found for card printings.';
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isFetching = true;
+        _totalCount = setTasks.length;
+        _processedCount = 0;
+      });
+    }
+
+    // Clear old price records for this card before fetching fresh prices
+    await db.deleteSetCardPricesForCard(widget.card.id);
+
+    for (var i = 0; i < setTasks.length; i++) {
+      if (!mounted || _isCancelled) break;
+
+      final task = setTasks[i];
+      if (mounted) {
+        setState(() {
+          _processedCount = i + 1;
+          _currentStatus = 'Fetching ${i + 1} of ${setTasks.length}: ${task.setName}...';
+        });
+      }
+
+      try {
+        // Step 2: Query Link 2 (https://openapi.tcgtracking.com/v1/2/sets/{set_id}/cards)
+        final setCards = await dataService.fetchSetCards(task.setId);
+        final matchedProducts = <Map<String, dynamic>>[];
+
+        if (setCards != null && setCards.isNotEmpty) {
+          final cleanTargetCode = task.setCode.trim().toUpperCase();
+          final cleanCardName = widget.card.name.trim().toUpperCase();
+          final normCardName = cleanCardName.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+          final targetPrefix = cleanTargetCode.contains('-') ? cleanTargetCode.split('-').first : cleanTargetCode;
+          final targetDigits = cleanTargetCode.replaceAll(RegExp(r'[^0-9]'), '');
+
+          for (final item in setCards) {
+            final json = item as Map<String, dynamic>;
+            final number = (json['number'] as String?)?.trim().toUpperCase() ?? '';
+            final cleanName = (json['clean_name'] as String?)?.trim().toUpperCase() ??
+                (json['name'] as String?)?.trim().toUpperCase() ?? '';
+            final normApiName = cleanName.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+            final itemPrefix = number.contains('-') ? number.split('-').first : number;
+            final itemDigits = number.replaceAll(RegExp(r'[^0-9]'), '');
+
+            bool isMatch = false;
+
+            // Strategy 1: Exact Set Code Match (e.g. "PGD-070" == "PGD-070")
+            if (number.isNotEmpty && number == cleanTargetCode) {
+              isMatch = true;
+            }
+            // Strategy 2: Exact Prefix & Digits Match (e.g. "PGD-EN070" vs "PGD-070")
+            else if (targetPrefix.isNotEmpty && itemPrefix == targetPrefix && targetDigits.isNotEmpty && itemDigits == targetDigits) {
+              isMatch = true;
+            }
+            // Strategy 3: Name Match AND matching Digits (e.g. "A Cat of Ill Omen" & digits "070" == "070")
+            else if (normApiName == normCardName) {
+              if (targetDigits.isNotEmpty && itemDigits.isNotEmpty) {
+                if (targetDigits == itemDigits) {
+                  isMatch = true;
+                }
+              } else {
+                isMatch = true;
+              }
+            }
+
+            if (isMatch) {
+              matchedProducts.add(json);
+            }
+          }
+        }
+
+        if (mounted && !_isCancelled) {
+          await Future.delayed(const Duration(seconds: 1));
+        }
+
+        // Step 3: Query Link 3 (https://openapi.tcgtracking.com/v1/2/sets/{set_id}/pricing)
+        final pricingData = await dataService.fetchSetPricing(task.setId);
+        if (pricingData != null && mounted) {
+          final setId = pricingData['set_id'] as int? ?? task.setId;
+          final updatedStr = pricingData['updated'] as String? ?? DateTime.now().toIso8601String();
+          final pricesMap = pricingData['prices'] as Map<String, dynamic>?;
+
+          if (pricesMap != null && pricesMap.isNotEmpty) {
+            final companions = <SetCardPricesCompanion>[];
+
+            for (final product in matchedProducts) {
+              final productId = product['id']?.toString();
+              final productRarity = product['rarity'] as String? ?? '';
+
+              if (productId != null && pricesMap.containsKey(productId)) {
+                final cardData = pricesMap[productId] as Map<String, dynamic>?;
+                final tcgData = cardData?['tcg'] as Map<String, dynamic>?;
+
+                if (tcgData != null) {
+                  for (final entry in tcgData.entries) {
+                    final subPrinting = entry.key; // e.g. "Normal", "1st Edition", "Unlimited"
+                    final pMap = entry.value as Map<String, dynamic>?;
+
+                    final low = (pMap?['low'] as num?)?.toDouble();
+                    final market = (pMap?['market'] as num?)?.toDouble();
+
+                    final printingName = productRarity.isNotEmpty
+                        ? (subPrinting == 'Normal' ? productRarity : '$productRarity ($subPrinting)')
+                        : subPrinting;
+
+                    companions.add(
+                      SetCardPricesCompanion.insert(
+                        setId: setId,
+                        cardId: widget.card.id,
+                        setCode: Value(task.setCode),
+                        printing: printingName,
+                        lowPrice: Value(low),
+                        marketPrice: Value(market),
+                        lastUpdated: Value(updatedStr),
+                      ),
+                    );
+                  }
+                }
+              }
+            }
+
+            if (companions.isNotEmpty) {
+              await db.saveSetCardPrices(companions);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching pricing for set ${task.setId}: $e');
+      }
+
+      if (i < setTasks.length - 1 && mounted && !_isCancelled) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isFetching = false;
+        _currentStatus = 'All version prices updated!';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final db = ref.watch(databaseProvider);
+    final cardSets = widget.card.cardSets ?? [];
+
+    return Container(
+      height: MediaQuery.sizeOf(context).height * 0.75,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Icon(Icons.price_change_rounded, color: theme.colorScheme.primary, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'PRINTING PRICES - ${widget.card.name}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                ),
+              ],
+            ),
+          ),
+
+          // Progress Status Bar
+          if (_isFetching || _currentStatus.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: Row(
+                children: [
+                  if (_isFetching)
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                    ),
+                  if (_isFetching) const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _currentStatus,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: _isFetching ? Colors.amber : Colors.greenAccent,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_isFetching && _totalCount > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: LinearProgressIndicator(
+                  value: _processedCount / _totalCount,
+                  backgroundColor: Colors.white10,
+                  valueColor: const AlwaysStoppedAnimation(Colors.amber),
+                  minHeight: 3,
+                ),
+              ),
+          ],
+
+          const Divider(height: 1, color: Colors.white10),
+
+          // Stream of cached prices for this card
+          Expanded(
+            child: StreamBuilder<List<DriftSetCardPrice>>(
+              stream: db.watchPricesForCard(widget.card.id),
+              builder: (context, snapshot) {
+                final pricesList = snapshot.data ?? [];
+
+                if (cardSets.isEmpty) {
+                  return const Center(child: Text('No printings available', style: TextStyle(color: Colors.white38)));
+                }
+
+                // Group cardSets by unique setCode
+                final uniqueSets = <String, Map<String, dynamic>>{};
+                for (final cs in cardSets) {
+                  final code = cs.setCode.trim().toUpperCase();
+                  if (!uniqueSets.containsKey(code)) {
+                    uniqueSets[code] = {
+                      'setCode': cs.setCode,
+                      'setName': cs.setName,
+                      'basePrice': cs.setPrice,
+                    };
+                  }
+                }
+
+                final groupedList = uniqueSets.values.toList();
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: groupedList.length,
+                  separatorBuilder: (context, index) => const Divider(color: Colors.white10),
+                  itemBuilder: (context, index) {
+                    final item = groupedList[index];
+                    final setCode = item['setCode'] as String;
+                    final setName = item['setName'] as String;
+
+                    // Find all prices in SetCardPrices for this set code
+                    final setPrices = pricesList.where((p) => p.setCode?.toUpperCase() == setCode.toUpperCase()).toList();
+
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  setCode,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  setName,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Display all printings & prices for this set code
+                          if (setPrices.isNotEmpty) ...[
+                            ...setPrices.map((p) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        p.printing,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: p.printing.toLowerCase().contains('quarter') ||
+                                                  p.printing.toLowerCase().contains('1st')
+                                              ? Colors.amber
+                                              : Colors.white70,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          if (p.marketPrice != null) ...[
+                                            const Text('Market: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                                            Text(
+                                              '\$${p.marketPrice!.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.greenAccent,
+                                              ),
+                                            ),
+                                          ],
+                                          if (p.lowPrice != null) ...[
+                                            const SizedBox(width: 12),
+                                            const Text('Low: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                                            Text(
+                                              '\$${p.lowPrice!.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                          ] else if (_isFetching) ...[
+                            const Row(
+                              children: [
+                                SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
+                                SizedBox(width: 6),
+                                Text('Fetching prices...', style: TextStyle(fontSize: 11, color: Colors.amber)),
+                              ],
+                            ),
+                          ] else ...[
+                            Text(
+                              item['basePrice'] != null ? '\$${item['basePrice']}' : 'N/A',
+                              style: const TextStyle(fontSize: 13, color: Colors.white54),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardSetTask {
+  final int setId;
+  final String setCode;
+  final String setName;
+  final String? setSymbolUrl;
+
+  _CardSetTask({
+    required this.setId,
+    required this.setCode,
+    required this.setName,
+    this.setSymbolUrl,
+  });
 }

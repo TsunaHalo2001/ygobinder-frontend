@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -158,6 +159,58 @@ class WantedCards extends Table {
   Set<Column> get primaryKey => {cardId};
 }
 
+@DataClassName('DriftSetInfo')
+class SetInfos extends Table {
+  IntColumn get id => integer()();
+  TextColumn get name => text()();
+  TextColumn get abbreviation => text().nullable()();
+  TextColumn get setType => text().nullable()();
+  BoolColumn get isSupplemental => boolean().withDefault(const Constant(false))();
+  TextColumn get publishedOn => text().nullable()();
+  TextColumn get modifiedOn => text().nullable()();
+  IntColumn get productCount => integer().nullable()();
+  IntColumn get skuCount => integer().nullable()();
+  TextColumn get setSymbolUrl => text().nullable()();
+  BoolColumn get setSymbolCached => boolean().withDefault(const Constant(false))();
+  TextColumn get apiUrl => text().nullable()();
+  TextColumn get cardsUrl => text().nullable()();
+  TextColumn get sealedUrl => text().nullable()();
+  TextColumn get pricingUrl => text().nullable()();
+  TextColumn get skusUrl => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('DriftUserOwnedSet')
+class UserOwnedSets extends Table {
+  TextColumn get setCode => text()(); // e.g. "LOB" or "CRBR"
+  TextColumn get setName => text().nullable()(); // e.g. "Legend of Blue Eyes White Dragon"
+  IntColumn get totalCardsOwned => integer().withDefault(const Constant(0))();
+  TextColumn get setSymbolUrl => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {setCode};
+}
+
+@DataClassName('DriftSetCardPrice')
+class SetCardPrices extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get setId => integer()();
+  IntColumn get cardId => integer()();
+  TextColumn get setCode => text().nullable()();
+  TextColumn get printing => text()();
+  RealColumn get lowPrice => real().nullable()();
+  RealColumn get marketPrice => real().nullable()();
+  TextColumn get lastUpdated => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {setId, cardId, printing}
+      ];
+}
+
 // ==========================================
 // DATABASE CLASS
 // ==========================================
@@ -174,12 +227,15 @@ class WantedCards extends Table {
   DeckCards,
   FavoriteCards,
   WantedCards,
+  SetInfos,
+  UserOwnedSets,
+  SetCardPrices,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -231,9 +287,25 @@ class AppDatabase extends _$AppDatabase {
       if (from < 10) {
         await m.createTable(wantedCards);
       }
+      if (from < 11) {
+        await m.createTable(setInfos);
+      }
+      if (from < 12) {
+        await m.createTable(userOwnedSets);
+        // Automatically scan existing collection and populate userOwnedSets for upgrading users!
+        await refreshUserOwnedSets();
+      }
+      if (from < 13) {
+        await m.createTable(setCardPrices);
+      }
+      if (from < 14) {
+        await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+      await customStatement('CREATE INDEX IF NOT EXISTS set_card_prices_card_id_idx ON set_card_prices (card_id)').catchError((_) {});
     },
   );
 
@@ -353,6 +425,7 @@ class AppDatabase extends _$AppDatabase {
           t.collectionNumber.equals(collectionNumber)))
         .getSingleOrNull();
 
+    int resultId;
     if (existing != null) {
       await (update(collectionItems)..where((t) => t.id.equals(existing.id))).write(
         CollectionItemsCompanion(
@@ -360,9 +433,9 @@ class AppDatabase extends _$AppDatabase {
           updatedAt: Value(DateTime.now()),
         ),
       );
-      return existing.id;
+      resultId = existing.id;
     } else {
-      return await into(collectionItems).insert(
+      resultId = await into(collectionItems).insert(
         CollectionItemsCompanion.insert(
           cardId: cardId,
           setCode: setCode,
@@ -374,6 +447,8 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     }
+    await refreshUserOwnedSets();
+    return resultId;
   }
 
   Future<void> removeFromCollection({
@@ -395,10 +470,12 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     }
+    await refreshUserOwnedSets();
   }
 
   Future<void> clearCollection() async {
     await delete(collectionItems).go();
+    await refreshUserOwnedSets();
   }
 
   Future<int> getCollectionSize() async {
@@ -470,6 +547,95 @@ class AppDatabase extends _$AppDatabase {
         );
       }).toList();
     });
+  }
+
+  Stream<List<CardPriceStat>> watchTopExpensiveCards(int limit) {
+    late StreamController<List<CardPriceStat>> controller;
+    StreamSubscription? sub1;
+    StreamSubscription? sub2;
+
+    Future<void> recalculate() async {
+      try {
+        final items = await select(collectionItems).get();
+        if (items.isEmpty) {
+          if (!controller.isClosed) controller.add([]);
+          return;
+        }
+
+        final cardIds = items.map((i) => i.cardId).toSet().toList();
+
+        final driftCards = await (select(cards)..where((t) => t.id.isIn(cardIds))).get();
+        final cardNameById = {for (final c in driftCards) c.id: c.name};
+
+        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+        final globalPriceById = <int, double>{};
+        for (final p in gPrices) {
+          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
+          globalPriceById[p.cardId] = price;
+        }
+
+        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
+        final maxSetPriceById = <int, double>{};
+        for (final sp in sPrices) {
+          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+          final currentMax = maxSetPriceById[sp.cardId] ?? 0.0;
+          if (price > currentMax) {
+            maxSetPriceById[sp.cardId] = price;
+          }
+        }
+
+        final stats = <CardPriceStat>[];
+        for (final cardId in cardIds) {
+          final name = cardNameById[cardId];
+          if (name == null) continue;
+
+          final purchasePrices = items
+              .where((i) => i.cardId == cardId)
+              .map((i) => i.priceAtPurchase ?? 0.0)
+              .where((p) => p > 0.0);
+          final maxPurchasePrice =
+              purchasePrices.isNotEmpty ? purchasePrices.reduce((a, b) => a > b ? a : b) : 0.0;
+
+          final maxSetP = maxSetPriceById[cardId] ?? 0.0;
+          final globalP = globalPriceById[cardId] ?? 0.0;
+
+          // Effective price: setCardPrices -> globalPrice -> purchasePrice
+          double effectivePrice = maxSetP;
+          if (effectivePrice <= 0.0) effectivePrice = globalP;
+          if (effectivePrice <= 0.0) effectivePrice = maxPurchasePrice;
+
+          if (effectivePrice > 0.0) {
+            stats.add(CardPriceStat(
+              cardId: cardId,
+              cardName: name,
+              price: effectivePrice,
+            ));
+          }
+        }
+
+        stats.sort((a, b) => b.price.compareTo(a.price));
+        if (!controller.isClosed) {
+          controller.add(stats.take(limit).toList());
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      }
+    }
+
+    controller = StreamController<List<CardPriceStat>>(
+      onListen: () {
+        recalculate();
+        sub1 = select(collectionItems).watch().listen((_) => recalculate());
+        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
+      },
+      onCancel: () {
+        sub1?.cancel();
+        sub2?.cancel();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   Stream<YgoCard?> watchNewestCard() {
@@ -947,6 +1113,26 @@ class AppDatabase extends _$AppDatabase {
     await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
   }
 
+  // ==========================================
+  // SET INFOS QUERIES
+  // ==========================================
+
+  Future<List<DriftSetInfo>> getAllSetInfos() {
+    return (select(setInfos)..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
+  }
+
+  Stream<List<DriftSetInfo>> watchAllSetInfos() {
+    return (select(setInfos)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+  }
+
+  Future<DriftSetInfo?> getSetInfoByAbbreviation(String abbreviation) {
+    return (select(setInfos)..where((t) => t.abbreviation.equals(abbreviation))).getSingleOrNull();
+  }
+
+  Future<DriftSetInfo?> getSetInfoByName(String name) {
+    return (select(setInfos)..where((t) => t.name.equals(name))).getSingleOrNull();
+  }
+
   Future<void> upsertDeck(String syncId, String name, Map<String, List<int>> categorizedCards, DateTime updatedAt) async {
     await transaction(() async {
       final existing = await (select(decks)..where((t) => t.syncId.equals(syncId))).getSingleOrNull();
@@ -1015,6 +1201,120 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteDeck(int deckId) async {
     await (delete(decks)..where((t) => t.id.equals(deckId))).go();
   }
+
+  // ==========================================
+  // USER OWNED SETS QUERIES
+  // ==========================================
+
+  Stream<List<DriftUserOwnedSet>> watchUserOwnedSets() {
+    return (select(userOwnedSets)..orderBy([(t) => OrderingTerm.desc(t.totalCardsOwned)])).watch();
+  }
+
+  Future<List<DriftUserOwnedSet>> getUserOwnedSets() {
+    return (select(userOwnedSets)..orderBy([(t) => OrderingTerm.desc(t.totalCardsOwned)])).get();
+  }
+
+  Future<void> refreshUserOwnedSets() async {
+    await transaction(() async {
+      final items = await select(collectionItems).get();
+      if (items.isEmpty) {
+        await delete(userOwnedSets).go();
+        return;
+      }
+
+      final ownedSetCounts = <String, int>{};
+      for (final item in items) {
+        final rawSetCode = item.setCode.trim();
+        if (rawSetCode.isEmpty) continue;
+
+        final baseCode = rawSetCode.contains('-') ? rawSetCode.split('-').first.toUpperCase() : rawSetCode.toUpperCase();
+        ownedSetCounts[baseCode] = (ownedSetCounts[baseCode] ?? 0) + item.quantity;
+      }
+
+      if (ownedSetCounts.isEmpty) {
+        await delete(userOwnedSets).go();
+        return;
+      }
+
+      final allSetInfos = await select(setInfos).get();
+      final setInfoByAbbr = {
+        for (final info in allSetInfos)
+          if (info.abbreviation != null && info.abbreviation!.isNotEmpty)
+            info.abbreviation!.toUpperCase(): info
+      };
+      final setInfoByName = {
+        for (final info in allSetInfos) info.name.toUpperCase(): info
+      };
+
+      final allCardSets = await select(cardSets).get();
+      final setNameByAbbr = <String, String>{};
+      for (final cs in allCardSets) {
+        final baseCode = cs.setCode.contains('-') ? cs.setCode.split('-').first.toUpperCase() : cs.setCode.toUpperCase();
+        setNameByAbbr.putIfAbsent(baseCode, () => cs.setName);
+      }
+
+      final companions = <UserOwnedSetsCompanion>[];
+      final now = DateTime.now();
+
+      for (final entry in ownedSetCounts.entries) {
+        final baseCode = entry.key;
+        final totalOwned = entry.value;
+
+        final setInfo = setInfoByAbbr[baseCode] ??
+            setInfoByName[setNameByAbbr[baseCode]?.toUpperCase() ?? ''];
+
+        final name = setInfo?.name ?? setNameByAbbr[baseCode] ?? baseCode;
+        final symbolUrl = setInfo?.setSymbolUrl;
+
+        companions.add(
+          UserOwnedSetsCompanion.insert(
+            setCode: baseCode,
+            setName: Value(name),
+            totalCardsOwned: Value(totalOwned),
+            setSymbolUrl: Value(symbolUrl),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+
+      await delete(userOwnedSets).go();
+      await batch((b) {
+        b.insertAll(userOwnedSets, companions, mode: InsertMode.insertOrReplace);
+      });
+    });
+  }
+
+  // ==========================================
+  // SET CARD PRICES QUERIES
+  // ==========================================
+
+  Future<void> deleteSetCardPricesForCard(int cardId) async {
+    await (delete(setCardPrices)..where((t) => t.cardId.equals(cardId))).go();
+  }
+
+  Future<void> saveSetCardPrices(List<SetCardPricesCompanion> prices) async {
+    try {
+      await batch((b) {
+        b.insertAll(setCardPrices, prices, mode: InsertMode.insertOrReplace);
+      });
+    } catch (e) {
+      // Self-heal: ensure set_code column exists on live connections without requiring app restart
+      await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+      await batch((b) {
+        b.insertAll(setCardPrices, prices, mode: InsertMode.insertOrReplace);
+      });
+    }
+  }
+
+  Future<List<DriftSetCardPrice>> getPricesForSetAndCard(int setId, int cardId) {
+    return (select(setCardPrices)
+          ..where((t) => t.setId.equals(setId) & t.cardId.equals(cardId)))
+        .get();
+  }
+
+  Stream<List<DriftSetCardPrice>> watchPricesForCard(int cardId) {
+    return (select(setCardPrices)..where((t) => t.cardId.equals(cardId))).watch();
+  }
 }
 
 // ==========================================
@@ -1062,5 +1362,17 @@ class CardStat {
   CardStat({
     required this.cardName,
     required this.count,
+  });
+}
+
+class CardPriceStat {
+  final int cardId;
+  final String cardName;
+  final double price;
+
+  CardPriceStat({
+    required this.cardId,
+    required this.cardName,
+    required this.price,
   });
 }

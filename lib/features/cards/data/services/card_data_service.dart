@@ -1,6 +1,13 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 
+class RawApiCacheData {
+  final List<dynamic> cards;
+  final List<dynamic> sets;
+
+  RawApiCacheData({required this.cards, required this.sets});
+}
+
 class CardDataService {
   static const String cacheUrl =
       'https://raw.githubusercontent.com/TsunaHalo2001/ygobinder/refs/heads/master/assets/json/ygo_api_cache.json';
@@ -12,7 +19,7 @@ class CardDataService {
     receiveTimeout: const Duration(seconds: 30),
   ));
 
-  Future<List<dynamic>> fetchRawCardData({
+  Future<RawApiCacheData> fetchRawCardData({
     void Function(int received, int total)? onProgress,
   }) async {
     try {
@@ -24,19 +31,12 @@ class CardDataService {
       if (response.statusCode == 200 && response.data != null) {
         final decoded = jsonDecode(response.data!);
 
-        if (decoded is List) {
-          return decoded;
-        } else if (decoded is Map<String, dynamic>) {
-          if (decoded.containsKey('data') && decoded['data'] is List) {
-            return decoded['data'] as List<dynamic>;
-          }
-          if (decoded.containsKey('cards') && decoded['cards'] is List) {
-            return decoded['cards'] as List<dynamic>;
-          }
-          if (decoded.containsKey('results') && decoded['results'] is List) {
-            return decoded['results'] as List<dynamic>;
-          }
-          throw Exception('Unexpected JSON structure: "data" key not found or not a list.');
+        if (decoded is Map<String, dynamic>) {
+          final cards = (decoded['data'] ?? decoded['cards'] ?? decoded['results']) as List<dynamic>? ?? [];
+          final sets = (decoded['sets']) as List<dynamic>? ?? [];
+          return RawApiCacheData(cards: cards, sets: sets);
+        } else if (decoded is List) {
+          return RawApiCacheData(cards: decoded, sets: []);
         }
 
         throw Exception('Unexpected JSON structure: Expected a list or a map.');
@@ -55,5 +55,57 @@ class CardDataService {
     catch (e) {
       throw Exception('Unexpected error while fetching card data: $e');
     }
+  }
+
+  Future<List<dynamic>?> fetchSetCards(int setId) async {
+    final url = 'https://openapi.tcgtracking.com/v1/2/sets/$setId/cards';
+    try {
+      final response = await _dio.get<dynamic>(url);
+      if (response.statusCode == 200 && response.data != null) {
+        dynamic data = response.data;
+        if (data is String) {
+          data = jsonDecode(data);
+        }
+
+        if (data is List) {
+          return data;
+        } else if (data is Map<String, dynamic>) {
+          if (data.containsKey('data') && data['data'] is List) {
+            return data['data'] as List<dynamic>;
+          }
+          if (data.containsKey('cards') && data['cards'] is List) {
+            return data['cards'] as List<dynamic>;
+          }
+          if (data.containsKey('results') && data['results'] is List) {
+            return data['results'] as List<dynamic>;
+          }
+          if (data.containsKey('products') && data['products'] is List) {
+            return data['products'] as List<dynamic>;
+          }
+        }
+      }
+    } catch (e) {
+      // Suppress error
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> fetchSetPricing(int setId) async {
+    final url = 'https://openapi.tcgtracking.com/v1/2/sets/$setId/pricing';
+    try {
+      final response = await _dio.get<dynamic>(url);
+      if (response.statusCode == 200 && response.data != null) {
+        dynamic data = response.data;
+        if (data is String) {
+          data = jsonDecode(data);
+        }
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+      }
+    } catch (e) {
+      // Suppress individual set error to allow batch to continue
+    }
+    return null;
   }
 }

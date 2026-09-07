@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
+import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -39,6 +41,125 @@ class OptionsTab extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showUpdateOwnedPricesDialog(BuildContext context, WidgetRef ref) {
+    var processed = 0;
+    var total = 0;
+    var currentSetName = 'Initializing...';
+    var isCancelled = false;
+    var isCompleted = false;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            if (processed == 0 && !isCancelled && errorMessage == null && !isCompleted) {
+              final repo = ref.read(cardRepositoryProvider);
+              repo.updateOwnedSetCardPrices(
+                onProgress: (p, t, setName) {
+                  setDialogState(() {
+                    processed = p;
+                    total = t;
+                    currentSetName = setName;
+                  });
+                },
+                isCancelled: () => isCancelled,
+              ).then((_) {
+                setDialogState(() {
+                  isCompleted = true;
+                });
+              }).catchError((e) {
+                setDialogState(() {
+                  errorMessage = e.toString().replaceAll('Exception: ', '');
+                });
+              });
+            }
+
+            final progressRatio = total > 0 ? (processed / total).clamp(0.0, 1.0) : 0.0;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Icon(
+                    isCompleted
+                        ? Icons.check_circle_rounded
+                        : (errorMessage != null ? Icons.error_rounded : Icons.price_change_rounded),
+                    color: isCompleted
+                        ? Colors.greenAccent
+                        : (errorMessage != null ? Colors.redAccent : Colors.amber),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isCompleted
+                          ? 'Prices Updated!'
+                          : (errorMessage != null ? 'Update Failed' : 'Updating Prices...'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (errorMessage != null)
+                    Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                    )
+                  else if (isCompleted)
+                    Text(
+                      'Successfully updated prices for $total owned sets!',
+                      style: const TextStyle(fontSize: 13),
+                    )
+                  else ...[
+                    Text(
+                      'Processing set $processed of $total',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      currentSetName,
+                      style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: progressRatio,
+                      backgroundColor: Colors.white10,
+                      valueColor: const AlwaysStoppedAnimation(Colors.amber),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                if (!isCompleted && errorMessage == null)
+                  TextButton(
+                    onPressed: () {
+                      isCancelled = true;
+                      Navigator.pop(context);
+                    },
+                    child: const Text('CANCEL'),
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CLOSE'),
+                  ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -181,6 +302,19 @@ class OptionsTab extends ConsumerWidget {
             ),
             tileColor: Colors.white.withValues(alpha: 0.05),
             onTap: () => _showSyncConfirmation(context),
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.price_change_rounded, color: Colors.greenAccent),
+            title: const Text('Update owned card prices'),
+            subtitle: const Text('Download latest set pricing for sets in your collection (1 set/sec).'),
+            trailing: const Icon(Icons.chevron_right),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            tileColor: Colors.white.withValues(alpha: 0.05),
+            onTap: () => _showUpdateOwnedPricesDialog(context, ref),
           ),
 
           const SizedBox(height: 32),

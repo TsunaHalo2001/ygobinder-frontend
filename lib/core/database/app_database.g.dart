@@ -5092,6 +5092,1826 @@ class WantedCardsCompanion extends UpdateCompanion<DriftWantedCard> {
   }
 }
 
+class $SetInfosTable extends SetInfos
+    with TableInfo<$SetInfosTable, DriftSetInfo> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SetInfosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _abbreviationMeta = const VerificationMeta(
+    'abbreviation',
+  );
+  @override
+  late final GeneratedColumn<String> abbreviation = GeneratedColumn<String>(
+    'abbreviation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _setTypeMeta = const VerificationMeta(
+    'setType',
+  );
+  @override
+  late final GeneratedColumn<String> setType = GeneratedColumn<String>(
+    'set_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isSupplementalMeta = const VerificationMeta(
+    'isSupplemental',
+  );
+  @override
+  late final GeneratedColumn<bool> isSupplemental = GeneratedColumn<bool>(
+    'is_supplemental',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_supplemental" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _publishedOnMeta = const VerificationMeta(
+    'publishedOn',
+  );
+  @override
+  late final GeneratedColumn<String> publishedOn = GeneratedColumn<String>(
+    'published_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modifiedOnMeta = const VerificationMeta(
+    'modifiedOn',
+  );
+  @override
+  late final GeneratedColumn<String> modifiedOn = GeneratedColumn<String>(
+    'modified_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _productCountMeta = const VerificationMeta(
+    'productCount',
+  );
+  @override
+  late final GeneratedColumn<int> productCount = GeneratedColumn<int>(
+    'product_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _skuCountMeta = const VerificationMeta(
+    'skuCount',
+  );
+  @override
+  late final GeneratedColumn<int> skuCount = GeneratedColumn<int>(
+    'sku_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _setSymbolUrlMeta = const VerificationMeta(
+    'setSymbolUrl',
+  );
+  @override
+  late final GeneratedColumn<String> setSymbolUrl = GeneratedColumn<String>(
+    'set_symbol_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _setSymbolCachedMeta = const VerificationMeta(
+    'setSymbolCached',
+  );
+  @override
+  late final GeneratedColumn<bool> setSymbolCached = GeneratedColumn<bool>(
+    'set_symbol_cached',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("set_symbol_cached" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _apiUrlMeta = const VerificationMeta('apiUrl');
+  @override
+  late final GeneratedColumn<String> apiUrl = GeneratedColumn<String>(
+    'api_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cardsUrlMeta = const VerificationMeta(
+    'cardsUrl',
+  );
+  @override
+  late final GeneratedColumn<String> cardsUrl = GeneratedColumn<String>(
+    'cards_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sealedUrlMeta = const VerificationMeta(
+    'sealedUrl',
+  );
+  @override
+  late final GeneratedColumn<String> sealedUrl = GeneratedColumn<String>(
+    'sealed_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pricingUrlMeta = const VerificationMeta(
+    'pricingUrl',
+  );
+  @override
+  late final GeneratedColumn<String> pricingUrl = GeneratedColumn<String>(
+    'pricing_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _skusUrlMeta = const VerificationMeta(
+    'skusUrl',
+  );
+  @override
+  late final GeneratedColumn<String> skusUrl = GeneratedColumn<String>(
+    'skus_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    abbreviation,
+    setType,
+    isSupplemental,
+    publishedOn,
+    modifiedOn,
+    productCount,
+    skuCount,
+    setSymbolUrl,
+    setSymbolCached,
+    apiUrl,
+    cardsUrl,
+    sealedUrl,
+    pricingUrl,
+    skusUrl,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'set_infos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftSetInfo> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('abbreviation')) {
+      context.handle(
+        _abbreviationMeta,
+        abbreviation.isAcceptableOrUnknown(
+          data['abbreviation']!,
+          _abbreviationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('set_type')) {
+      context.handle(
+        _setTypeMeta,
+        setType.isAcceptableOrUnknown(data['set_type']!, _setTypeMeta),
+      );
+    }
+    if (data.containsKey('is_supplemental')) {
+      context.handle(
+        _isSupplementalMeta,
+        isSupplemental.isAcceptableOrUnknown(
+          data['is_supplemental']!,
+          _isSupplementalMeta,
+        ),
+      );
+    }
+    if (data.containsKey('published_on')) {
+      context.handle(
+        _publishedOnMeta,
+        publishedOn.isAcceptableOrUnknown(
+          data['published_on']!,
+          _publishedOnMeta,
+        ),
+      );
+    }
+    if (data.containsKey('modified_on')) {
+      context.handle(
+        _modifiedOnMeta,
+        modifiedOn.isAcceptableOrUnknown(data['modified_on']!, _modifiedOnMeta),
+      );
+    }
+    if (data.containsKey('product_count')) {
+      context.handle(
+        _productCountMeta,
+        productCount.isAcceptableOrUnknown(
+          data['product_count']!,
+          _productCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sku_count')) {
+      context.handle(
+        _skuCountMeta,
+        skuCount.isAcceptableOrUnknown(data['sku_count']!, _skuCountMeta),
+      );
+    }
+    if (data.containsKey('set_symbol_url')) {
+      context.handle(
+        _setSymbolUrlMeta,
+        setSymbolUrl.isAcceptableOrUnknown(
+          data['set_symbol_url']!,
+          _setSymbolUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('set_symbol_cached')) {
+      context.handle(
+        _setSymbolCachedMeta,
+        setSymbolCached.isAcceptableOrUnknown(
+          data['set_symbol_cached']!,
+          _setSymbolCachedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('api_url')) {
+      context.handle(
+        _apiUrlMeta,
+        apiUrl.isAcceptableOrUnknown(data['api_url']!, _apiUrlMeta),
+      );
+    }
+    if (data.containsKey('cards_url')) {
+      context.handle(
+        _cardsUrlMeta,
+        cardsUrl.isAcceptableOrUnknown(data['cards_url']!, _cardsUrlMeta),
+      );
+    }
+    if (data.containsKey('sealed_url')) {
+      context.handle(
+        _sealedUrlMeta,
+        sealedUrl.isAcceptableOrUnknown(data['sealed_url']!, _sealedUrlMeta),
+      );
+    }
+    if (data.containsKey('pricing_url')) {
+      context.handle(
+        _pricingUrlMeta,
+        pricingUrl.isAcceptableOrUnknown(data['pricing_url']!, _pricingUrlMeta),
+      );
+    }
+    if (data.containsKey('skus_url')) {
+      context.handle(
+        _skusUrlMeta,
+        skusUrl.isAcceptableOrUnknown(data['skus_url']!, _skusUrlMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftSetInfo map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftSetInfo(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      abbreviation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}abbreviation'],
+      ),
+      setType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_type'],
+      ),
+      isSupplemental: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_supplemental'],
+      )!,
+      publishedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}published_on'],
+      ),
+      modifiedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}modified_on'],
+      ),
+      productCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}product_count'],
+      ),
+      skuCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sku_count'],
+      ),
+      setSymbolUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_symbol_url'],
+      ),
+      setSymbolCached: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}set_symbol_cached'],
+      )!,
+      apiUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_url'],
+      ),
+      cardsUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cards_url'],
+      ),
+      sealedUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sealed_url'],
+      ),
+      pricingUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pricing_url'],
+      ),
+      skusUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}skus_url'],
+      ),
+    );
+  }
+
+  @override
+  $SetInfosTable createAlias(String alias) {
+    return $SetInfosTable(attachedDatabase, alias);
+  }
+}
+
+class DriftSetInfo extends DataClass implements Insertable<DriftSetInfo> {
+  final int id;
+  final String name;
+  final String? abbreviation;
+  final String? setType;
+  final bool isSupplemental;
+  final String? publishedOn;
+  final String? modifiedOn;
+  final int? productCount;
+  final int? skuCount;
+  final String? setSymbolUrl;
+  final bool setSymbolCached;
+  final String? apiUrl;
+  final String? cardsUrl;
+  final String? sealedUrl;
+  final String? pricingUrl;
+  final String? skusUrl;
+  const DriftSetInfo({
+    required this.id,
+    required this.name,
+    this.abbreviation,
+    this.setType,
+    required this.isSupplemental,
+    this.publishedOn,
+    this.modifiedOn,
+    this.productCount,
+    this.skuCount,
+    this.setSymbolUrl,
+    required this.setSymbolCached,
+    this.apiUrl,
+    this.cardsUrl,
+    this.sealedUrl,
+    this.pricingUrl,
+    this.skusUrl,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || abbreviation != null) {
+      map['abbreviation'] = Variable<String>(abbreviation);
+    }
+    if (!nullToAbsent || setType != null) {
+      map['set_type'] = Variable<String>(setType);
+    }
+    map['is_supplemental'] = Variable<bool>(isSupplemental);
+    if (!nullToAbsent || publishedOn != null) {
+      map['published_on'] = Variable<String>(publishedOn);
+    }
+    if (!nullToAbsent || modifiedOn != null) {
+      map['modified_on'] = Variable<String>(modifiedOn);
+    }
+    if (!nullToAbsent || productCount != null) {
+      map['product_count'] = Variable<int>(productCount);
+    }
+    if (!nullToAbsent || skuCount != null) {
+      map['sku_count'] = Variable<int>(skuCount);
+    }
+    if (!nullToAbsent || setSymbolUrl != null) {
+      map['set_symbol_url'] = Variable<String>(setSymbolUrl);
+    }
+    map['set_symbol_cached'] = Variable<bool>(setSymbolCached);
+    if (!nullToAbsent || apiUrl != null) {
+      map['api_url'] = Variable<String>(apiUrl);
+    }
+    if (!nullToAbsent || cardsUrl != null) {
+      map['cards_url'] = Variable<String>(cardsUrl);
+    }
+    if (!nullToAbsent || sealedUrl != null) {
+      map['sealed_url'] = Variable<String>(sealedUrl);
+    }
+    if (!nullToAbsent || pricingUrl != null) {
+      map['pricing_url'] = Variable<String>(pricingUrl);
+    }
+    if (!nullToAbsent || skusUrl != null) {
+      map['skus_url'] = Variable<String>(skusUrl);
+    }
+    return map;
+  }
+
+  SetInfosCompanion toCompanion(bool nullToAbsent) {
+    return SetInfosCompanion(
+      id: Value(id),
+      name: Value(name),
+      abbreviation: abbreviation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(abbreviation),
+      setType: setType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(setType),
+      isSupplemental: Value(isSupplemental),
+      publishedOn: publishedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedOn),
+      modifiedOn: modifiedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modifiedOn),
+      productCount: productCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productCount),
+      skuCount: skuCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(skuCount),
+      setSymbolUrl: setSymbolUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(setSymbolUrl),
+      setSymbolCached: Value(setSymbolCached),
+      apiUrl: apiUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(apiUrl),
+      cardsUrl: cardsUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cardsUrl),
+      sealedUrl: sealedUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sealedUrl),
+      pricingUrl: pricingUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pricingUrl),
+      skusUrl: skusUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(skusUrl),
+    );
+  }
+
+  factory DriftSetInfo.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftSetInfo(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      abbreviation: serializer.fromJson<String?>(json['abbreviation']),
+      setType: serializer.fromJson<String?>(json['setType']),
+      isSupplemental: serializer.fromJson<bool>(json['isSupplemental']),
+      publishedOn: serializer.fromJson<String?>(json['publishedOn']),
+      modifiedOn: serializer.fromJson<String?>(json['modifiedOn']),
+      productCount: serializer.fromJson<int?>(json['productCount']),
+      skuCount: serializer.fromJson<int?>(json['skuCount']),
+      setSymbolUrl: serializer.fromJson<String?>(json['setSymbolUrl']),
+      setSymbolCached: serializer.fromJson<bool>(json['setSymbolCached']),
+      apiUrl: serializer.fromJson<String?>(json['apiUrl']),
+      cardsUrl: serializer.fromJson<String?>(json['cardsUrl']),
+      sealedUrl: serializer.fromJson<String?>(json['sealedUrl']),
+      pricingUrl: serializer.fromJson<String?>(json['pricingUrl']),
+      skusUrl: serializer.fromJson<String?>(json['skusUrl']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'abbreviation': serializer.toJson<String?>(abbreviation),
+      'setType': serializer.toJson<String?>(setType),
+      'isSupplemental': serializer.toJson<bool>(isSupplemental),
+      'publishedOn': serializer.toJson<String?>(publishedOn),
+      'modifiedOn': serializer.toJson<String?>(modifiedOn),
+      'productCount': serializer.toJson<int?>(productCount),
+      'skuCount': serializer.toJson<int?>(skuCount),
+      'setSymbolUrl': serializer.toJson<String?>(setSymbolUrl),
+      'setSymbolCached': serializer.toJson<bool>(setSymbolCached),
+      'apiUrl': serializer.toJson<String?>(apiUrl),
+      'cardsUrl': serializer.toJson<String?>(cardsUrl),
+      'sealedUrl': serializer.toJson<String?>(sealedUrl),
+      'pricingUrl': serializer.toJson<String?>(pricingUrl),
+      'skusUrl': serializer.toJson<String?>(skusUrl),
+    };
+  }
+
+  DriftSetInfo copyWith({
+    int? id,
+    String? name,
+    Value<String?> abbreviation = const Value.absent(),
+    Value<String?> setType = const Value.absent(),
+    bool? isSupplemental,
+    Value<String?> publishedOn = const Value.absent(),
+    Value<String?> modifiedOn = const Value.absent(),
+    Value<int?> productCount = const Value.absent(),
+    Value<int?> skuCount = const Value.absent(),
+    Value<String?> setSymbolUrl = const Value.absent(),
+    bool? setSymbolCached,
+    Value<String?> apiUrl = const Value.absent(),
+    Value<String?> cardsUrl = const Value.absent(),
+    Value<String?> sealedUrl = const Value.absent(),
+    Value<String?> pricingUrl = const Value.absent(),
+    Value<String?> skusUrl = const Value.absent(),
+  }) => DriftSetInfo(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    abbreviation: abbreviation.present ? abbreviation.value : this.abbreviation,
+    setType: setType.present ? setType.value : this.setType,
+    isSupplemental: isSupplemental ?? this.isSupplemental,
+    publishedOn: publishedOn.present ? publishedOn.value : this.publishedOn,
+    modifiedOn: modifiedOn.present ? modifiedOn.value : this.modifiedOn,
+    productCount: productCount.present ? productCount.value : this.productCount,
+    skuCount: skuCount.present ? skuCount.value : this.skuCount,
+    setSymbolUrl: setSymbolUrl.present ? setSymbolUrl.value : this.setSymbolUrl,
+    setSymbolCached: setSymbolCached ?? this.setSymbolCached,
+    apiUrl: apiUrl.present ? apiUrl.value : this.apiUrl,
+    cardsUrl: cardsUrl.present ? cardsUrl.value : this.cardsUrl,
+    sealedUrl: sealedUrl.present ? sealedUrl.value : this.sealedUrl,
+    pricingUrl: pricingUrl.present ? pricingUrl.value : this.pricingUrl,
+    skusUrl: skusUrl.present ? skusUrl.value : this.skusUrl,
+  );
+  DriftSetInfo copyWithCompanion(SetInfosCompanion data) {
+    return DriftSetInfo(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      abbreviation: data.abbreviation.present
+          ? data.abbreviation.value
+          : this.abbreviation,
+      setType: data.setType.present ? data.setType.value : this.setType,
+      isSupplemental: data.isSupplemental.present
+          ? data.isSupplemental.value
+          : this.isSupplemental,
+      publishedOn: data.publishedOn.present
+          ? data.publishedOn.value
+          : this.publishedOn,
+      modifiedOn: data.modifiedOn.present
+          ? data.modifiedOn.value
+          : this.modifiedOn,
+      productCount: data.productCount.present
+          ? data.productCount.value
+          : this.productCount,
+      skuCount: data.skuCount.present ? data.skuCount.value : this.skuCount,
+      setSymbolUrl: data.setSymbolUrl.present
+          ? data.setSymbolUrl.value
+          : this.setSymbolUrl,
+      setSymbolCached: data.setSymbolCached.present
+          ? data.setSymbolCached.value
+          : this.setSymbolCached,
+      apiUrl: data.apiUrl.present ? data.apiUrl.value : this.apiUrl,
+      cardsUrl: data.cardsUrl.present ? data.cardsUrl.value : this.cardsUrl,
+      sealedUrl: data.sealedUrl.present ? data.sealedUrl.value : this.sealedUrl,
+      pricingUrl: data.pricingUrl.present
+          ? data.pricingUrl.value
+          : this.pricingUrl,
+      skusUrl: data.skusUrl.present ? data.skusUrl.value : this.skusUrl,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftSetInfo(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('abbreviation: $abbreviation, ')
+          ..write('setType: $setType, ')
+          ..write('isSupplemental: $isSupplemental, ')
+          ..write('publishedOn: $publishedOn, ')
+          ..write('modifiedOn: $modifiedOn, ')
+          ..write('productCount: $productCount, ')
+          ..write('skuCount: $skuCount, ')
+          ..write('setSymbolUrl: $setSymbolUrl, ')
+          ..write('setSymbolCached: $setSymbolCached, ')
+          ..write('apiUrl: $apiUrl, ')
+          ..write('cardsUrl: $cardsUrl, ')
+          ..write('sealedUrl: $sealedUrl, ')
+          ..write('pricingUrl: $pricingUrl, ')
+          ..write('skusUrl: $skusUrl')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    abbreviation,
+    setType,
+    isSupplemental,
+    publishedOn,
+    modifiedOn,
+    productCount,
+    skuCount,
+    setSymbolUrl,
+    setSymbolCached,
+    apiUrl,
+    cardsUrl,
+    sealedUrl,
+    pricingUrl,
+    skusUrl,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftSetInfo &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.abbreviation == this.abbreviation &&
+          other.setType == this.setType &&
+          other.isSupplemental == this.isSupplemental &&
+          other.publishedOn == this.publishedOn &&
+          other.modifiedOn == this.modifiedOn &&
+          other.productCount == this.productCount &&
+          other.skuCount == this.skuCount &&
+          other.setSymbolUrl == this.setSymbolUrl &&
+          other.setSymbolCached == this.setSymbolCached &&
+          other.apiUrl == this.apiUrl &&
+          other.cardsUrl == this.cardsUrl &&
+          other.sealedUrl == this.sealedUrl &&
+          other.pricingUrl == this.pricingUrl &&
+          other.skusUrl == this.skusUrl);
+}
+
+class SetInfosCompanion extends UpdateCompanion<DriftSetInfo> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String?> abbreviation;
+  final Value<String?> setType;
+  final Value<bool> isSupplemental;
+  final Value<String?> publishedOn;
+  final Value<String?> modifiedOn;
+  final Value<int?> productCount;
+  final Value<int?> skuCount;
+  final Value<String?> setSymbolUrl;
+  final Value<bool> setSymbolCached;
+  final Value<String?> apiUrl;
+  final Value<String?> cardsUrl;
+  final Value<String?> sealedUrl;
+  final Value<String?> pricingUrl;
+  final Value<String?> skusUrl;
+  const SetInfosCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.abbreviation = const Value.absent(),
+    this.setType = const Value.absent(),
+    this.isSupplemental = const Value.absent(),
+    this.publishedOn = const Value.absent(),
+    this.modifiedOn = const Value.absent(),
+    this.productCount = const Value.absent(),
+    this.skuCount = const Value.absent(),
+    this.setSymbolUrl = const Value.absent(),
+    this.setSymbolCached = const Value.absent(),
+    this.apiUrl = const Value.absent(),
+    this.cardsUrl = const Value.absent(),
+    this.sealedUrl = const Value.absent(),
+    this.pricingUrl = const Value.absent(),
+    this.skusUrl = const Value.absent(),
+  });
+  SetInfosCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.abbreviation = const Value.absent(),
+    this.setType = const Value.absent(),
+    this.isSupplemental = const Value.absent(),
+    this.publishedOn = const Value.absent(),
+    this.modifiedOn = const Value.absent(),
+    this.productCount = const Value.absent(),
+    this.skuCount = const Value.absent(),
+    this.setSymbolUrl = const Value.absent(),
+    this.setSymbolCached = const Value.absent(),
+    this.apiUrl = const Value.absent(),
+    this.cardsUrl = const Value.absent(),
+    this.sealedUrl = const Value.absent(),
+    this.pricingUrl = const Value.absent(),
+    this.skusUrl = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<DriftSetInfo> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? abbreviation,
+    Expression<String>? setType,
+    Expression<bool>? isSupplemental,
+    Expression<String>? publishedOn,
+    Expression<String>? modifiedOn,
+    Expression<int>? productCount,
+    Expression<int>? skuCount,
+    Expression<String>? setSymbolUrl,
+    Expression<bool>? setSymbolCached,
+    Expression<String>? apiUrl,
+    Expression<String>? cardsUrl,
+    Expression<String>? sealedUrl,
+    Expression<String>? pricingUrl,
+    Expression<String>? skusUrl,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (abbreviation != null) 'abbreviation': abbreviation,
+      if (setType != null) 'set_type': setType,
+      if (isSupplemental != null) 'is_supplemental': isSupplemental,
+      if (publishedOn != null) 'published_on': publishedOn,
+      if (modifiedOn != null) 'modified_on': modifiedOn,
+      if (productCount != null) 'product_count': productCount,
+      if (skuCount != null) 'sku_count': skuCount,
+      if (setSymbolUrl != null) 'set_symbol_url': setSymbolUrl,
+      if (setSymbolCached != null) 'set_symbol_cached': setSymbolCached,
+      if (apiUrl != null) 'api_url': apiUrl,
+      if (cardsUrl != null) 'cards_url': cardsUrl,
+      if (sealedUrl != null) 'sealed_url': sealedUrl,
+      if (pricingUrl != null) 'pricing_url': pricingUrl,
+      if (skusUrl != null) 'skus_url': skusUrl,
+    });
+  }
+
+  SetInfosCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String?>? abbreviation,
+    Value<String?>? setType,
+    Value<bool>? isSupplemental,
+    Value<String?>? publishedOn,
+    Value<String?>? modifiedOn,
+    Value<int?>? productCount,
+    Value<int?>? skuCount,
+    Value<String?>? setSymbolUrl,
+    Value<bool>? setSymbolCached,
+    Value<String?>? apiUrl,
+    Value<String?>? cardsUrl,
+    Value<String?>? sealedUrl,
+    Value<String?>? pricingUrl,
+    Value<String?>? skusUrl,
+  }) {
+    return SetInfosCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      abbreviation: abbreviation ?? this.abbreviation,
+      setType: setType ?? this.setType,
+      isSupplemental: isSupplemental ?? this.isSupplemental,
+      publishedOn: publishedOn ?? this.publishedOn,
+      modifiedOn: modifiedOn ?? this.modifiedOn,
+      productCount: productCount ?? this.productCount,
+      skuCount: skuCount ?? this.skuCount,
+      setSymbolUrl: setSymbolUrl ?? this.setSymbolUrl,
+      setSymbolCached: setSymbolCached ?? this.setSymbolCached,
+      apiUrl: apiUrl ?? this.apiUrl,
+      cardsUrl: cardsUrl ?? this.cardsUrl,
+      sealedUrl: sealedUrl ?? this.sealedUrl,
+      pricingUrl: pricingUrl ?? this.pricingUrl,
+      skusUrl: skusUrl ?? this.skusUrl,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (abbreviation.present) {
+      map['abbreviation'] = Variable<String>(abbreviation.value);
+    }
+    if (setType.present) {
+      map['set_type'] = Variable<String>(setType.value);
+    }
+    if (isSupplemental.present) {
+      map['is_supplemental'] = Variable<bool>(isSupplemental.value);
+    }
+    if (publishedOn.present) {
+      map['published_on'] = Variable<String>(publishedOn.value);
+    }
+    if (modifiedOn.present) {
+      map['modified_on'] = Variable<String>(modifiedOn.value);
+    }
+    if (productCount.present) {
+      map['product_count'] = Variable<int>(productCount.value);
+    }
+    if (skuCount.present) {
+      map['sku_count'] = Variable<int>(skuCount.value);
+    }
+    if (setSymbolUrl.present) {
+      map['set_symbol_url'] = Variable<String>(setSymbolUrl.value);
+    }
+    if (setSymbolCached.present) {
+      map['set_symbol_cached'] = Variable<bool>(setSymbolCached.value);
+    }
+    if (apiUrl.present) {
+      map['api_url'] = Variable<String>(apiUrl.value);
+    }
+    if (cardsUrl.present) {
+      map['cards_url'] = Variable<String>(cardsUrl.value);
+    }
+    if (sealedUrl.present) {
+      map['sealed_url'] = Variable<String>(sealedUrl.value);
+    }
+    if (pricingUrl.present) {
+      map['pricing_url'] = Variable<String>(pricingUrl.value);
+    }
+    if (skusUrl.present) {
+      map['skus_url'] = Variable<String>(skusUrl.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SetInfosCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('abbreviation: $abbreviation, ')
+          ..write('setType: $setType, ')
+          ..write('isSupplemental: $isSupplemental, ')
+          ..write('publishedOn: $publishedOn, ')
+          ..write('modifiedOn: $modifiedOn, ')
+          ..write('productCount: $productCount, ')
+          ..write('skuCount: $skuCount, ')
+          ..write('setSymbolUrl: $setSymbolUrl, ')
+          ..write('setSymbolCached: $setSymbolCached, ')
+          ..write('apiUrl: $apiUrl, ')
+          ..write('cardsUrl: $cardsUrl, ')
+          ..write('sealedUrl: $sealedUrl, ')
+          ..write('pricingUrl: $pricingUrl, ')
+          ..write('skusUrl: $skusUrl')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $UserOwnedSetsTable extends UserOwnedSets
+    with TableInfo<$UserOwnedSetsTable, DriftUserOwnedSet> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserOwnedSetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _setCodeMeta = const VerificationMeta(
+    'setCode',
+  );
+  @override
+  late final GeneratedColumn<String> setCode = GeneratedColumn<String>(
+    'set_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _setNameMeta = const VerificationMeta(
+    'setName',
+  );
+  @override
+  late final GeneratedColumn<String> setName = GeneratedColumn<String>(
+    'set_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalCardsOwnedMeta = const VerificationMeta(
+    'totalCardsOwned',
+  );
+  @override
+  late final GeneratedColumn<int> totalCardsOwned = GeneratedColumn<int>(
+    'total_cards_owned',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _setSymbolUrlMeta = const VerificationMeta(
+    'setSymbolUrl',
+  );
+  @override
+  late final GeneratedColumn<String> setSymbolUrl = GeneratedColumn<String>(
+    'set_symbol_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    setCode,
+    setName,
+    totalCardsOwned,
+    setSymbolUrl,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_owned_sets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftUserOwnedSet> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('set_code')) {
+      context.handle(
+        _setCodeMeta,
+        setCode.isAcceptableOrUnknown(data['set_code']!, _setCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setCodeMeta);
+    }
+    if (data.containsKey('set_name')) {
+      context.handle(
+        _setNameMeta,
+        setName.isAcceptableOrUnknown(data['set_name']!, _setNameMeta),
+      );
+    }
+    if (data.containsKey('total_cards_owned')) {
+      context.handle(
+        _totalCardsOwnedMeta,
+        totalCardsOwned.isAcceptableOrUnknown(
+          data['total_cards_owned']!,
+          _totalCardsOwnedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('set_symbol_url')) {
+      context.handle(
+        _setSymbolUrlMeta,
+        setSymbolUrl.isAcceptableOrUnknown(
+          data['set_symbol_url']!,
+          _setSymbolUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {setCode};
+  @override
+  DriftUserOwnedSet map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftUserOwnedSet(
+      setCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_code'],
+      )!,
+      setName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_name'],
+      ),
+      totalCardsOwned: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_cards_owned'],
+      )!,
+      setSymbolUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_symbol_url'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UserOwnedSetsTable createAlias(String alias) {
+    return $UserOwnedSetsTable(attachedDatabase, alias);
+  }
+}
+
+class DriftUserOwnedSet extends DataClass
+    implements Insertable<DriftUserOwnedSet> {
+  final String setCode;
+  final String? setName;
+  final int totalCardsOwned;
+  final String? setSymbolUrl;
+  final DateTime updatedAt;
+  const DriftUserOwnedSet({
+    required this.setCode,
+    this.setName,
+    required this.totalCardsOwned,
+    this.setSymbolUrl,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['set_code'] = Variable<String>(setCode);
+    if (!nullToAbsent || setName != null) {
+      map['set_name'] = Variable<String>(setName);
+    }
+    map['total_cards_owned'] = Variable<int>(totalCardsOwned);
+    if (!nullToAbsent || setSymbolUrl != null) {
+      map['set_symbol_url'] = Variable<String>(setSymbolUrl);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  UserOwnedSetsCompanion toCompanion(bool nullToAbsent) {
+    return UserOwnedSetsCompanion(
+      setCode: Value(setCode),
+      setName: setName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(setName),
+      totalCardsOwned: Value(totalCardsOwned),
+      setSymbolUrl: setSymbolUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(setSymbolUrl),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftUserOwnedSet.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftUserOwnedSet(
+      setCode: serializer.fromJson<String>(json['setCode']),
+      setName: serializer.fromJson<String?>(json['setName']),
+      totalCardsOwned: serializer.fromJson<int>(json['totalCardsOwned']),
+      setSymbolUrl: serializer.fromJson<String?>(json['setSymbolUrl']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'setCode': serializer.toJson<String>(setCode),
+      'setName': serializer.toJson<String?>(setName),
+      'totalCardsOwned': serializer.toJson<int>(totalCardsOwned),
+      'setSymbolUrl': serializer.toJson<String?>(setSymbolUrl),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftUserOwnedSet copyWith({
+    String? setCode,
+    Value<String?> setName = const Value.absent(),
+    int? totalCardsOwned,
+    Value<String?> setSymbolUrl = const Value.absent(),
+    DateTime? updatedAt,
+  }) => DriftUserOwnedSet(
+    setCode: setCode ?? this.setCode,
+    setName: setName.present ? setName.value : this.setName,
+    totalCardsOwned: totalCardsOwned ?? this.totalCardsOwned,
+    setSymbolUrl: setSymbolUrl.present ? setSymbolUrl.value : this.setSymbolUrl,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftUserOwnedSet copyWithCompanion(UserOwnedSetsCompanion data) {
+    return DriftUserOwnedSet(
+      setCode: data.setCode.present ? data.setCode.value : this.setCode,
+      setName: data.setName.present ? data.setName.value : this.setName,
+      totalCardsOwned: data.totalCardsOwned.present
+          ? data.totalCardsOwned.value
+          : this.totalCardsOwned,
+      setSymbolUrl: data.setSymbolUrl.present
+          ? data.setSymbolUrl.value
+          : this.setSymbolUrl,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftUserOwnedSet(')
+          ..write('setCode: $setCode, ')
+          ..write('setName: $setName, ')
+          ..write('totalCardsOwned: $totalCardsOwned, ')
+          ..write('setSymbolUrl: $setSymbolUrl, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(setCode, setName, totalCardsOwned, setSymbolUrl, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftUserOwnedSet &&
+          other.setCode == this.setCode &&
+          other.setName == this.setName &&
+          other.totalCardsOwned == this.totalCardsOwned &&
+          other.setSymbolUrl == this.setSymbolUrl &&
+          other.updatedAt == this.updatedAt);
+}
+
+class UserOwnedSetsCompanion extends UpdateCompanion<DriftUserOwnedSet> {
+  final Value<String> setCode;
+  final Value<String?> setName;
+  final Value<int> totalCardsOwned;
+  final Value<String?> setSymbolUrl;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const UserOwnedSetsCompanion({
+    this.setCode = const Value.absent(),
+    this.setName = const Value.absent(),
+    this.totalCardsOwned = const Value.absent(),
+    this.setSymbolUrl = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserOwnedSetsCompanion.insert({
+    required String setCode,
+    this.setName = const Value.absent(),
+    this.totalCardsOwned = const Value.absent(),
+    this.setSymbolUrl = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : setCode = Value(setCode);
+  static Insertable<DriftUserOwnedSet> custom({
+    Expression<String>? setCode,
+    Expression<String>? setName,
+    Expression<int>? totalCardsOwned,
+    Expression<String>? setSymbolUrl,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (setCode != null) 'set_code': setCode,
+      if (setName != null) 'set_name': setName,
+      if (totalCardsOwned != null) 'total_cards_owned': totalCardsOwned,
+      if (setSymbolUrl != null) 'set_symbol_url': setSymbolUrl,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserOwnedSetsCompanion copyWith({
+    Value<String>? setCode,
+    Value<String?>? setName,
+    Value<int>? totalCardsOwned,
+    Value<String?>? setSymbolUrl,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return UserOwnedSetsCompanion(
+      setCode: setCode ?? this.setCode,
+      setName: setName ?? this.setName,
+      totalCardsOwned: totalCardsOwned ?? this.totalCardsOwned,
+      setSymbolUrl: setSymbolUrl ?? this.setSymbolUrl,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (setCode.present) {
+      map['set_code'] = Variable<String>(setCode.value);
+    }
+    if (setName.present) {
+      map['set_name'] = Variable<String>(setName.value);
+    }
+    if (totalCardsOwned.present) {
+      map['total_cards_owned'] = Variable<int>(totalCardsOwned.value);
+    }
+    if (setSymbolUrl.present) {
+      map['set_symbol_url'] = Variable<String>(setSymbolUrl.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserOwnedSetsCompanion(')
+          ..write('setCode: $setCode, ')
+          ..write('setName: $setName, ')
+          ..write('totalCardsOwned: $totalCardsOwned, ')
+          ..write('setSymbolUrl: $setSymbolUrl, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SetCardPricesTable extends SetCardPrices
+    with TableInfo<$SetCardPricesTable, DriftSetCardPrice> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SetCardPricesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _setIdMeta = const VerificationMeta('setId');
+  @override
+  late final GeneratedColumn<int> setId = GeneratedColumn<int>(
+    'set_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cardIdMeta = const VerificationMeta('cardId');
+  @override
+  late final GeneratedColumn<int> cardId = GeneratedColumn<int>(
+    'card_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _setCodeMeta = const VerificationMeta(
+    'setCode',
+  );
+  @override
+  late final GeneratedColumn<String> setCode = GeneratedColumn<String>(
+    'set_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _printingMeta = const VerificationMeta(
+    'printing',
+  );
+  @override
+  late final GeneratedColumn<String> printing = GeneratedColumn<String>(
+    'printing',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lowPriceMeta = const VerificationMeta(
+    'lowPrice',
+  );
+  @override
+  late final GeneratedColumn<double> lowPrice = GeneratedColumn<double>(
+    'low_price',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _marketPriceMeta = const VerificationMeta(
+    'marketPrice',
+  );
+  @override
+  late final GeneratedColumn<double> marketPrice = GeneratedColumn<double>(
+    'market_price',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastUpdatedMeta = const VerificationMeta(
+    'lastUpdated',
+  );
+  @override
+  late final GeneratedColumn<String> lastUpdated = GeneratedColumn<String>(
+    'last_updated',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    setId,
+    cardId,
+    setCode,
+    printing,
+    lowPrice,
+    marketPrice,
+    lastUpdated,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'set_card_prices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftSetCardPrice> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('set_id')) {
+      context.handle(
+        _setIdMeta,
+        setId.isAcceptableOrUnknown(data['set_id']!, _setIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setIdMeta);
+    }
+    if (data.containsKey('card_id')) {
+      context.handle(
+        _cardIdMeta,
+        cardId.isAcceptableOrUnknown(data['card_id']!, _cardIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cardIdMeta);
+    }
+    if (data.containsKey('set_code')) {
+      context.handle(
+        _setCodeMeta,
+        setCode.isAcceptableOrUnknown(data['set_code']!, _setCodeMeta),
+      );
+    }
+    if (data.containsKey('printing')) {
+      context.handle(
+        _printingMeta,
+        printing.isAcceptableOrUnknown(data['printing']!, _printingMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_printingMeta);
+    }
+    if (data.containsKey('low_price')) {
+      context.handle(
+        _lowPriceMeta,
+        lowPrice.isAcceptableOrUnknown(data['low_price']!, _lowPriceMeta),
+      );
+    }
+    if (data.containsKey('market_price')) {
+      context.handle(
+        _marketPriceMeta,
+        marketPrice.isAcceptableOrUnknown(
+          data['market_price']!,
+          _marketPriceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+        _lastUpdatedMeta,
+        lastUpdated.isAcceptableOrUnknown(
+          data['last_updated']!,
+          _lastUpdatedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {setId, cardId, printing},
+  ];
+  @override
+  DriftSetCardPrice map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftSetCardPrice(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      setId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}set_id'],
+      )!,
+      cardId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}card_id'],
+      )!,
+      setCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_code'],
+      ),
+      printing: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}printing'],
+      )!,
+      lowPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}low_price'],
+      ),
+      marketPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}market_price'],
+      ),
+      lastUpdated: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_updated'],
+      ),
+    );
+  }
+
+  @override
+  $SetCardPricesTable createAlias(String alias) {
+    return $SetCardPricesTable(attachedDatabase, alias);
+  }
+}
+
+class DriftSetCardPrice extends DataClass
+    implements Insertable<DriftSetCardPrice> {
+  final int id;
+  final int setId;
+  final int cardId;
+  final String? setCode;
+  final String printing;
+  final double? lowPrice;
+  final double? marketPrice;
+  final String? lastUpdated;
+  const DriftSetCardPrice({
+    required this.id,
+    required this.setId,
+    required this.cardId,
+    this.setCode,
+    required this.printing,
+    this.lowPrice,
+    this.marketPrice,
+    this.lastUpdated,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['set_id'] = Variable<int>(setId);
+    map['card_id'] = Variable<int>(cardId);
+    if (!nullToAbsent || setCode != null) {
+      map['set_code'] = Variable<String>(setCode);
+    }
+    map['printing'] = Variable<String>(printing);
+    if (!nullToAbsent || lowPrice != null) {
+      map['low_price'] = Variable<double>(lowPrice);
+    }
+    if (!nullToAbsent || marketPrice != null) {
+      map['market_price'] = Variable<double>(marketPrice);
+    }
+    if (!nullToAbsent || lastUpdated != null) {
+      map['last_updated'] = Variable<String>(lastUpdated);
+    }
+    return map;
+  }
+
+  SetCardPricesCompanion toCompanion(bool nullToAbsent) {
+    return SetCardPricesCompanion(
+      id: Value(id),
+      setId: Value(setId),
+      cardId: Value(cardId),
+      setCode: setCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(setCode),
+      printing: Value(printing),
+      lowPrice: lowPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lowPrice),
+      marketPrice: marketPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(marketPrice),
+      lastUpdated: lastUpdated == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastUpdated),
+    );
+  }
+
+  factory DriftSetCardPrice.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftSetCardPrice(
+      id: serializer.fromJson<int>(json['id']),
+      setId: serializer.fromJson<int>(json['setId']),
+      cardId: serializer.fromJson<int>(json['cardId']),
+      setCode: serializer.fromJson<String?>(json['setCode']),
+      printing: serializer.fromJson<String>(json['printing']),
+      lowPrice: serializer.fromJson<double?>(json['lowPrice']),
+      marketPrice: serializer.fromJson<double?>(json['marketPrice']),
+      lastUpdated: serializer.fromJson<String?>(json['lastUpdated']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'setId': serializer.toJson<int>(setId),
+      'cardId': serializer.toJson<int>(cardId),
+      'setCode': serializer.toJson<String?>(setCode),
+      'printing': serializer.toJson<String>(printing),
+      'lowPrice': serializer.toJson<double?>(lowPrice),
+      'marketPrice': serializer.toJson<double?>(marketPrice),
+      'lastUpdated': serializer.toJson<String?>(lastUpdated),
+    };
+  }
+
+  DriftSetCardPrice copyWith({
+    int? id,
+    int? setId,
+    int? cardId,
+    Value<String?> setCode = const Value.absent(),
+    String? printing,
+    Value<double?> lowPrice = const Value.absent(),
+    Value<double?> marketPrice = const Value.absent(),
+    Value<String?> lastUpdated = const Value.absent(),
+  }) => DriftSetCardPrice(
+    id: id ?? this.id,
+    setId: setId ?? this.setId,
+    cardId: cardId ?? this.cardId,
+    setCode: setCode.present ? setCode.value : this.setCode,
+    printing: printing ?? this.printing,
+    lowPrice: lowPrice.present ? lowPrice.value : this.lowPrice,
+    marketPrice: marketPrice.present ? marketPrice.value : this.marketPrice,
+    lastUpdated: lastUpdated.present ? lastUpdated.value : this.lastUpdated,
+  );
+  DriftSetCardPrice copyWithCompanion(SetCardPricesCompanion data) {
+    return DriftSetCardPrice(
+      id: data.id.present ? data.id.value : this.id,
+      setId: data.setId.present ? data.setId.value : this.setId,
+      cardId: data.cardId.present ? data.cardId.value : this.cardId,
+      setCode: data.setCode.present ? data.setCode.value : this.setCode,
+      printing: data.printing.present ? data.printing.value : this.printing,
+      lowPrice: data.lowPrice.present ? data.lowPrice.value : this.lowPrice,
+      marketPrice: data.marketPrice.present
+          ? data.marketPrice.value
+          : this.marketPrice,
+      lastUpdated: data.lastUpdated.present
+          ? data.lastUpdated.value
+          : this.lastUpdated,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftSetCardPrice(')
+          ..write('id: $id, ')
+          ..write('setId: $setId, ')
+          ..write('cardId: $cardId, ')
+          ..write('setCode: $setCode, ')
+          ..write('printing: $printing, ')
+          ..write('lowPrice: $lowPrice, ')
+          ..write('marketPrice: $marketPrice, ')
+          ..write('lastUpdated: $lastUpdated')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    setId,
+    cardId,
+    setCode,
+    printing,
+    lowPrice,
+    marketPrice,
+    lastUpdated,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftSetCardPrice &&
+          other.id == this.id &&
+          other.setId == this.setId &&
+          other.cardId == this.cardId &&
+          other.setCode == this.setCode &&
+          other.printing == this.printing &&
+          other.lowPrice == this.lowPrice &&
+          other.marketPrice == this.marketPrice &&
+          other.lastUpdated == this.lastUpdated);
+}
+
+class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
+  final Value<int> id;
+  final Value<int> setId;
+  final Value<int> cardId;
+  final Value<String?> setCode;
+  final Value<String> printing;
+  final Value<double?> lowPrice;
+  final Value<double?> marketPrice;
+  final Value<String?> lastUpdated;
+  const SetCardPricesCompanion({
+    this.id = const Value.absent(),
+    this.setId = const Value.absent(),
+    this.cardId = const Value.absent(),
+    this.setCode = const Value.absent(),
+    this.printing = const Value.absent(),
+    this.lowPrice = const Value.absent(),
+    this.marketPrice = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+  });
+  SetCardPricesCompanion.insert({
+    this.id = const Value.absent(),
+    required int setId,
+    required int cardId,
+    this.setCode = const Value.absent(),
+    required String printing,
+    this.lowPrice = const Value.absent(),
+    this.marketPrice = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+  }) : setId = Value(setId),
+       cardId = Value(cardId),
+       printing = Value(printing);
+  static Insertable<DriftSetCardPrice> custom({
+    Expression<int>? id,
+    Expression<int>? setId,
+    Expression<int>? cardId,
+    Expression<String>? setCode,
+    Expression<String>? printing,
+    Expression<double>? lowPrice,
+    Expression<double>? marketPrice,
+    Expression<String>? lastUpdated,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (setId != null) 'set_id': setId,
+      if (cardId != null) 'card_id': cardId,
+      if (setCode != null) 'set_code': setCode,
+      if (printing != null) 'printing': printing,
+      if (lowPrice != null) 'low_price': lowPrice,
+      if (marketPrice != null) 'market_price': marketPrice,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+    });
+  }
+
+  SetCardPricesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? setId,
+    Value<int>? cardId,
+    Value<String?>? setCode,
+    Value<String>? printing,
+    Value<double?>? lowPrice,
+    Value<double?>? marketPrice,
+    Value<String?>? lastUpdated,
+  }) {
+    return SetCardPricesCompanion(
+      id: id ?? this.id,
+      setId: setId ?? this.setId,
+      cardId: cardId ?? this.cardId,
+      setCode: setCode ?? this.setCode,
+      printing: printing ?? this.printing,
+      lowPrice: lowPrice ?? this.lowPrice,
+      marketPrice: marketPrice ?? this.marketPrice,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (setId.present) {
+      map['set_id'] = Variable<int>(setId.value);
+    }
+    if (cardId.present) {
+      map['card_id'] = Variable<int>(cardId.value);
+    }
+    if (setCode.present) {
+      map['set_code'] = Variable<String>(setCode.value);
+    }
+    if (printing.present) {
+      map['printing'] = Variable<String>(printing.value);
+    }
+    if (lowPrice.present) {
+      map['low_price'] = Variable<double>(lowPrice.value);
+    }
+    if (marketPrice.present) {
+      map['market_price'] = Variable<double>(marketPrice.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<String>(lastUpdated.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SetCardPricesCompanion(')
+          ..write('id: $id, ')
+          ..write('setId: $setId, ')
+          ..write('cardId: $cardId, ')
+          ..write('setCode: $setCode, ')
+          ..write('printing: $printing, ')
+          ..write('lowPrice: $lowPrice, ')
+          ..write('marketPrice: $marketPrice, ')
+          ..write('lastUpdated: $lastUpdated')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5108,6 +6928,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DeckCardsTable deckCards = $DeckCardsTable(this);
   late final $FavoriteCardsTable favoriteCards = $FavoriteCardsTable(this);
   late final $WantedCardsTable wantedCards = $WantedCardsTable(this);
+  late final $SetInfosTable setInfos = $SetInfosTable(this);
+  late final $UserOwnedSetsTable userOwnedSets = $UserOwnedSetsTable(this);
+  late final $SetCardPricesTable setCardPrices = $SetCardPricesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5124,6 +6947,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     deckCards,
     favoriteCards,
     wantedCards,
+    setInfos,
+    userOwnedSets,
+    setCardPrices,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -9195,6 +11021,890 @@ typedef $$WantedCardsTableProcessedTableManager =
       DriftWantedCard,
       PrefetchHooks Function()
     >;
+typedef $$SetInfosTableCreateCompanionBuilder = SetInfosCompanion Function({
+  Value<int> id,
+  required String name,
+  Value<String?> abbreviation,
+  Value<String?> setType,
+  Value<bool> isSupplemental,
+  Value<String?> publishedOn,
+  Value<String?> modifiedOn,
+  Value<int?> productCount,
+  Value<int?> skuCount,
+  Value<String?> setSymbolUrl,
+  Value<bool> setSymbolCached,
+  Value<String?> apiUrl,
+  Value<String?> cardsUrl,
+  Value<String?> sealedUrl,
+  Value<String?> pricingUrl,
+  Value<String?> skusUrl,
+});
+typedef $$SetInfosTableUpdateCompanionBuilder = SetInfosCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<String?> abbreviation,
+  Value<String?> setType,
+  Value<bool> isSupplemental,
+  Value<String?> publishedOn,
+  Value<String?> modifiedOn,
+  Value<int?> productCount,
+  Value<int?> skuCount,
+  Value<String?> setSymbolUrl,
+  Value<bool> setSymbolCached,
+  Value<String?> apiUrl,
+  Value<String?> cardsUrl,
+  Value<String?> sealedUrl,
+  Value<String?> pricingUrl,
+  Value<String?> skusUrl,
+});
+
+class $$SetInfosTableFilterComposer
+    extends Composer<_$AppDatabase, $SetInfosTable> {
+  $$SetInfosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get abbreviation => $composableBuilder(
+    column: $table.abbreviation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get setType => $composableBuilder(
+    column: $table.setType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSupplemental => $composableBuilder(
+    column: $table.isSupplemental,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publishedOn => $composableBuilder(
+    column: $table.publishedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modifiedOn => $composableBuilder(
+    column: $table.modifiedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get productCount => $composableBuilder(
+    column: $table.productCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get skuCount => $composableBuilder(
+    column: $table.skuCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get setSymbolUrl => $composableBuilder(
+    column: $table.setSymbolUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get setSymbolCached => $composableBuilder(
+    column: $table.setSymbolCached,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiUrl => $composableBuilder(
+    column: $table.apiUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cardsUrl => $composableBuilder(
+    column: $table.cardsUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sealedUrl => $composableBuilder(
+    column: $table.sealedUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pricingUrl => $composableBuilder(
+    column: $table.pricingUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get skusUrl => $composableBuilder(
+    column: $table.skusUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SetInfosTableOrderingComposer
+    extends Composer<_$AppDatabase, $SetInfosTable> {
+  $$SetInfosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get abbreviation => $composableBuilder(
+    column: $table.abbreviation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get setType => $composableBuilder(
+    column: $table.setType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSupplemental => $composableBuilder(
+    column: $table.isSupplemental,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get publishedOn => $composableBuilder(
+    column: $table.publishedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modifiedOn => $composableBuilder(
+    column: $table.modifiedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get productCount => $composableBuilder(
+    column: $table.productCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get skuCount => $composableBuilder(
+    column: $table.skuCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get setSymbolUrl => $composableBuilder(
+    column: $table.setSymbolUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get setSymbolCached => $composableBuilder(
+    column: $table.setSymbolCached,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiUrl => $composableBuilder(
+    column: $table.apiUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cardsUrl => $composableBuilder(
+    column: $table.cardsUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sealedUrl => $composableBuilder(
+    column: $table.sealedUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pricingUrl => $composableBuilder(
+    column: $table.pricingUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get skusUrl => $composableBuilder(
+    column: $table.skusUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SetInfosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SetInfosTable> {
+  $$SetInfosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get abbreviation => $composableBuilder(
+    column: $table.abbreviation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get setType =>
+      $composableBuilder(column: $table.setType, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSupplemental => $composableBuilder(
+    column: $table.isSupplemental,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get publishedOn => $composableBuilder(
+    column: $table.publishedOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modifiedOn => $composableBuilder(
+    column: $table.modifiedOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get productCount => $composableBuilder(
+    column: $table.productCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get skuCount =>
+      $composableBuilder(column: $table.skuCount, builder: (column) => column);
+
+  GeneratedColumn<String> get setSymbolUrl => $composableBuilder(
+    column: $table.setSymbolUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get setSymbolCached => $composableBuilder(
+    column: $table.setSymbolCached,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get apiUrl =>
+      $composableBuilder(column: $table.apiUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get cardsUrl =>
+      $composableBuilder(column: $table.cardsUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get sealedUrl =>
+      $composableBuilder(column: $table.sealedUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get pricingUrl => $composableBuilder(
+    column: $table.pricingUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get skusUrl =>
+      $composableBuilder(column: $table.skusUrl, builder: (column) => column);
+}
+
+class $$SetInfosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SetInfosTable,
+          DriftSetInfo,
+          $$SetInfosTableFilterComposer,
+          $$SetInfosTableOrderingComposer,
+          $$SetInfosTableAnnotationComposer,
+          $$SetInfosTableCreateCompanionBuilder,
+          $$SetInfosTableUpdateCompanionBuilder,
+          (
+            DriftSetInfo,
+            BaseReferences<_$AppDatabase, $SetInfosTable, DriftSetInfo>,
+          ),
+          DriftSetInfo,
+          PrefetchHooks Function()
+        > {
+  $$SetInfosTableTableManager(_$AppDatabase db, $SetInfosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SetInfosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SetInfosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SetInfosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> abbreviation = const Value.absent(),
+                Value<String?> setType = const Value.absent(),
+                Value<bool> isSupplemental = const Value.absent(),
+                Value<String?> publishedOn = const Value.absent(),
+                Value<String?> modifiedOn = const Value.absent(),
+                Value<int?> productCount = const Value.absent(),
+                Value<int?> skuCount = const Value.absent(),
+                Value<String?> setSymbolUrl = const Value.absent(),
+                Value<bool> setSymbolCached = const Value.absent(),
+                Value<String?> apiUrl = const Value.absent(),
+                Value<String?> cardsUrl = const Value.absent(),
+                Value<String?> sealedUrl = const Value.absent(),
+                Value<String?> pricingUrl = const Value.absent(),
+                Value<String?> skusUrl = const Value.absent(),
+              }) => SetInfosCompanion(
+                id: id,
+                name: name,
+                abbreviation: abbreviation,
+                setType: setType,
+                isSupplemental: isSupplemental,
+                publishedOn: publishedOn,
+                modifiedOn: modifiedOn,
+                productCount: productCount,
+                skuCount: skuCount,
+                setSymbolUrl: setSymbolUrl,
+                setSymbolCached: setSymbolCached,
+                apiUrl: apiUrl,
+                cardsUrl: cardsUrl,
+                sealedUrl: sealedUrl,
+                pricingUrl: pricingUrl,
+                skusUrl: skusUrl,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<String?> abbreviation = const Value.absent(),
+                Value<String?> setType = const Value.absent(),
+                Value<bool> isSupplemental = const Value.absent(),
+                Value<String?> publishedOn = const Value.absent(),
+                Value<String?> modifiedOn = const Value.absent(),
+                Value<int?> productCount = const Value.absent(),
+                Value<int?> skuCount = const Value.absent(),
+                Value<String?> setSymbolUrl = const Value.absent(),
+                Value<bool> setSymbolCached = const Value.absent(),
+                Value<String?> apiUrl = const Value.absent(),
+                Value<String?> cardsUrl = const Value.absent(),
+                Value<String?> sealedUrl = const Value.absent(),
+                Value<String?> pricingUrl = const Value.absent(),
+                Value<String?> skusUrl = const Value.absent(),
+              }) => SetInfosCompanion.insert(
+                id: id,
+                name: name,
+                abbreviation: abbreviation,
+                setType: setType,
+                isSupplemental: isSupplemental,
+                publishedOn: publishedOn,
+                modifiedOn: modifiedOn,
+                productCount: productCount,
+                skuCount: skuCount,
+                setSymbolUrl: setSymbolUrl,
+                setSymbolCached: setSymbolCached,
+                apiUrl: apiUrl,
+                cardsUrl: cardsUrl,
+                sealedUrl: sealedUrl,
+                pricingUrl: pricingUrl,
+                skusUrl: skusUrl,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SetInfosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SetInfosTable,
+      DriftSetInfo,
+      $$SetInfosTableFilterComposer,
+      $$SetInfosTableOrderingComposer,
+      $$SetInfosTableAnnotationComposer,
+      $$SetInfosTableCreateCompanionBuilder,
+      $$SetInfosTableUpdateCompanionBuilder,
+      (
+        DriftSetInfo,
+        BaseReferences<_$AppDatabase, $SetInfosTable, DriftSetInfo>,
+      ),
+      DriftSetInfo,
+      PrefetchHooks Function()
+    >;
+typedef $$UserOwnedSetsTableCreateCompanionBuilder =
+    UserOwnedSetsCompanion Function({
+      required String setCode,
+      Value<String?> setName,
+      Value<int> totalCardsOwned,
+      Value<String?> setSymbolUrl,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$UserOwnedSetsTableUpdateCompanionBuilder =
+    UserOwnedSetsCompanion Function({
+      Value<String> setCode,
+      Value<String?> setName,
+      Value<int> totalCardsOwned,
+      Value<String?> setSymbolUrl,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$UserOwnedSetsTableFilterComposer
+    extends Composer<_$AppDatabase, $UserOwnedSetsTable> {
+  $$UserOwnedSetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get setCode => $composableBuilder(
+    column: $table.setCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get setName => $composableBuilder(
+    column: $table.setName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalCardsOwned => $composableBuilder(
+    column: $table.totalCardsOwned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get setSymbolUrl => $composableBuilder(
+    column: $table.setSymbolUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserOwnedSetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserOwnedSetsTable> {
+  $$UserOwnedSetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get setCode => $composableBuilder(
+    column: $table.setCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get setName => $composableBuilder(
+    column: $table.setName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalCardsOwned => $composableBuilder(
+    column: $table.totalCardsOwned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get setSymbolUrl => $composableBuilder(
+    column: $table.setSymbolUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserOwnedSetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserOwnedSetsTable> {
+  $$UserOwnedSetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get setCode =>
+      $composableBuilder(column: $table.setCode, builder: (column) => column);
+
+  GeneratedColumn<String> get setName =>
+      $composableBuilder(column: $table.setName, builder: (column) => column);
+
+  GeneratedColumn<int> get totalCardsOwned => $composableBuilder(
+    column: $table.totalCardsOwned,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get setSymbolUrl => $composableBuilder(
+    column: $table.setSymbolUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$UserOwnedSetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserOwnedSetsTable,
+          DriftUserOwnedSet,
+          $$UserOwnedSetsTableFilterComposer,
+          $$UserOwnedSetsTableOrderingComposer,
+          $$UserOwnedSetsTableAnnotationComposer,
+          $$UserOwnedSetsTableCreateCompanionBuilder,
+          $$UserOwnedSetsTableUpdateCompanionBuilder,
+          (
+            DriftUserOwnedSet,
+            BaseReferences<
+              _$AppDatabase,
+              $UserOwnedSetsTable,
+              DriftUserOwnedSet
+            >,
+          ),
+          DriftUserOwnedSet,
+          PrefetchHooks Function()
+        > {
+  $$UserOwnedSetsTableTableManager(_$AppDatabase db, $UserOwnedSetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserOwnedSetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserOwnedSetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserOwnedSetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> setCode = const Value.absent(),
+                Value<String?> setName = const Value.absent(),
+                Value<int> totalCardsOwned = const Value.absent(),
+                Value<String?> setSymbolUrl = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserOwnedSetsCompanion(
+                setCode: setCode,
+                setName: setName,
+                totalCardsOwned: totalCardsOwned,
+                setSymbolUrl: setSymbolUrl,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String setCode,
+                Value<String?> setName = const Value.absent(),
+                Value<int> totalCardsOwned = const Value.absent(),
+                Value<String?> setSymbolUrl = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserOwnedSetsCompanion.insert(
+                setCode: setCode,
+                setName: setName,
+                totalCardsOwned: totalCardsOwned,
+                setSymbolUrl: setSymbolUrl,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserOwnedSetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserOwnedSetsTable,
+      DriftUserOwnedSet,
+      $$UserOwnedSetsTableFilterComposer,
+      $$UserOwnedSetsTableOrderingComposer,
+      $$UserOwnedSetsTableAnnotationComposer,
+      $$UserOwnedSetsTableCreateCompanionBuilder,
+      $$UserOwnedSetsTableUpdateCompanionBuilder,
+      (
+        DriftUserOwnedSet,
+        BaseReferences<_$AppDatabase, $UserOwnedSetsTable, DriftUserOwnedSet>,
+      ),
+      DriftUserOwnedSet,
+      PrefetchHooks Function()
+    >;
+typedef $$SetCardPricesTableCreateCompanionBuilder =
+    SetCardPricesCompanion Function({
+      Value<int> id,
+      required int setId,
+      required int cardId,
+      Value<String?> setCode,
+      required String printing,
+      Value<double?> lowPrice,
+      Value<double?> marketPrice,
+      Value<String?> lastUpdated,
+    });
+typedef $$SetCardPricesTableUpdateCompanionBuilder =
+    SetCardPricesCompanion Function({
+      Value<int> id,
+      Value<int> setId,
+      Value<int> cardId,
+      Value<String?> setCode,
+      Value<String> printing,
+      Value<double?> lowPrice,
+      Value<double?> marketPrice,
+      Value<String?> lastUpdated,
+    });
+
+class $$SetCardPricesTableFilterComposer
+    extends Composer<_$AppDatabase, $SetCardPricesTable> {
+  $$SetCardPricesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cardId => $composableBuilder(
+    column: $table.cardId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get setCode => $composableBuilder(
+    column: $table.setCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get printing => $composableBuilder(
+    column: $table.printing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lowPrice => $composableBuilder(
+    column: $table.lowPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get marketPrice => $composableBuilder(
+    column: $table.marketPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SetCardPricesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SetCardPricesTable> {
+  $$SetCardPricesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cardId => $composableBuilder(
+    column: $table.cardId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get setCode => $composableBuilder(
+    column: $table.setCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get printing => $composableBuilder(
+    column: $table.printing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lowPrice => $composableBuilder(
+    column: $table.lowPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get marketPrice => $composableBuilder(
+    column: $table.marketPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SetCardPricesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SetCardPricesTable> {
+  $$SetCardPricesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get setId =>
+      $composableBuilder(column: $table.setId, builder: (column) => column);
+
+  GeneratedColumn<int> get cardId =>
+      $composableBuilder(column: $table.cardId, builder: (column) => column);
+
+  GeneratedColumn<String> get setCode =>
+      $composableBuilder(column: $table.setCode, builder: (column) => column);
+
+  GeneratedColumn<String> get printing =>
+      $composableBuilder(column: $table.printing, builder: (column) => column);
+
+  GeneratedColumn<double> get lowPrice =>
+      $composableBuilder(column: $table.lowPrice, builder: (column) => column);
+
+  GeneratedColumn<double> get marketPrice => $composableBuilder(
+    column: $table.marketPrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => column,
+  );
+}
+
+class $$SetCardPricesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SetCardPricesTable,
+          DriftSetCardPrice,
+          $$SetCardPricesTableFilterComposer,
+          $$SetCardPricesTableOrderingComposer,
+          $$SetCardPricesTableAnnotationComposer,
+          $$SetCardPricesTableCreateCompanionBuilder,
+          $$SetCardPricesTableUpdateCompanionBuilder,
+          (
+            DriftSetCardPrice,
+            BaseReferences<
+              _$AppDatabase,
+              $SetCardPricesTable,
+              DriftSetCardPrice
+            >,
+          ),
+          DriftSetCardPrice,
+          PrefetchHooks Function()
+        > {
+  $$SetCardPricesTableTableManager(_$AppDatabase db, $SetCardPricesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SetCardPricesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SetCardPricesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SetCardPricesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> setId = const Value.absent(),
+                Value<int> cardId = const Value.absent(),
+                Value<String?> setCode = const Value.absent(),
+                Value<String> printing = const Value.absent(),
+                Value<double?> lowPrice = const Value.absent(),
+                Value<double?> marketPrice = const Value.absent(),
+                Value<String?> lastUpdated = const Value.absent(),
+              }) => SetCardPricesCompanion(
+                id: id,
+                setId: setId,
+                cardId: cardId,
+                setCode: setCode,
+                printing: printing,
+                lowPrice: lowPrice,
+                marketPrice: marketPrice,
+                lastUpdated: lastUpdated,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int setId,
+                required int cardId,
+                Value<String?> setCode = const Value.absent(),
+                required String printing,
+                Value<double?> lowPrice = const Value.absent(),
+                Value<double?> marketPrice = const Value.absent(),
+                Value<String?> lastUpdated = const Value.absent(),
+              }) => SetCardPricesCompanion.insert(
+                id: id,
+                setId: setId,
+                cardId: cardId,
+                setCode: setCode,
+                printing: printing,
+                lowPrice: lowPrice,
+                marketPrice: marketPrice,
+                lastUpdated: lastUpdated,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SetCardPricesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SetCardPricesTable,
+      DriftSetCardPrice,
+      $$SetCardPricesTableFilterComposer,
+      $$SetCardPricesTableOrderingComposer,
+      $$SetCardPricesTableAnnotationComposer,
+      $$SetCardPricesTableCreateCompanionBuilder,
+      $$SetCardPricesTableUpdateCompanionBuilder,
+      (
+        DriftSetCardPrice,
+        BaseReferences<_$AppDatabase, $SetCardPricesTable, DriftSetCardPrice>,
+      ),
+      DriftSetCardPrice,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9221,4 +11931,10 @@ class $AppDatabaseManager {
       $$FavoriteCardsTableTableManager(_db, _db.favoriteCards);
   $$WantedCardsTableTableManager get wantedCards =>
       $$WantedCardsTableTableManager(_db, _db.wantedCards);
+  $$SetInfosTableTableManager get setInfos =>
+      $$SetInfosTableTableManager(_db, _db.setInfos);
+  $$UserOwnedSetsTableTableManager get userOwnedSets =>
+      $$UserOwnedSetsTableTableManager(_db, _db.userOwnedSets);
+  $$SetCardPricesTableTableManager get setCardPrices =>
+      $$SetCardPricesTableTableManager(_db, _db.setCardPrices);
 }

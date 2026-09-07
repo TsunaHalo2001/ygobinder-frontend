@@ -19,6 +19,7 @@ class StatsTab extends ConsumerWidget {
     final oldestCardAsync = ref.watch(oldestCardProvider);
     final topSetsAsync = ref.watch(topSetsProvider);
     final topCardsAsync = ref.watch(topCardsProvider);
+    final topExpensiveCardsAsync = ref.watch(topExpensiveCardsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -152,6 +153,70 @@ class StatsTab extends ConsumerWidget {
                           isVisible: true,
                           textStyle: TextStyle(fontWeight: FontWeight.bold),
                           labelAlignment: ChartDataLabelAlignment.outer,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Text('Error: $err'),
+            ),
+            const SizedBox(height: 32),
+            const _SectionHeader(title: 'TOP 5 MOST EXPENSIVE CARDS (TCGPLAYER)'),
+            const SizedBox(height: 16),
+            topExpensiveCardsAsync.when(
+              data: (cards) {
+                if (cards.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No TCGPlayer price data available for collection cards', style: TextStyle(color: Colors.white38)),
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  height: 250,
+                  child: SfCartesianChart(
+                    margin: EdgeInsets.zero,
+                    plotAreaBorderWidth: 0,
+                    primaryXAxis: const CategoryAxis(
+                      isVisible: true,
+                      majorGridLines: MajorGridLines(width: 0),
+                      labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 10),
+                    ),
+                    primaryYAxis: const NumericAxis(
+                      isVisible: false,
+                      majorGridLines: MajorGridLines(width: 0),
+                    ),
+                    tooltipBehavior: TooltipBehavior(enable: true, header: ''),
+                    series: <CartesianSeries<CardPriceStat, String>>[
+                      BarSeries<CardPriceStat, String>(
+                        dataSource: cards.reversed.toList(),
+                        xValueMapper: (CardPriceStat data, _) => data.cardName,
+                        yValueMapper: (CardPriceStat data, _) => data.price,
+                        name: 'TCGPlayer Price (\$)',
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Colors.amber,
+                            Colors.greenAccent,
+                          ],
+                        ),
+                        dataLabelSettings: DataLabelSettings(
+                          isVisible: true,
+                          builder: (data, point, series, pointIndex, seriesIndex) {
+                            final item = data as CardPriceStat;
+                            return Text(
+                              '\$${item.price.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: Colors.greenAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
