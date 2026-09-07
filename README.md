@@ -6,13 +6,13 @@
 
 ## 📌 App Information
 
-- **Current Version**: `1.1.0+14` (Version 1.1.0)
+- **Current Version**: `1.2.0+15` (Version 1.2.0)
 - **Developer**: Tsuna2001
 - **Framework**: Flutter 3.x (Dart 3.x)
 - **State Management**: Flutter Riverpod
 - **Local Database**: Drift (SQLite)
 - **Cloud Backend**: Firebase Authentication & Firestore Sync
-- **Card Data Source**: YGOPRODeck & TCGTracking APIs
+- **Card Data Source**: YGOPRODeck, TCGTracking & Open ER APIs
 
 ---
 
@@ -38,6 +38,16 @@
 ## ✨ Key Features
 
 - 📚 **Collection & Binder Management**: Track your cards, quantities, conditions, rarities, set codes, purchase prices, and custom collection numbers.
+- 📋 **Quote Mode & Quoted Cards Deck (#0)**:
+  - Toggle **Quote Mode** when adding cards to store temporary estimation items in **Collection #0** (strictly local, excluded from Cloud sync).
+  - Built-in, mandatory **`Quoted Cards (#0)`** deck in the Deck Builder with read-only protection, real-time collection #0 categorization, and auto-close on navigation.
+  - Dedicated **Quote Collection Value (#0)** statistic card in Statistics.
+  - One-tap **Clear Quote Collection (#0)** option in Settings with confirmation dialog.
+- 💱 **Multi-Currency Conversion & Custom Multiplier**:
+  - Convert prices across **USD, EUR, GBP, MXN, CAD, JPY, BRL, ARS, CLP, PEN, COP**, or enter a **Custom Rate Multiplier** (e.g. `20.5x`).
+  - Automated daily exchange rate synchronization via `open.er-api.com` stored in SQLite.
+- 💰 **Deck Total Value & Owned vs Missing Breakdown**:
+  - Live **`DECK TOTAL VALUE`** summary container at the end of the Deck Builder displaying **Cards Owned Value** vs **Missing Cards Cost** in active currency.
 - 🎴 **Interactive Deck Builder**:
   - Edit decks with live Main, Extra, and Side Deck grids and card counts.
   - Search catalog, add (`+ MAIN`, `+ EXTRA`, `+ SIDE`), and remove (`- REMOVE`) cards seamlessly in both landscape and portrait modes.
@@ -46,10 +56,9 @@
 - 🚫 **Banlist Formats & Legality Badges**: Select between **TCG, OCG, GOAT, and EDISON** formats in the Deck Builder with live legality badges (🔴 `0` Forbidden, 🟡 `1` Limited, 🟠 `2` Semi-Limited).
 - 💎 **Live TCGTracking Set Pricing**: Fetch real-time market and low prices for every expansion printing (`See prices` and batch `Update owned card prices`).
 - 📈 **Price Trend Indicators**: Live price variation badges showing whether market prices increased (`▲ +$2.50 (+20.8%)`) or decreased (`▼ -$1.20 (-8.3%)`) since last update.
-- 💰 **Total Collection Value & Most Expensive Cards**: Real-time monetary collection valuation and top 5 most expensive cards chart.
 - ⭐ **Favorites & 📜 Wanted Cards**: Mark cards as favorites or wanted with instant local SQLite updates and Cloud Firestore sync.
 - 🛍️ **TCGPlayer Direct Search**: Open any card directly in TCGPlayer search with a single tap (`Open in TCGPlayer`).
-- 📊 **Collection Statistics**: Overview of total collection value, total cards, unique cards, top sets, newest card owned, and oldest card owned.
+- 📊 **Collection Statistics**: Overview of total collection value, quoted value, total cards, unique cards, top sets, newest card owned, and oldest card owned.
 - 📷 **Camera OCR Scanner**: Scan card set codes using Google ML Kit.
 - ☁️ **Firebase Cloud Sync**: Cross-device sync for inventory, decks, favorites, and wanted cards.
 - 📱 **Adaptive Responsive Layout**: Optimized for mobile phones (portrait/landscape), tablets, and desktop.
