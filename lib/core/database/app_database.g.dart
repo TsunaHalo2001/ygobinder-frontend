@@ -6973,6 +6973,284 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
   }
 }
 
+class $CurrencyRatesTable extends CurrencyRates
+    with TableInfo<$CurrencyRatesTable, DriftCurrencyRate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CurrencyRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _currencyCodeMeta = const VerificationMeta(
+    'currencyCode',
+  );
+  @override
+  late final GeneratedColumn<String> currencyCode = GeneratedColumn<String>(
+    'currency_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rateToUsdMeta = const VerificationMeta(
+    'rateToUsd',
+  );
+  @override
+  late final GeneratedColumn<double> rateToUsd = GeneratedColumn<double>(
+    'rate_to_usd',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastUpdatedMeta = const VerificationMeta(
+    'lastUpdated',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
+    'last_updated',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [currencyCode, rateToUsd, lastUpdated];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'currency_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftCurrencyRate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('currency_code')) {
+      context.handle(
+        _currencyCodeMeta,
+        currencyCode.isAcceptableOrUnknown(
+          data['currency_code']!,
+          _currencyCodeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyCodeMeta);
+    }
+    if (data.containsKey('rate_to_usd')) {
+      context.handle(
+        _rateToUsdMeta,
+        rateToUsd.isAcceptableOrUnknown(data['rate_to_usd']!, _rateToUsdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rateToUsdMeta);
+    }
+    if (data.containsKey('last_updated')) {
+      context.handle(
+        _lastUpdatedMeta,
+        lastUpdated.isAcceptableOrUnknown(
+          data['last_updated']!,
+          _lastUpdatedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {currencyCode};
+  @override
+  DriftCurrencyRate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftCurrencyRate(
+      currencyCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_code'],
+      )!,
+      rateToUsd: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate_to_usd'],
+      )!,
+      lastUpdated: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_updated'],
+      )!,
+    );
+  }
+
+  @override
+  $CurrencyRatesTable createAlias(String alias) {
+    return $CurrencyRatesTable(attachedDatabase, alias);
+  }
+}
+
+class DriftCurrencyRate extends DataClass
+    implements Insertable<DriftCurrencyRate> {
+  final String currencyCode;
+  final double rateToUsd;
+  final DateTime lastUpdated;
+  const DriftCurrencyRate({
+    required this.currencyCode,
+    required this.rateToUsd,
+    required this.lastUpdated,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['currency_code'] = Variable<String>(currencyCode);
+    map['rate_to_usd'] = Variable<double>(rateToUsd);
+    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    return map;
+  }
+
+  CurrencyRatesCompanion toCompanion(bool nullToAbsent) {
+    return CurrencyRatesCompanion(
+      currencyCode: Value(currencyCode),
+      rateToUsd: Value(rateToUsd),
+      lastUpdated: Value(lastUpdated),
+    );
+  }
+
+  factory DriftCurrencyRate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftCurrencyRate(
+      currencyCode: serializer.fromJson<String>(json['currencyCode']),
+      rateToUsd: serializer.fromJson<double>(json['rateToUsd']),
+      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'currencyCode': serializer.toJson<String>(currencyCode),
+      'rateToUsd': serializer.toJson<double>(rateToUsd),
+      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+    };
+  }
+
+  DriftCurrencyRate copyWith({
+    String? currencyCode,
+    double? rateToUsd,
+    DateTime? lastUpdated,
+  }) => DriftCurrencyRate(
+    currencyCode: currencyCode ?? this.currencyCode,
+    rateToUsd: rateToUsd ?? this.rateToUsd,
+    lastUpdated: lastUpdated ?? this.lastUpdated,
+  );
+  DriftCurrencyRate copyWithCompanion(CurrencyRatesCompanion data) {
+    return DriftCurrencyRate(
+      currencyCode: data.currencyCode.present
+          ? data.currencyCode.value
+          : this.currencyCode,
+      rateToUsd: data.rateToUsd.present ? data.rateToUsd.value : this.rateToUsd,
+      lastUpdated: data.lastUpdated.present
+          ? data.lastUpdated.value
+          : this.lastUpdated,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftCurrencyRate(')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('rateToUsd: $rateToUsd, ')
+          ..write('lastUpdated: $lastUpdated')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(currencyCode, rateToUsd, lastUpdated);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftCurrencyRate &&
+          other.currencyCode == this.currencyCode &&
+          other.rateToUsd == this.rateToUsd &&
+          other.lastUpdated == this.lastUpdated);
+}
+
+class CurrencyRatesCompanion extends UpdateCompanion<DriftCurrencyRate> {
+  final Value<String> currencyCode;
+  final Value<double> rateToUsd;
+  final Value<DateTime> lastUpdated;
+  final Value<int> rowid;
+  const CurrencyRatesCompanion({
+    this.currencyCode = const Value.absent(),
+    this.rateToUsd = const Value.absent(),
+    this.lastUpdated = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CurrencyRatesCompanion.insert({
+    required String currencyCode,
+    required double rateToUsd,
+    this.lastUpdated = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : currencyCode = Value(currencyCode),
+       rateToUsd = Value(rateToUsd);
+  static Insertable<DriftCurrencyRate> custom({
+    Expression<String>? currencyCode,
+    Expression<double>? rateToUsd,
+    Expression<DateTime>? lastUpdated,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (currencyCode != null) 'currency_code': currencyCode,
+      if (rateToUsd != null) 'rate_to_usd': rateToUsd,
+      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CurrencyRatesCompanion copyWith({
+    Value<String>? currencyCode,
+    Value<double>? rateToUsd,
+    Value<DateTime>? lastUpdated,
+    Value<int>? rowid,
+  }) {
+    return CurrencyRatesCompanion(
+      currencyCode: currencyCode ?? this.currencyCode,
+      rateToUsd: rateToUsd ?? this.rateToUsd,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (currencyCode.present) {
+      map['currency_code'] = Variable<String>(currencyCode.value);
+    }
+    if (rateToUsd.present) {
+      map['rate_to_usd'] = Variable<double>(rateToUsd.value);
+    }
+    if (lastUpdated.present) {
+      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CurrencyRatesCompanion(')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('rateToUsd: $rateToUsd, ')
+          ..write('lastUpdated: $lastUpdated, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6992,6 +7270,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SetInfosTable setInfos = $SetInfosTable(this);
   late final $UserOwnedSetsTable userOwnedSets = $UserOwnedSetsTable(this);
   late final $SetCardPricesTable setCardPrices = $SetCardPricesTable(this);
+  late final $CurrencyRatesTable currencyRates = $CurrencyRatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7011,6 +7290,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     setInfos,
     userOwnedSets,
     setCardPrices,
+    currencyRates,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -11987,6 +12267,176 @@ typedef $$SetCardPricesTableProcessedTableManager =
       DriftSetCardPrice,
       PrefetchHooks Function()
     >;
+typedef $$CurrencyRatesTableCreateCompanionBuilder =
+    CurrencyRatesCompanion Function({
+      required String currencyCode,
+      required double rateToUsd,
+      Value<DateTime> lastUpdated,
+      Value<int> rowid,
+    });
+typedef $$CurrencyRatesTableUpdateCompanionBuilder =
+    CurrencyRatesCompanion Function({
+      Value<String> currencyCode,
+      Value<double> rateToUsd,
+      Value<DateTime> lastUpdated,
+      Value<int> rowid,
+    });
+
+class $$CurrencyRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $CurrencyRatesTable> {
+  $$CurrencyRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rateToUsd => $composableBuilder(
+    column: $table.rateToUsd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CurrencyRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CurrencyRatesTable> {
+  $$CurrencyRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rateToUsd => $composableBuilder(
+    column: $table.rateToUsd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CurrencyRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CurrencyRatesTable> {
+  $$CurrencyRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rateToUsd =>
+      $composableBuilder(column: $table.rateToUsd, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
+    column: $table.lastUpdated,
+    builder: (column) => column,
+  );
+}
+
+class $$CurrencyRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CurrencyRatesTable,
+          DriftCurrencyRate,
+          $$CurrencyRatesTableFilterComposer,
+          $$CurrencyRatesTableOrderingComposer,
+          $$CurrencyRatesTableAnnotationComposer,
+          $$CurrencyRatesTableCreateCompanionBuilder,
+          $$CurrencyRatesTableUpdateCompanionBuilder,
+          (
+            DriftCurrencyRate,
+            BaseReferences<
+              _$AppDatabase,
+              $CurrencyRatesTable,
+              DriftCurrencyRate
+            >,
+          ),
+          DriftCurrencyRate,
+          PrefetchHooks Function()
+        > {
+  $$CurrencyRatesTableTableManager(_$AppDatabase db, $CurrencyRatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CurrencyRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CurrencyRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CurrencyRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> currencyCode = const Value.absent(),
+                Value<double> rateToUsd = const Value.absent(),
+                Value<DateTime> lastUpdated = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CurrencyRatesCompanion(
+                currencyCode: currencyCode,
+                rateToUsd: rateToUsd,
+                lastUpdated: lastUpdated,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String currencyCode,
+                required double rateToUsd,
+                Value<DateTime> lastUpdated = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CurrencyRatesCompanion.insert(
+                currencyCode: currencyCode,
+                rateToUsd: rateToUsd,
+                lastUpdated: lastUpdated,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CurrencyRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CurrencyRatesTable,
+      DriftCurrencyRate,
+      $$CurrencyRatesTableFilterComposer,
+      $$CurrencyRatesTableOrderingComposer,
+      $$CurrencyRatesTableAnnotationComposer,
+      $$CurrencyRatesTableCreateCompanionBuilder,
+      $$CurrencyRatesTableUpdateCompanionBuilder,
+      (
+        DriftCurrencyRate,
+        BaseReferences<_$AppDatabase, $CurrencyRatesTable, DriftCurrencyRate>,
+      ),
+      DriftCurrencyRate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12019,4 +12469,6 @@ class $AppDatabaseManager {
       $$UserOwnedSetsTableTableManager(_db, _db.userOwnedSets);
   $$SetCardPricesTableTableManager get setCardPrices =>
       $$SetCardPricesTableTableManager(_db, _db.setCardPrices);
+  $$CurrencyRatesTableTableManager get currencyRates =>
+      $$CurrencyRatesTableTableManager(_db, _db.currencyRates);
 }

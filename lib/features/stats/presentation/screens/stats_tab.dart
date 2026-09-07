@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:ygobinder/features/stats/presentation/providers/stats_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
+import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 
@@ -13,6 +14,7 @@ class StatsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final totalValueAsync = ref.watch(totalCollectionValueProvider);
     final totalCardsAsync = ref.watch(totalCardsCountProvider);
     final uniqueCardsAsync = ref.watch(uniqueCardsCountProvider);
@@ -33,9 +35,9 @@ class StatsTab extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _StatCard(
-              label: 'Total Collection Value',
+              label: 'Total Collection Value (${currencyInfo.code})',
               value: totalValueAsync.when(
-                data: (val) => '\$${val.toStringAsFixed(2)}',
+                data: (val) => currencyInfo.formatPrice(val),
                 loading: () => '...',
                 error: (_, _) => 'Error',
               ),
@@ -175,7 +177,7 @@ class StatsTab extends ConsumerWidget {
               error: (err, _) => Text('Error: $err'),
             ),
             const SizedBox(height: 32),
-            const _SectionHeader(title: 'TOP 5 MOST EXPENSIVE CARDS (TCGPLAYER)'),
+            _SectionHeader(title: 'TOP 5 MOST EXPENSIVE CARDS (${currencyInfo.code})'),
             const SizedBox(height: 16),
             topExpensiveCardsAsync.when(
               data: (cards) {
@@ -183,15 +185,15 @@ class StatsTab extends ConsumerWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
-                      child: Text('No TCGPlayer price data available for collection cards', style: TextStyle(color: Colors.white38)),
+                      child: Text('No price data available for collection cards', style: TextStyle(color: Colors.white38)),
                     ),
                   );
                 }
 
                 return SizedBox(
-                  height: 250,
+                  height: 270,
                   child: SfCartesianChart(
-                    margin: EdgeInsets.zero,
+                    margin: const EdgeInsets.only(right: 24),
                     plotAreaBorderWidth: 0,
                     primaryXAxis: const CategoryAxis(
                       isVisible: true,
@@ -207,8 +209,8 @@ class StatsTab extends ConsumerWidget {
                       BarSeries<CardPriceStat, String>(
                         dataSource: cards.reversed.toList(),
                         xValueMapper: (CardPriceStat data, _) => data.cardName,
-                        yValueMapper: (CardPriceStat data, _) => data.price,
-                        name: 'TCGPlayer Price (\$)',
+                        yValueMapper: (CardPriceStat data, _) => data.price * currencyInfo.rateToUsd,
+                        name: 'Price (${currencyInfo.code})',
                         borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
                         gradient: const LinearGradient(
                           colors: [
@@ -218,14 +220,23 @@ class StatsTab extends ConsumerWidget {
                         ),
                         dataLabelSettings: DataLabelSettings(
                           isVisible: true,
+                          labelPosition: ChartDataLabelPosition.outside,
                           builder: (data, point, series, pointIndex, seriesIndex) {
                             final item = data as CardPriceStat;
-                            return Text(
-                              '\$${item.price.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                color: Colors.greenAccent,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.5), width: 1),
+                              ),
+                              child: Text(
+                                currencyInfo.formatPrice(item.price),
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
                               ),
                             );
                           },

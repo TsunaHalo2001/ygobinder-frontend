@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
@@ -34,11 +35,47 @@ class CardRepository {
 
     onStatusChange?.call('Saving database...', null);
     await saveCardsAndSets(cards, setInfos);
+    await syncCurrencyRates();
 
     final todayString = DateTime.now().toIso8601String();
     await _db.saveSetting('last_sync_date', todayString);
 
     onStatusChange?.call('Sync complete!', 1.0);
+  }
+
+  Future<void> syncCurrencyRates() async {
+    try {
+      final rates = await _dataService.fetchCurrencyRates();
+      if (rates != null && rates.isNotEmpty) {
+        final now = DateTime.now();
+        final companions = rates.entries.map((e) {
+          return CurrencyRatesCompanion.insert(
+            currencyCode: e.key,
+            rateToUsd: e.value,
+            lastUpdated: Value(now),
+          );
+        }).toList();
+
+        await _db.saveCurrencyRates(companions);
+        await _db.saveSetting('last_currency_sync_date', now.toIso8601String());
+      }
+    } catch (e) {
+      debugPrint('Error syncing currency rates: $e');
+    }
+  }
+
+  Future<void> syncCurrencyRatesIfNeeded() async {
+    final lastSyncStr = await _db.getSetting('last_currency_sync_date');
+    if (lastSyncStr != null) {
+      final lastSync = DateTime.tryParse(lastSyncStr);
+      if (lastSync != null) {
+        final now = DateTime.now();
+        if (lastSync.year == now.year && lastSync.month == now.month && lastSync.day == now.day) {
+          return; // Already synced currency rates today!
+        }
+      }
+    }
+    await syncCurrencyRates();
   }
 
   Future<List<YgoCard>> fetchAndParseCards(List<dynamic> apiData) async {

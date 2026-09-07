@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/core/database/app_database.dart';
+import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
@@ -280,6 +282,32 @@ class OptionsTab extends ConsumerWidget {
 
           const SizedBox(height: 28),
 
+          // Preferences Section
+          const Text(
+            'PREFERENCES',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white38,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.currency_exchange_rounded, color: Colors.amber),
+            title: const Text('Currency Conversion'),
+            subtitle: const Text('Select preferred display currency for card values.'),
+            trailing: const Icon(Icons.chevron_right),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            tileColor: Colors.white.withValues(alpha: 0.05),
+            onTap: () => _showCurrencySelectorBottomSheet(context),
+          ),
+
+          const SizedBox(height: 28),
+
           // Database Management Section
           const Text(
             'DATABASE MANAGEMENT',
@@ -455,6 +483,244 @@ class OptionsTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+void _showCurrencySelectorBottomSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => const _CurrencySelectorBottomSheet(),
+  );
+}
+
+class _CurrencySelectorBottomSheet extends ConsumerStatefulWidget {
+  const _CurrencySelectorBottomSheet();
+
+  @override
+  ConsumerState<_CurrencySelectorBottomSheet> createState() => _CurrencySelectorBottomSheetState();
+}
+
+class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorBottomSheet> {
+  late TextEditingController _customRateController;
+
+  static const _currencies = [
+    {'code': 'USD', 'symbol': '\$', 'name': 'United States Dollar', 'flag': '🇺🇸'},
+    {'code': 'EUR', 'symbol': '€', 'name': 'Euro', 'flag': '🇪🇺'},
+    {'code': 'GBP', 'symbol': '£', 'name': 'British Pound Sterling', 'flag': '🇬🇧'},
+    {'code': 'MXN', 'symbol': '\$', 'name': 'Mexican Peso', 'flag': '🇲🇽'},
+    {'code': 'CAD', 'symbol': '\$', 'name': 'Canadian Dollar', 'flag': '🇨🇦'},
+    {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen', 'flag': '🇯🇵'},
+    {'code': 'BRL', 'symbol': 'R\$', 'name': 'Brazilian Real', 'flag': '🇧🇷'},
+    {'code': 'ARS', 'symbol': '\$', 'name': 'Argentine Peso', 'flag': '🇦🇷'},
+    {'code': 'CLP', 'symbol': '\$', 'name': 'Chilean Peso', 'flag': '🇨🇱'},
+    {'code': 'PEN', 'symbol': 'S/', 'name': 'Peruvian Sol', 'flag': '🇵🇪'},
+    {'code': 'COP', 'symbol': '\$', 'name': 'Colombian Peso', 'flag': '🇨🇴'},
+    {'code': 'CUSTOM', 'symbol': '\$', 'name': 'Custom Rate Multiplier', 'flag': '🛠️'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _customRateController = TextEditingController(
+      text: ref.read(customCurrencyRateProvider).toString(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(cardRepositoryProvider).syncCurrencyRatesIfNeeded();
+    });
+  }
+
+  @override
+  void dispose() {
+    _customRateController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final db = ref.watch(databaseProvider);
+    final selectedCurrency = ref.watch(selectedCurrencyProvider);
+
+    return Container(
+      height: MediaQuery.sizeOf(context).height * 0.65,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Icon(Icons.currency_exchange_rounded, color: theme.colorScheme.primary, size: 24),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'CURRENCY CONVERSION',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Select your preferred currency for card prices and statistics.',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, color: Colors.white10),
+
+          // Stream of exchange rates
+          Expanded(
+            child: StreamBuilder<List<DriftCurrencyRate>>(
+              stream: db.watchAllCurrencyRates(),
+              builder: (context, snapshot) {
+                final ratesList = snapshot.data ?? [];
+                final rateMap = <String, double>{};
+                for (final r in ratesList) {
+                  rateMap[r.currencyCode.toUpperCase()] = r.rateToUsd;
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _currencies.length,
+                  itemBuilder: (context, index) {
+                    final curr = _currencies[index];
+                    final code = curr['code']!;
+                    final symbol = curr['symbol']!;
+                    final name = curr['name']!;
+                    final flag = curr['flag']!;
+                    final isSelected = selectedCurrency == code;
+                    final isCustom = code == 'CUSTOM';
+                    final customRateVal = ref.watch(customCurrencyRateProvider);
+                    final rate = rateMap[code.toUpperCase()];
+
+                    String subtitleText;
+                    if (code == 'USD') {
+                      subtitleText = '1 USD = \$1.00 USD (Base)';
+                    } else if (isCustom) {
+                      subtitleText = 'Multiplier: ${customRateVal}x USD';
+                    } else if (rate != null) {
+                      subtitleText = '1 USD = $symbol${rate.toStringAsFixed(2)} $code';
+                    } else {
+                      subtitleText = 'Symbol: $symbol';
+                    }
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Material(
+                        color: isSelected
+                            ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                            : Colors.white.withValues(alpha: 0.03),
+                        clipBehavior: Clip.antiAlias,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: isSelected ? theme.colorScheme.primary : Colors.white10,
+                            width: isSelected ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: Text(flag, style: const TextStyle(fontSize: 24)),
+                              title: Text(
+                                '$name ($code)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: isSelected ? theme.colorScheme.primary : Colors.white,
+                                ),
+                              ),
+                              subtitle: Text(
+                                subtitleText,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.8) : Colors.white54,
+                                ),
+                              ),
+                              trailing: Radio<String>(
+                                value: code,
+                                groupValue: selectedCurrency,
+                                activeColor: theme.colorScheme.primary,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    ref.read(selectedCurrencyProvider.notifier).setCurrency(val);
+                                  }
+                                },
+                              ),
+                              onTap: () {
+                                ref.read(selectedCurrencyProvider.notifier).setCurrency(code);
+                              },
+                            ),
+                            if (isSelected && isCustom) ...[
+                              const Divider(height: 1, color: Colors.white10),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    const Text(
+                                      'Multiplier (1 USD = ):',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _customRateController,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          hintText: 'e.g. 20.5',
+                                          prefixText: '\$ ',
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        onChanged: (val) {
+                                          final parsed = double.tryParse(val);
+                                          if (parsed != null && parsed > 0) {
+                                            ref.read(customCurrencyRateProvider.notifier).setRate(parsed);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

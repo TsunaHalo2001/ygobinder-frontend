@@ -15,6 +15,7 @@ import 'package:ygobinder/features/cards/data/repositories/wanted_sync_repositor
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 String formatLastUpdatedTimestamp(String? isoString) {
@@ -983,6 +984,7 @@ class _CardInfo extends ConsumerWidget {
   Widget _buildInventoryTable(BuildContext context, WidgetRef ref) {
     final inventoryAsync = ref.watch(cardInventoryProvider(card.id));
     final db = ref.watch(databaseProvider);
+    final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final theme = Theme.of(context);
 
     return inventoryAsync.when(
@@ -1064,7 +1066,7 @@ class _CardInfo extends ConsumerWidget {
                               ],
                             ),
                             ...collectionItems.map((item) {
-                              final priceString = _getInventoryItemPriceString(item, setPricesList, card);
+                              final priceString = _getInventoryItemPriceString(item, setPricesList, card, currencyInfo);
                               final timestampStr = _getInventoryItemTimestampString(item, setPricesList);
                               return TableRow(
                                 children: [
@@ -1081,7 +1083,7 @@ class _CardInfo extends ConsumerWidget {
                                           priceString,
                                           style: theme.textTheme.bodySmall?.copyWith(
                                             fontWeight: FontWeight.bold,
-                                            color: priceString.startsWith('\$') ? Colors.greenAccent : foregroundColor.withValues(alpha: 0.5),
+                                            color: !priceString.contains('N/A') ? Colors.greenAccent : foregroundColor.withValues(alpha: 0.5),
                                           ),
                                           textAlign: TextAlign.end,
                                         ),
@@ -1120,6 +1122,7 @@ class _CardInfo extends ConsumerWidget {
     DriftCollectionItem item,
     List<DriftSetCardPrice> setPrices,
     YgoCard card,
+    CurrencyInfo currencyInfo,
   ) {
     // 1. Try matching SetCardPrices by setCode or rarity
     final matchingPrices = setPrices.where((p) {
@@ -1133,7 +1136,7 @@ class _CardInfo extends ConsumerWidget {
     if (matchingPrices.isNotEmpty) {
       final market = matchingPrices.first.marketPrice ?? matchingPrices.first.lowPrice;
       if (market != null && market > 0.0) {
-        return '\$${market.toStringAsFixed(2)}';
+        return currencyInfo.formatPrice(market);
       }
     }
 
@@ -1145,20 +1148,20 @@ class _CardInfo extends ConsumerWidget {
       if (matchingCardSet != null && matchingCardSet.setPrice != null) {
         final p = matchingCardSet.setPrice;
         if (p != null && p > 0.0) {
-          return '\$${p.toStringAsFixed(2)}';
+          return currencyInfo.formatPrice(p);
         }
       }
     }
 
     // 3. Try priceAtPurchase in item
     if (item.priceAtPurchase != null && item.priceAtPurchase! > 0.0) {
-      return '\$${item.priceAtPurchase!.toStringAsFixed(2)}';
+      return currencyInfo.formatPrice(item.priceAtPurchase!);
     }
 
     // 4. Try global cardPrices in card
     final globalTcg = card.cardPrices?.firstOrNull?.tcgPlayerPrice;
     if (globalTcg != null && globalTcg > 0.0) {
-      return '\$${globalTcg.toStringAsFixed(2)}';
+      return currencyInfo.formatPrice(globalTcg);
     }
 
     return 'N/A';
@@ -1980,6 +1983,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final db = ref.watch(databaseProvider);
+    final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final cardSets = widget.card.cardSets ?? [];
 
     return Container(
@@ -1997,7 +2001,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
             height: 4,
             decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -2007,7 +2011,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                 Expanded(
                   child: Text(
                     'PRINTING PRICES - ${widget.card.name}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.1),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -2041,7 +2045,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                     child: Text(
                       _currentStatus,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: _isFetching ? Colors.amber : Colors.greenAccent,
                       ),
@@ -2125,7 +2129,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                   setCode,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     color: theme.colorScheme.primary,
                                   ),
                                 ),
@@ -2134,7 +2138,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                               Expanded(
                                 child: Text(
                                   setName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -2147,65 +2151,71 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                             ...setPrices.map((p) {
                               final ts = formatLastUpdatedTimestamp(p.lastUpdated);
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 6.0),
+                                padding: const EdgeInsets.only(bottom: 8.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          p.printing,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: p.printing.toLowerCase().contains('quarter') ||
-                                                    p.printing.toLowerCase().contains('1st')
-                                                ? Colors.amber
-                                                : Colors.white70,
+                                        Expanded(
+                                          child: Text(
+                                            p.printing,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: p.printing.toLowerCase().contains('quarter') ||
+                                                      p.printing.toLowerCase().contains('1st')
+                                                  ? Colors.amber
+                                                  : Colors.white70,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Row(
                                           children: [
                                             if (p.marketPrice != null) ...[
-                                              const Text('Market: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
+                                              const Text('Market: ', style: TextStyle(fontSize: 12, color: Colors.white38)),
                                               Text(
-                                                '\$${p.marketPrice!.toStringAsFixed(2)}',
+                                                currencyInfo.formatPrice(p.marketPrice!),
                                                 style: const TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: 15,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.greenAccent,
                                                 ),
                                               ),
                                               if (p.previousMarketPrice != null && p.previousMarketPrice! > 0.0) ...[
                                                 const SizedBox(width: 6),
-                                                _buildTrendBadge(p.marketPrice!, p.previousMarketPrice!),
+                                                _buildTrendBadge(p.marketPrice!, p.previousMarketPrice!, currencyInfo),
                                               ],
-                                            ],
-                                            if (p.lowPrice != null) ...[
-                                              const SizedBox(width: 12),
-                                              const Text('Low: ', style: TextStyle(fontSize: 11, color: Colors.white38)),
-                                              Text(
-                                                '\$${p.lowPrice!.toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white70,
+                                              if (currencyInfo.code != 'USD') ...[
+                                                const SizedBox(width: 10),
+                                                const Text('USD: ', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                                                Text(
+                                                  '\$${p.marketPrice!.toStringAsFixed(2)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white70,
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ],
                                           ],
                                         ),
                                       ],
                                     ),
-                                    if (ts.isNotEmpty)
+                                    if (ts.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
                                       Align(
                                         alignment: Alignment.centerRight,
                                         child: Text(
                                           'Updated: $ts',
-                                          style: const TextStyle(fontSize: 9, color: Colors.white38),
+                                          style: const TextStyle(fontSize: 10, color: Colors.white38),
                                         ),
                                       ),
+                                    ],
                                   ],
                                 ),
                               );
@@ -2215,13 +2225,15 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                               children: [
                                 SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
                                 SizedBox(width: 6),
-                                Text('Fetching prices...', style: TextStyle(fontSize: 11, color: Colors.amber)),
+                                Text('Fetching prices...', style: TextStyle(fontSize: 12, color: Colors.amber)),
                               ],
                             ),
                           ] else ...[
                             Text(
-                              item['basePrice'] != null ? '\$${item['basePrice']}' : 'N/A',
-                              style: const TextStyle(fontSize: 13, color: Colors.white54),
+                              item['basePrice'] != null
+                                  ? currencyInfo.formatPrice(double.tryParse(item['basePrice'].toString()) ?? 0.0)
+                                  : 'N/A',
+                              style: const TextStyle(fontSize: 14, color: Colors.white54),
                             ),
                           ],
                         ],
@@ -2237,7 +2249,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
     );
   }
 
-  Widget _buildTrendBadge(double newPrice, double oldPrice) {
+  Widget _buildTrendBadge(double newPrice, double oldPrice, CurrencyInfo currencyInfo) {
     final diff = newPrice - oldPrice;
     if (diff.abs() < 0.01) return const SizedBox.shrink();
 
@@ -2246,6 +2258,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
     final color = isUp ? Colors.greenAccent : Colors.redAccent;
     final arrow = isUp ? '▲' : '▼';
     final sign = isUp ? '+' : '';
+    final formattedDiff = currencyInfo.formatPrice(diff.abs());
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -2255,9 +2268,9 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
-        '$arrow $sign\$${diff.abs().toStringAsFixed(2)} (${sign}${percent.toStringAsFixed(1)}%)',
+        '$arrow $sign$formattedDiff (${sign}${percent.toStringAsFixed(1)}%)',
         style: TextStyle(
-          fontSize: 9,
+          fontSize: 10,
           fontWeight: FontWeight.bold,
           color: color,
         ),

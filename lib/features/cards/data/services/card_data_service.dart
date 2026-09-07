@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class RawApiCacheData {
   final List<dynamic> cards;
@@ -105,6 +106,33 @@ class CardDataService {
       }
     } catch (e) {
       // Suppress individual set error to allow batch to continue
+    }
+    return null;
+  }
+
+  Future<Map<String, double>?> fetchCurrencyRates() async {
+    const url = 'https://open.er-api.com/v6/latest/USD';
+    try {
+      final response = await _dio.get<dynamic>(url);
+      if (response.statusCode == 200 && response.data != null) {
+        dynamic data = response.data;
+        if (data is String) data = jsonDecode(data);
+
+        if (data is Map<String, dynamic> && data['rates'] is Map<String, dynamic>) {
+          final ratesMap = data['rates'] as Map<String, dynamic>;
+          final parsedRates = <String, double>{};
+
+          for (final entry in ratesMap.entries) {
+            final val = (entry.value as num?)?.toDouble();
+            if (val != null && val > 0) {
+              parsedRates[entry.key.toUpperCase()] = val;
+            }
+          }
+          return parsedRates;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching exchange rates: $e');
     }
     return null;
   }

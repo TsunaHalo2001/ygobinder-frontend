@@ -212,6 +212,16 @@ class SetCardPrices extends Table {
       ];
 }
 
+@DataClassName('DriftCurrencyRate')
+class CurrencyRates extends Table {
+  TextColumn get currencyCode => text()(); // e.g. "EUR", "MXN", "JPY"
+  RealColumn get rateToUsd => real()(); // e.g. 19.85 MXN per 1 USD
+  DateTimeColumn get lastUpdated => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {currencyCode};
+}
+
 // ==========================================
 // DATABASE CLASS
 // ==========================================
@@ -231,12 +241,13 @@ class SetCardPrices extends Table {
   SetInfos,
   UserOwnedSets,
   SetCardPrices,
+  CurrencyRates,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -304,6 +315,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 15) {
         await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
+      }
+      if (from < 16) {
+        await m.createTable(currencyRates);
       }
     },
     beforeOpen: (details) async {
@@ -1409,6 +1423,28 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<List<DriftSetCardPrice>> watchPricesForCard(int cardId) {
     return (select(setCardPrices)..where((t) => t.cardId.equals(cardId))).watch();
+  }
+
+  // ==========================================
+  // CURRENCY RATES QUERIES
+  // ==========================================
+
+  Future<void> saveCurrencyRates(List<CurrencyRatesCompanion> rates) async {
+    await batch((b) {
+      b.insertAll(currencyRates, rates, mode: InsertMode.insertOrReplace);
+    });
+  }
+
+  Stream<List<DriftCurrencyRate>> watchAllCurrencyRates() {
+    return select(currencyRates).watch();
+  }
+
+  Future<List<DriftCurrencyRate>> getAllCurrencyRates() {
+    return select(currencyRates).get();
+  }
+
+  Future<DriftCurrencyRate?> getCurrencyRate(String code) {
+    return (select(currencyRates)..where((t) => t.currencyCode.equals(code.toUpperCase()))).getSingleOrNull();
   }
 }
 

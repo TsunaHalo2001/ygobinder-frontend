@@ -187,14 +187,16 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      height: MediaQuery.sizeOf(context).height * 0.9,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1),
-      ),
-      child: DefaultTabController(
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: MediaQuery.sizeOf(context).height * 0.9,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1),
+        ),
+        child: DefaultTabController(
         length: 3,
         initialIndex: _getInitialTabIndex(),
         child: Column(
@@ -297,8 +299,9 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   int _getInitialTabIndex() {
     final currentType = widget.isDeckBuilder
@@ -333,65 +336,68 @@ class CardSortBottomSheet extends ConsumerWidget {
       {'label': 'DEF ASC', 'field': 'def', 'desc': false, 'icon': Icons.trending_up_rounded},
       {'label': 'DEF DESC', 'field': 'def', 'desc': true, 'icon': Icons.trending_down_rounded},
     ];
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 24),
-          Text('ORDER BY', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 2, color: theme.colorScheme.primary)),
-          const SizedBox(height: 24),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisExtent: 60,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Text('ORDER BY', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 2, color: theme.colorScheme.primary)),
+            const SizedBox(height: 24),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisExtent: 60,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: options.length,
+              itemBuilder: (context, index) {
+                final opt = options[index];
+                final isSelected = sortBy == opt['field'] && descending == opt['desc'];
+                return InkWell(
+                  onTap: () {
+                    if (isDeckBuilder) {
+                      ref.read(deckCardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
+                    } else {
+                      ref.read(cardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
+                    }
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSelected ? theme.colorScheme.primary : Colors.white10, width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(opt['icon'] as IconData, size: 18, color: isSelected ? theme.colorScheme.primary : Colors.white38),
+                        const SizedBox(width: 8),
+                        Text(
+                          opt['label'] as String,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? theme.colorScheme.primary : Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            itemCount: options.length,
-            itemBuilder: (context, index) {
-              final opt = options[index];
-              final isSelected = sortBy == opt['field'] && descending == opt['desc'];
-              return InkWell(
-                onTap: () {
-                  if (isDeckBuilder) {
-                    ref.read(deckCardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
-                  } else {
-                    ref.read(cardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
-                  }
-                  Navigator.pop(context);
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isSelected ? theme.colorScheme.primary : Colors.white10, width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(opt['icon'] as IconData, size: 18, color: isSelected ? theme.colorScheme.primary : Colors.white38),
-                      const SizedBox(width: 8),
-                      Text(
-                        opt['label'] as String,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? theme.colorScheme.primary : Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -704,6 +710,7 @@ class _FilterTabContent extends StatelessWidget {
             onPressed: onClear,
             child: const Text('CLEAR ALL FILTERS', style: TextStyle(color: Colors.white38)),
           ),
+          SizedBox(height: MediaQuery.paddingOf(context).bottom + 16),
         ],
       ),
     );
