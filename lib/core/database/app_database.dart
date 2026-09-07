@@ -203,6 +203,7 @@ class SetCardPrices extends Table {
   TextColumn get printing => text()();
   RealColumn get lowPrice => real().nullable()();
   RealColumn get marketPrice => real().nullable()();
+  RealColumn get previousMarketPrice => real().nullable()();
   TextColumn get lastUpdated => text().nullable()();
 
   @override
@@ -235,7 +236,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -301,10 +302,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 14) {
         await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
       }
+      if (from < 15) {
+        await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+      await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
       await customStatement('CREATE INDEX IF NOT EXISTS set_card_prices_card_id_idx ON set_card_prices (card_id)').catchError((_) {});
     },
   );
@@ -1387,8 +1392,9 @@ class AppDatabase extends _$AppDatabase {
         b.insertAll(setCardPrices, prices, mode: InsertMode.insertOrReplace);
       });
     } catch (e) {
-      // Self-heal: ensure set_code column exists on live connections without requiring app restart
+      // Self-heal: ensure set_code and previous_market_price columns exist on live connections
       await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+      await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
       await batch((b) {
         b.insertAll(setCardPrices, prices, mode: InsertMode.insertOrReplace);
       });

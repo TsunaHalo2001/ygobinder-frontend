@@ -1825,6 +1825,14 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
       });
     }
 
+    // Map existing cached prices to preserve previous market price on update
+    final oldPricesMap = <String, double>{};
+    for (final cp in cachedPrices) {
+      if (cp.marketPrice != null && cp.marketPrice! > 0.0) {
+        oldPricesMap['${cp.setId}_${cp.printing.trim().toLowerCase()}'] = cp.marketPrice!;
+      }
+    }
+
     // Clear old price records for this card before fetching fresh prices
     await db.deleteSetCardPricesForCard(widget.card.id);
 
@@ -1923,6 +1931,12 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                         ? (subPrinting == 'Normal' ? productRarity : '$productRarity ($subPrinting)')
                         : subPrinting;
 
+                    final key = '${setId}_${printingName.trim().toLowerCase()}';
+                    final oldPrice = oldPricesMap[key];
+                    final prevPrice = (oldPrice != null && market != null && (oldPrice - market).abs() >= 0.01)
+                        ? oldPrice
+                        : null;
+
                     companions.add(
                       SetCardPricesCompanion.insert(
                         setId: setId,
@@ -1931,6 +1945,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                         printing: printingName,
                         lowPrice: Value(low),
                         marketPrice: Value(market),
+                        previousMarketPrice: Value(prevPrice),
                         lastUpdated: Value(updatedStr),
                       ),
                     );
@@ -2162,6 +2177,10 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                                   color: Colors.greenAccent,
                                                 ),
                                               ),
+                                              if (p.previousMarketPrice != null && p.previousMarketPrice! > 0.0) ...[
+                                                const SizedBox(width: 6),
+                                                _buildTrendBadge(p.marketPrice!, p.previousMarketPrice!),
+                                              ],
                                             ],
                                             if (p.lowPrice != null) ...[
                                               const SizedBox(width: 12),
@@ -2214,6 +2233,34 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTrendBadge(double newPrice, double oldPrice) {
+    final diff = newPrice - oldPrice;
+    if (diff.abs() < 0.01) return const SizedBox.shrink();
+
+    final percent = oldPrice > 0 ? (diff / oldPrice) * 100 : 0.0;
+    final isUp = diff > 0;
+    final color = isUp ? Colors.greenAccent : Colors.redAccent;
+    final arrow = isUp ? '▲' : '▼';
+    final sign = isUp ? '+' : '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        '$arrow $sign\$${diff.abs().toStringAsFixed(2)} (${sign}${percent.toStringAsFixed(1)}%)',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }

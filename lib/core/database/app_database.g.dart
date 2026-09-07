@@ -6476,6 +6476,17 @@ class $SetCardPricesTable extends SetCardPrices
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _previousMarketPriceMeta =
+      const VerificationMeta('previousMarketPrice');
+  @override
+  late final GeneratedColumn<double> previousMarketPrice =
+      GeneratedColumn<double>(
+        'previous_market_price',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _lastUpdatedMeta = const VerificationMeta(
     'lastUpdated',
   );
@@ -6496,6 +6507,7 @@ class $SetCardPricesTable extends SetCardPrices
     printing,
     lowPrice,
     marketPrice,
+    previousMarketPrice,
     lastUpdated,
   ];
   @override
@@ -6558,6 +6570,15 @@ class $SetCardPricesTable extends SetCardPrices
         ),
       );
     }
+    if (data.containsKey('previous_market_price')) {
+      context.handle(
+        _previousMarketPriceMeta,
+        previousMarketPrice.isAcceptableOrUnknown(
+          data['previous_market_price']!,
+          _previousMarketPriceMeta,
+        ),
+      );
+    }
     if (data.containsKey('last_updated')) {
       context.handle(
         _lastUpdatedMeta,
@@ -6608,6 +6629,10 @@ class $SetCardPricesTable extends SetCardPrices
         DriftSqlType.double,
         data['${effectivePrefix}market_price'],
       ),
+      previousMarketPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}previous_market_price'],
+      ),
       lastUpdated: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}last_updated'],
@@ -6630,6 +6655,7 @@ class DriftSetCardPrice extends DataClass
   final String printing;
   final double? lowPrice;
   final double? marketPrice;
+  final double? previousMarketPrice;
   final String? lastUpdated;
   const DriftSetCardPrice({
     required this.id,
@@ -6639,6 +6665,7 @@ class DriftSetCardPrice extends DataClass
     required this.printing,
     this.lowPrice,
     this.marketPrice,
+    this.previousMarketPrice,
     this.lastUpdated,
   });
   @override
@@ -6656,6 +6683,9 @@ class DriftSetCardPrice extends DataClass
     }
     if (!nullToAbsent || marketPrice != null) {
       map['market_price'] = Variable<double>(marketPrice);
+    }
+    if (!nullToAbsent || previousMarketPrice != null) {
+      map['previous_market_price'] = Variable<double>(previousMarketPrice);
     }
     if (!nullToAbsent || lastUpdated != null) {
       map['last_updated'] = Variable<String>(lastUpdated);
@@ -6678,6 +6708,9 @@ class DriftSetCardPrice extends DataClass
       marketPrice: marketPrice == null && nullToAbsent
           ? const Value.absent()
           : Value(marketPrice),
+      previousMarketPrice: previousMarketPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previousMarketPrice),
       lastUpdated: lastUpdated == null && nullToAbsent
           ? const Value.absent()
           : Value(lastUpdated),
@@ -6697,6 +6730,9 @@ class DriftSetCardPrice extends DataClass
       printing: serializer.fromJson<String>(json['printing']),
       lowPrice: serializer.fromJson<double?>(json['lowPrice']),
       marketPrice: serializer.fromJson<double?>(json['marketPrice']),
+      previousMarketPrice: serializer.fromJson<double?>(
+        json['previousMarketPrice'],
+      ),
       lastUpdated: serializer.fromJson<String?>(json['lastUpdated']),
     );
   }
@@ -6711,6 +6747,7 @@ class DriftSetCardPrice extends DataClass
       'printing': serializer.toJson<String>(printing),
       'lowPrice': serializer.toJson<double?>(lowPrice),
       'marketPrice': serializer.toJson<double?>(marketPrice),
+      'previousMarketPrice': serializer.toJson<double?>(previousMarketPrice),
       'lastUpdated': serializer.toJson<String?>(lastUpdated),
     };
   }
@@ -6723,6 +6760,7 @@ class DriftSetCardPrice extends DataClass
     String? printing,
     Value<double?> lowPrice = const Value.absent(),
     Value<double?> marketPrice = const Value.absent(),
+    Value<double?> previousMarketPrice = const Value.absent(),
     Value<String?> lastUpdated = const Value.absent(),
   }) => DriftSetCardPrice(
     id: id ?? this.id,
@@ -6732,6 +6770,9 @@ class DriftSetCardPrice extends DataClass
     printing: printing ?? this.printing,
     lowPrice: lowPrice.present ? lowPrice.value : this.lowPrice,
     marketPrice: marketPrice.present ? marketPrice.value : this.marketPrice,
+    previousMarketPrice: previousMarketPrice.present
+        ? previousMarketPrice.value
+        : this.previousMarketPrice,
     lastUpdated: lastUpdated.present ? lastUpdated.value : this.lastUpdated,
   );
   DriftSetCardPrice copyWithCompanion(SetCardPricesCompanion data) {
@@ -6745,6 +6786,9 @@ class DriftSetCardPrice extends DataClass
       marketPrice: data.marketPrice.present
           ? data.marketPrice.value
           : this.marketPrice,
+      previousMarketPrice: data.previousMarketPrice.present
+          ? data.previousMarketPrice.value
+          : this.previousMarketPrice,
       lastUpdated: data.lastUpdated.present
           ? data.lastUpdated.value
           : this.lastUpdated,
@@ -6761,6 +6805,7 @@ class DriftSetCardPrice extends DataClass
           ..write('printing: $printing, ')
           ..write('lowPrice: $lowPrice, ')
           ..write('marketPrice: $marketPrice, ')
+          ..write('previousMarketPrice: $previousMarketPrice, ')
           ..write('lastUpdated: $lastUpdated')
           ..write(')'))
         .toString();
@@ -6775,6 +6820,7 @@ class DriftSetCardPrice extends DataClass
     printing,
     lowPrice,
     marketPrice,
+    previousMarketPrice,
     lastUpdated,
   );
   @override
@@ -6788,6 +6834,7 @@ class DriftSetCardPrice extends DataClass
           other.printing == this.printing &&
           other.lowPrice == this.lowPrice &&
           other.marketPrice == this.marketPrice &&
+          other.previousMarketPrice == this.previousMarketPrice &&
           other.lastUpdated == this.lastUpdated);
 }
 
@@ -6799,6 +6846,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
   final Value<String> printing;
   final Value<double?> lowPrice;
   final Value<double?> marketPrice;
+  final Value<double?> previousMarketPrice;
   final Value<String?> lastUpdated;
   const SetCardPricesCompanion({
     this.id = const Value.absent(),
@@ -6808,6 +6856,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
     this.printing = const Value.absent(),
     this.lowPrice = const Value.absent(),
     this.marketPrice = const Value.absent(),
+    this.previousMarketPrice = const Value.absent(),
     this.lastUpdated = const Value.absent(),
   });
   SetCardPricesCompanion.insert({
@@ -6818,6 +6867,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
     required String printing,
     this.lowPrice = const Value.absent(),
     this.marketPrice = const Value.absent(),
+    this.previousMarketPrice = const Value.absent(),
     this.lastUpdated = const Value.absent(),
   }) : setId = Value(setId),
        cardId = Value(cardId),
@@ -6830,6 +6880,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
     Expression<String>? printing,
     Expression<double>? lowPrice,
     Expression<double>? marketPrice,
+    Expression<double>? previousMarketPrice,
     Expression<String>? lastUpdated,
   }) {
     return RawValuesInsertable({
@@ -6840,6 +6891,8 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
       if (printing != null) 'printing': printing,
       if (lowPrice != null) 'low_price': lowPrice,
       if (marketPrice != null) 'market_price': marketPrice,
+      if (previousMarketPrice != null)
+        'previous_market_price': previousMarketPrice,
       if (lastUpdated != null) 'last_updated': lastUpdated,
     });
   }
@@ -6852,6 +6905,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
     Value<String>? printing,
     Value<double?>? lowPrice,
     Value<double?>? marketPrice,
+    Value<double?>? previousMarketPrice,
     Value<String?>? lastUpdated,
   }) {
     return SetCardPricesCompanion(
@@ -6862,6 +6916,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
       printing: printing ?? this.printing,
       lowPrice: lowPrice ?? this.lowPrice,
       marketPrice: marketPrice ?? this.marketPrice,
+      previousMarketPrice: previousMarketPrice ?? this.previousMarketPrice,
       lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }
@@ -6890,6 +6945,11 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
     if (marketPrice.present) {
       map['market_price'] = Variable<double>(marketPrice.value);
     }
+    if (previousMarketPrice.present) {
+      map['previous_market_price'] = Variable<double>(
+        previousMarketPrice.value,
+      );
+    }
     if (lastUpdated.present) {
       map['last_updated'] = Variable<String>(lastUpdated.value);
     }
@@ -6906,6 +6966,7 @@ class SetCardPricesCompanion extends UpdateCompanion<DriftSetCardPrice> {
           ..write('printing: $printing, ')
           ..write('lowPrice: $lowPrice, ')
           ..write('marketPrice: $marketPrice, ')
+          ..write('previousMarketPrice: $previousMarketPrice, ')
           ..write('lastUpdated: $lastUpdated')
           ..write(')'))
         .toString();
@@ -11655,6 +11716,7 @@ typedef $$SetCardPricesTableCreateCompanionBuilder =
       required String printing,
       Value<double?> lowPrice,
       Value<double?> marketPrice,
+      Value<double?> previousMarketPrice,
       Value<String?> lastUpdated,
     });
 typedef $$SetCardPricesTableUpdateCompanionBuilder =
@@ -11666,6 +11728,7 @@ typedef $$SetCardPricesTableUpdateCompanionBuilder =
       Value<String> printing,
       Value<double?> lowPrice,
       Value<double?> marketPrice,
+      Value<double?> previousMarketPrice,
       Value<String?> lastUpdated,
     });
 
@@ -11710,6 +11773,11 @@ class $$SetCardPricesTableFilterComposer
 
   ColumnFilters<double> get marketPrice => $composableBuilder(
     column: $table.marketPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get previousMarketPrice => $composableBuilder(
+    column: $table.previousMarketPrice,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11763,6 +11831,11 @@ class $$SetCardPricesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get previousMarketPrice => $composableBuilder(
+    column: $table.previousMarketPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get lastUpdated => $composableBuilder(
     column: $table.lastUpdated,
     builder: (column) => ColumnOrderings(column),
@@ -11798,6 +11871,11 @@ class $$SetCardPricesTableAnnotationComposer
 
   GeneratedColumn<double> get marketPrice => $composableBuilder(
     column: $table.marketPrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get previousMarketPrice => $composableBuilder(
+    column: $table.previousMarketPrice,
     builder: (column) => column,
   );
 
@@ -11849,6 +11927,7 @@ class $$SetCardPricesTableTableManager
                 Value<String> printing = const Value.absent(),
                 Value<double?> lowPrice = const Value.absent(),
                 Value<double?> marketPrice = const Value.absent(),
+                Value<double?> previousMarketPrice = const Value.absent(),
                 Value<String?> lastUpdated = const Value.absent(),
               }) => SetCardPricesCompanion(
                 id: id,
@@ -11858,6 +11937,7 @@ class $$SetCardPricesTableTableManager
                 printing: printing,
                 lowPrice: lowPrice,
                 marketPrice: marketPrice,
+                previousMarketPrice: previousMarketPrice,
                 lastUpdated: lastUpdated,
               ),
           createCompanionCallback:
@@ -11869,6 +11949,7 @@ class $$SetCardPricesTableTableManager
                 required String printing,
                 Value<double?> lowPrice = const Value.absent(),
                 Value<double?> marketPrice = const Value.absent(),
+                Value<double?> previousMarketPrice = const Value.absent(),
                 Value<String?> lastUpdated = const Value.absent(),
               }) => SetCardPricesCompanion.insert(
                 id: id,
@@ -11878,6 +11959,7 @@ class $$SetCardPricesTableTableManager
                 printing: printing,
                 lowPrice: lowPrice,
                 marketPrice: marketPrice,
+                previousMarketPrice: previousMarketPrice,
                 lastUpdated: lastUpdated,
               ),
           withReferenceMapper: (p0) => p0
