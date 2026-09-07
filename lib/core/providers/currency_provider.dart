@@ -19,16 +19,25 @@ class CurrencyInfo {
     if (priceInUsd <= 0.0) return 'N/A';
     final converted = priceInUsd * rateToUsd;
 
-    if (code == 'JPY') {
-      return '¥${converted.toStringAsFixed(0)}';
-    }
+    final isJpy = code == 'JPY';
+    final decimals = isJpy ? 0 : 2;
 
-    final formattedVal = converted.toStringAsFixed(converted >= 1000 ? 0 : 2);
+    final parts = converted.toStringAsFixed(decimals).split('.');
+    final integerPart = parts[0];
+    final decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
+
+    final formattedInteger = integerPart.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+
+    final formattedVal = '$formattedInteger$decimalPart';
 
     if (code == 'USD') return '\$$formattedVal';
     if (code == 'EUR') return '€$formattedVal';
     if (code == 'GBP') return '£$formattedVal';
     if (code == 'PEN') return 'S/$formattedVal';
+    if (code == 'JPY') return '¥$formattedVal';
     if (code == 'CUSTOM') return '\$$formattedVal (Custom)';
 
     return '$symbol$formattedVal $code';

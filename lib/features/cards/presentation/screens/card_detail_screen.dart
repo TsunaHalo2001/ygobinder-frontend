@@ -18,6 +18,19 @@ import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
+String formatWithThousandSeparators(double value, {int decimals = 2}) {
+  final parts = value.toStringAsFixed(decimals).split('.');
+  final integerPart = parts[0];
+  final decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
+
+  final formattedInteger = integerPart.replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]},',
+  );
+
+  return '$formattedInteger$decimalPart';
+}
+
 String formatLastUpdatedTimestamp(String? isoString) {
   if (isoString == null || isoString.trim().isEmpty) return '';
   final dt = DateTime.tryParse(isoString);
@@ -2296,7 +2309,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                                                 const SizedBox(width: 10),
                                                 const Text('USD: ', style: TextStyle(fontSize: 12, color: Colors.white38)),
                                                 Text(
-                                                  '\$${p.marketPrice!.toStringAsFixed(2)}',
+                                                  '\$${formatWithThousandSeparators(p.marketPrice!)}',
                                                   style: const TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.bold,
