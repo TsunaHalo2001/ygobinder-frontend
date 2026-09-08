@@ -84,6 +84,7 @@ abstract class BanlistInfo with _$BanlistInfo {
     @JsonKey(name: 'ban_ocg') String? banOcg,
     @JsonKey(name: 'ban_goat') String? banGoat,
     @JsonKey(name: 'ban_edison') String? banEdison, // ✅ Added Edison
+    @JsonKey(name: 'ban_hat') String? banHat, // ✅ Added HAT
   }) = _BanlistInfo;
 
   factory BanlistInfo.fromJson(Map<String, dynamic> json) => _$BanlistInfoFromJson(json);

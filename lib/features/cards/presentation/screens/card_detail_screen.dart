@@ -48,6 +48,17 @@ bool isAfterGoatCutoff(YgoCard card) {
   return false;
 }
 
+bool isAfterHatCutoff(YgoCard card) {
+  final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
+  if (tcgDateStr != null && tcgDateStr.trim().isNotEmpty) {
+    final parsed = DateTime.tryParse(tcgDateStr.trim());
+    if (parsed != null) {
+      return parsed.isAfter(DateTime(2014, 5, 16));
+    }
+  }
+  return false;
+}
+
 OverallRegulationStatus _getOverallRegulationStatus(BanlistInfo? info, YgoCard card) {
   if (info == null) return OverallRegulationStatus.forbidden;
 
@@ -61,11 +72,23 @@ OverallRegulationStatus _getOverallRegulationStatus(BanlistInfo? info, YgoCard c
       ? 'banned'
       : info.banEdison!.trim().toLowerCase();
 
+  // HAT status: Released after May 16, 2014 -> Banned in HAT!
+  // If released on or before May 16, 2014 and banHat is null/empty -> Unlimited (Legal)!
+  final String hatStatus;
+  if (isAfterHatCutoff(card)) {
+    hatStatus = 'banned';
+  } else if (info.banHat != null && info.banHat!.trim().isNotEmpty) {
+    hatStatus = info.banHat!.trim().toLowerCase();
+  } else {
+    hatStatus = 'unlimited';
+  }
+
   final statuses = [
     info.banTcg?.trim().toLowerCase(),
     info.banOcg?.trim().toLowerCase(),
     goatStatus,
     edisonStatus,
+    hatStatus,
   ].whereType<String>().toList();
 
   bool hasBanned = false;
@@ -717,47 +740,61 @@ class _CardInfo extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.gavel_rounded, color: theme.colorScheme.primary, size: 24),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'CARD REGULATIONS - ${card.name}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
-                    overflow: TextOverflow.ellipsis,
+      builder: (context) => SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.gavel_rounded, color: theme.colorScheme.primary, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'CARD REGULATIONS - ${card.name}',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+              const SizedBox(height: 12),
+
+              // Formats List
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildRegulationTile(context, 'TCG Format', info?.banTcg, Icons.public_rounded),
+                      _buildRegulationTile(context, 'OCG Format', info?.banOcg, Icons.location_city_rounded),
+                      _buildRegulationTile(context, 'GOAT Format', info?.banGoat, Icons.history_rounded),
+                      _buildRegulationTile(context, 'Edison Format', info?.banEdison, Icons.timer_rounded),
+                      _buildRegulationTile(context, 'HAT Format', info?.banHat, Icons.star_half_rounded),
+                    ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
-            const SizedBox(height: 12),
-
-            // Formats List
-            _buildRegulationTile(context, 'TCG Format', info?.banTcg, Icons.public_rounded),
-            _buildRegulationTile(context, 'OCG Format', info?.banOcg, Icons.location_city_rounded),
-            _buildRegulationTile(context, 'GOAT Format', info?.banGoat, Icons.history_rounded),
-            _buildRegulationTile(context, 'Edison Format', info?.banEdison, Icons.timer_rounded),
-            const SizedBox(height: 16),
-          ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -767,14 +804,17 @@ class _CardInfo extends ConsumerWidget {
     final theme = Theme.of(context);
     final isEdisonFormat = formatName.toLowerCase().contains('edison');
     final isGoatFormat = formatName.toLowerCase().contains('goat');
+    final isHatFormat = formatName.toLowerCase().contains('hat');
 
     String s = (status ?? '').trim().toLowerCase();
     if (isEdisonFormat && s.isEmpty) {
       s = 'banned'; // Not legal in Edison -> Banned!
     } else if (isGoatFormat && isAfterGoatCutoff(card)) {
       s = 'banned'; // Released after Aug 17, 2005 -> Banned in GOAT!
+    } else if (isHatFormat && isAfterHatCutoff(card)) {
+      s = 'banned'; // Released after May 16, 2014 -> Banned in HAT!
     } else if (s.isEmpty) {
-      s = 'unlimited';
+      s = 'unlimited'; // Legal if released before cutoff!
     }
     
     final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0';
@@ -789,6 +829,8 @@ class _CardInfo extends ConsumerWidget {
       statusColor = getThemeRed(context);
       if (isGoatFormat && isAfterGoatCutoff(card)) {
         statusText = 'Forbidden (Not legal in GOAT)';
+      } else if (isHatFormat && isAfterHatCutoff(card)) {
+        statusText = 'Forbidden (Not legal in HAT)';
       } else if (isEdisonFormat && (status == null || status.trim().isEmpty)) {
         statusText = 'Forbidden (Not legal in Edison)';
       } else {

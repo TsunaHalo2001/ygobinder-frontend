@@ -2581,6 +2581,15 @@ class $BanlistInfosTable extends BanlistInfos
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _banHatMeta = const VerificationMeta('banHat');
+  @override
+  late final GeneratedColumn<String> banHat = GeneratedColumn<String>(
+    'ban_hat',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     cardId,
@@ -2588,6 +2597,7 @@ class $BanlistInfosTable extends BanlistInfos
     banOcg,
     banGoat,
     banEdison,
+    banHat,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2631,6 +2641,12 @@ class $BanlistInfosTable extends BanlistInfos
         banEdison.isAcceptableOrUnknown(data['ban_edison']!, _banEdisonMeta),
       );
     }
+    if (data.containsKey('ban_hat')) {
+      context.handle(
+        _banHatMeta,
+        banHat.isAcceptableOrUnknown(data['ban_hat']!, _banHatMeta),
+      );
+    }
     return context;
   }
 
@@ -2660,6 +2676,10 @@ class $BanlistInfosTable extends BanlistInfos
         DriftSqlType.string,
         data['${effectivePrefix}ban_edison'],
       ),
+      banHat: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ban_hat'],
+      ),
     );
   }
 
@@ -2676,12 +2696,14 @@ class DriftBanlistInfo extends DataClass
   final String? banOcg;
   final String? banGoat;
   final String? banEdison;
+  final String? banHat;
   const DriftBanlistInfo({
     required this.cardId,
     this.banTcg,
     this.banOcg,
     this.banGoat,
     this.banEdison,
+    this.banHat,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2698,6 +2720,9 @@ class DriftBanlistInfo extends DataClass
     }
     if (!nullToAbsent || banEdison != null) {
       map['ban_edison'] = Variable<String>(banEdison);
+    }
+    if (!nullToAbsent || banHat != null) {
+      map['ban_hat'] = Variable<String>(banHat);
     }
     return map;
   }
@@ -2717,6 +2742,9 @@ class DriftBanlistInfo extends DataClass
       banEdison: banEdison == null && nullToAbsent
           ? const Value.absent()
           : Value(banEdison),
+      banHat: banHat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(banHat),
     );
   }
 
@@ -2731,6 +2759,7 @@ class DriftBanlistInfo extends DataClass
       banOcg: serializer.fromJson<String?>(json['banOcg']),
       banGoat: serializer.fromJson<String?>(json['banGoat']),
       banEdison: serializer.fromJson<String?>(json['banEdison']),
+      banHat: serializer.fromJson<String?>(json['banHat']),
     );
   }
   @override
@@ -2742,6 +2771,7 @@ class DriftBanlistInfo extends DataClass
       'banOcg': serializer.toJson<String?>(banOcg),
       'banGoat': serializer.toJson<String?>(banGoat),
       'banEdison': serializer.toJson<String?>(banEdison),
+      'banHat': serializer.toJson<String?>(banHat),
     };
   }
 
@@ -2751,12 +2781,14 @@ class DriftBanlistInfo extends DataClass
     Value<String?> banOcg = const Value.absent(),
     Value<String?> banGoat = const Value.absent(),
     Value<String?> banEdison = const Value.absent(),
+    Value<String?> banHat = const Value.absent(),
   }) => DriftBanlistInfo(
     cardId: cardId ?? this.cardId,
     banTcg: banTcg.present ? banTcg.value : this.banTcg,
     banOcg: banOcg.present ? banOcg.value : this.banOcg,
     banGoat: banGoat.present ? banGoat.value : this.banGoat,
     banEdison: banEdison.present ? banEdison.value : this.banEdison,
+    banHat: banHat.present ? banHat.value : this.banHat,
   );
   DriftBanlistInfo copyWithCompanion(BanlistInfosCompanion data) {
     return DriftBanlistInfo(
@@ -2765,6 +2797,7 @@ class DriftBanlistInfo extends DataClass
       banOcg: data.banOcg.present ? data.banOcg.value : this.banOcg,
       banGoat: data.banGoat.present ? data.banGoat.value : this.banGoat,
       banEdison: data.banEdison.present ? data.banEdison.value : this.banEdison,
+      banHat: data.banHat.present ? data.banHat.value : this.banHat,
     );
   }
 
@@ -2775,13 +2808,15 @@ class DriftBanlistInfo extends DataClass
           ..write('banTcg: $banTcg, ')
           ..write('banOcg: $banOcg, ')
           ..write('banGoat: $banGoat, ')
-          ..write('banEdison: $banEdison')
+          ..write('banEdison: $banEdison, ')
+          ..write('banHat: $banHat')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(cardId, banTcg, banOcg, banGoat, banEdison);
+  int get hashCode =>
+      Object.hash(cardId, banTcg, banOcg, banGoat, banEdison, banHat);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2790,7 +2825,8 @@ class DriftBanlistInfo extends DataClass
           other.banTcg == this.banTcg &&
           other.banOcg == this.banOcg &&
           other.banGoat == this.banGoat &&
-          other.banEdison == this.banEdison);
+          other.banEdison == this.banEdison &&
+          other.banHat == this.banHat);
 }
 
 class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
@@ -2799,12 +2835,14 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
   final Value<String?> banOcg;
   final Value<String?> banGoat;
   final Value<String?> banEdison;
+  final Value<String?> banHat;
   const BanlistInfosCompanion({
     this.cardId = const Value.absent(),
     this.banTcg = const Value.absent(),
     this.banOcg = const Value.absent(),
     this.banGoat = const Value.absent(),
     this.banEdison = const Value.absent(),
+    this.banHat = const Value.absent(),
   });
   BanlistInfosCompanion.insert({
     this.cardId = const Value.absent(),
@@ -2812,6 +2850,7 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
     this.banOcg = const Value.absent(),
     this.banGoat = const Value.absent(),
     this.banEdison = const Value.absent(),
+    this.banHat = const Value.absent(),
   });
   static Insertable<DriftBanlistInfo> custom({
     Expression<int>? cardId,
@@ -2819,6 +2858,7 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
     Expression<String>? banOcg,
     Expression<String>? banGoat,
     Expression<String>? banEdison,
+    Expression<String>? banHat,
   }) {
     return RawValuesInsertable({
       if (cardId != null) 'card_id': cardId,
@@ -2826,6 +2866,7 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
       if (banOcg != null) 'ban_ocg': banOcg,
       if (banGoat != null) 'ban_goat': banGoat,
       if (banEdison != null) 'ban_edison': banEdison,
+      if (banHat != null) 'ban_hat': banHat,
     });
   }
 
@@ -2835,6 +2876,7 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
     Value<String?>? banOcg,
     Value<String?>? banGoat,
     Value<String?>? banEdison,
+    Value<String?>? banHat,
   }) {
     return BanlistInfosCompanion(
       cardId: cardId ?? this.cardId,
@@ -2842,6 +2884,7 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
       banOcg: banOcg ?? this.banOcg,
       banGoat: banGoat ?? this.banGoat,
       banEdison: banEdison ?? this.banEdison,
+      banHat: banHat ?? this.banHat,
     );
   }
 
@@ -2863,6 +2906,9 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
     if (banEdison.present) {
       map['ban_edison'] = Variable<String>(banEdison.value);
     }
+    if (banHat.present) {
+      map['ban_hat'] = Variable<String>(banHat.value);
+    }
     return map;
   }
 
@@ -2873,7 +2919,8 @@ class BanlistInfosCompanion extends UpdateCompanion<DriftBanlistInfo> {
           ..write('banTcg: $banTcg, ')
           ..write('banOcg: $banOcg, ')
           ..write('banGoat: $banGoat, ')
-          ..write('banEdison: $banEdison')
+          ..write('banEdison: $banEdison, ')
+          ..write('banHat: $banHat')
           ..write(')'))
         .toString();
   }
@@ -8205,8 +8252,10 @@ class $$CardsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$CardsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$CardsTable, DriftCard>(table),
+                  $$CardsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
@@ -8654,7 +8703,7 @@ class $$CardImagesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CardImagesTable, DriftCardImage>(table),
                   $$CardImagesTableReferences(db, table, e),
                 ),
               )
@@ -9007,7 +9056,7 @@ class $$CardPricesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CardPricesTable, DriftCardPrice>(table),
                   $$CardPricesTableReferences(db, table, e),
                 ),
               )
@@ -9354,7 +9403,7 @@ class $$CardSetsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CardSetsTable, DriftCardSet>(table),
                   $$CardSetsTableReferences(db, table, e),
                 ),
               )
@@ -9424,6 +9473,7 @@ typedef $$BanlistInfosTableCreateCompanionBuilder =
       Value<String?> banOcg,
       Value<String?> banGoat,
       Value<String?> banEdison,
+      Value<String?> banHat,
     });
 typedef $$BanlistInfosTableUpdateCompanionBuilder =
     BanlistInfosCompanion Function({
@@ -9432,6 +9482,7 @@ typedef $$BanlistInfosTableUpdateCompanionBuilder =
       Value<String?> banOcg,
       Value<String?> banGoat,
       Value<String?> banEdison,
+      Value<String?> banHat,
     });
 
 final class $$BanlistInfosTableReferences
@@ -9483,6 +9534,11 @@ class $$BanlistInfosTableFilterComposer
 
   ColumnFilters<String> get banEdison => $composableBuilder(
     column: $table.banEdison,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get banHat => $composableBuilder(
+    column: $table.banHat,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9539,6 +9595,11 @@ class $$BanlistInfosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get banHat => $composableBuilder(
+    column: $table.banHat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CardsTableOrderingComposer get cardId {
     final $$CardsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -9583,6 +9644,9 @@ class $$BanlistInfosTableAnnotationComposer
 
   GeneratedColumn<String> get banEdison =>
       $composableBuilder(column: $table.banEdison, builder: (column) => column);
+
+  GeneratedColumn<String> get banHat =>
+      $composableBuilder(column: $table.banHat, builder: (column) => column);
 
   $$CardsTableAnnotationComposer get cardId {
     final $$CardsTableAnnotationComposer composer = $composerBuilder(
@@ -9641,12 +9705,14 @@ class $$BanlistInfosTableTableManager
                 Value<String?> banOcg = const Value.absent(),
                 Value<String?> banGoat = const Value.absent(),
                 Value<String?> banEdison = const Value.absent(),
+                Value<String?> banHat = const Value.absent(),
               }) => BanlistInfosCompanion(
                 cardId: cardId,
                 banTcg: banTcg,
                 banOcg: banOcg,
                 banGoat: banGoat,
                 banEdison: banEdison,
+                banHat: banHat,
               ),
           createCompanionCallback:
               ({
@@ -9655,17 +9721,19 @@ class $$BanlistInfosTableTableManager
                 Value<String?> banOcg = const Value.absent(),
                 Value<String?> banGoat = const Value.absent(),
                 Value<String?> banEdison = const Value.absent(),
+                Value<String?> banHat = const Value.absent(),
               }) => BanlistInfosCompanion.insert(
                 cardId: cardId,
                 banTcg: banTcg,
                 banOcg: banOcg,
                 banGoat: banGoat,
                 banEdison: banEdison,
+                banHat: banHat,
               ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$BanlistInfosTable, DriftBanlistInfo>(table),
                   $$BanlistInfosTableReferences(db, table, e),
                 ),
               )
@@ -10143,7 +10211,9 @@ class $$CollectionItemsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CollectionItemsTable, DriftCollectionItem>(
+                    table,
+                  ),
                   $$CollectionItemsTableReferences(db, table, e),
                 ),
               )
@@ -10326,7 +10396,16 @@ class $$AppConfigTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$AppConfigTable, DriftAppConfig>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $AppConfigTable,
+                    DriftAppConfig
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -10588,8 +10667,10 @@ class $$DecksTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$DecksTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$DecksTable, DriftDeck>(table),
+                  $$DecksTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({deckCardsRefs = false}) {
@@ -10935,7 +11016,7 @@ class $$DeckCardsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DeckCardsTable, DriftDeckCard>(table),
                   $$DeckCardsTableReferences(db, table, e),
                 ),
               )
@@ -11163,7 +11244,16 @@ class $$FavoriteCardsTableTableManager
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$FavoriteCardsTable, DriftFavoriteCard>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $FavoriteCardsTable,
+                    DriftFavoriteCard
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -11338,7 +11428,16 @@ class $$WantedCardsTableTableManager
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$WantedCardsTable, DriftWantedCard>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $WantedCardsTable,
+                    DriftWantedCard
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -11755,7 +11854,16 @@ class $$SetInfosTableTableManager
                 skusUrl: skusUrl,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$SetInfosTable, DriftSetInfo>(table),
+                  BaseReferences<_$AppDatabase, $SetInfosTable, DriftSetInfo>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -11963,7 +12071,16 @@ class $$UserOwnedSetsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$UserOwnedSetsTable, DriftUserOwnedSet>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $UserOwnedSetsTable,
+                    DriftUserOwnedSet
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -12243,7 +12360,16 @@ class $$SetCardPricesTableTableManager
                 lastUpdated: lastUpdated,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$SetCardPricesTable, DriftSetCardPrice>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SetCardPricesTable,
+                    DriftSetCardPrice
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -12413,7 +12539,16 @@ class $$CurrencyRatesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$CurrencyRatesTable, DriftCurrencyRate>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $CurrencyRatesTable,
+                    DriftCurrencyRate
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),

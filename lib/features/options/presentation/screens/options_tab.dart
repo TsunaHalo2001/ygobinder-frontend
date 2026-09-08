@@ -260,7 +260,7 @@ class OptionsTab extends ConsumerWidget {
     final user = authState.value;
     final theme = Theme.of(context);
     final versionAsync = ref.watch(appVersionCheckProvider);
-    const String currentAppVersion = '1.3.0+16';
+    const String currentAppVersion = '1.4.0+17';
 
     return Scaffold(
       appBar: AppBar(
@@ -630,7 +630,7 @@ class OptionsTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Version 1.3.0',
+                  'Version 1.4.0',
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 12,

@@ -59,6 +59,7 @@ _BanlistInfo _$BanlistInfoFromJson(Map<String, dynamic> json) => _BanlistInfo(
   banOcg: json['ban_ocg'] as String?,
   banGoat: json['ban_goat'] as String?,
   banEdison: json['ban_edison'] as String?,
+  banHat: json['ban_hat'] as String?,
 );
 
 Map<String, dynamic> _$BanlistInfoToJson(_BanlistInfo instance) =>
@@ -67,6 +68,7 @@ Map<String, dynamic> _$BanlistInfoToJson(_BanlistInfo instance) =>
       'ban_ocg': instance.banOcg,
       'ban_goat': instance.banGoat,
       'ban_edison': instance.banEdison,
+      'ban_hat': instance.banHat,
     };
 
 _MiscInfo _$MiscInfoFromJson(Map<String, dynamic> json) => _MiscInfo(

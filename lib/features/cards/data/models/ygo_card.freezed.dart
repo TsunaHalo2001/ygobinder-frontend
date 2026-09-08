@@ -859,7 +859,7 @@ as double?,
 /// @nodoc
 mixin _$BanlistInfo {
 
-@JsonKey(name: 'ban_tcg') String? get banTcg;@JsonKey(name: 'ban_ocg') String? get banOcg;@JsonKey(name: 'ban_goat') String? get banGoat;@JsonKey(name: 'ban_edison') String? get banEdison;
+@JsonKey(name: 'ban_tcg') String? get banTcg;@JsonKey(name: 'ban_ocg') String? get banOcg;@JsonKey(name: 'ban_goat') String? get banGoat;@JsonKey(name: 'ban_edison') String? get banEdison;@JsonKey(name: 'ban_hat') String? get banHat;
 /// Create a copy of BanlistInfo
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -873,20 +873,20 @@ $BanlistInfoCopyWith<BanlistInfo> get copyWith => _$BanlistInfoCopyWithImpl<Banl
 @override
 bool operator ==(Object other) {
   final _this = this as BanlistInfo;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BanlistInfo&&(identical(other.banTcg, _this.banTcg) || other.banTcg == _this.banTcg)&&(identical(other.banOcg, _this.banOcg) || other.banOcg == _this.banOcg)&&(identical(other.banGoat, _this.banGoat) || other.banGoat == _this.banGoat)&&(identical(other.banEdison, _this.banEdison) || other.banEdison == _this.banEdison));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BanlistInfo&&(identical(other.banTcg, _this.banTcg) || other.banTcg == _this.banTcg)&&(identical(other.banOcg, _this.banOcg) || other.banOcg == _this.banOcg)&&(identical(other.banGoat, _this.banGoat) || other.banGoat == _this.banGoat)&&(identical(other.banEdison, _this.banEdison) || other.banEdison == _this.banEdison)&&(identical(other.banHat, _this.banHat) || other.banHat == _this.banHat));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as BanlistInfo;
-  return Object.hash(runtimeType,_this.banTcg,_this.banOcg,_this.banGoat,_this.banEdison);
+  return Object.hash(runtimeType,_this.banTcg,_this.banOcg,_this.banGoat,_this.banEdison,_this.banHat);
 }
 
 @override
 String toString() {
   final _this = this as BanlistInfo;
-  return 'BanlistInfo(banTcg: ${_this.banTcg}, banOcg: ${_this.banOcg}, banGoat: ${_this.banGoat}, banEdison: ${_this.banEdison})';
+  return 'BanlistInfo(banTcg: ${_this.banTcg}, banOcg: ${_this.banOcg}, banGoat: ${_this.banGoat}, banEdison: ${_this.banEdison}, banHat: ${_this.banHat})';
 }
 
 
@@ -897,7 +897,7 @@ abstract mixin class $BanlistInfoCopyWith<$Res>  {
   factory $BanlistInfoCopyWith(BanlistInfo value, $Res Function(BanlistInfo) _then) = _$BanlistInfoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'ban_tcg') String? banTcg,@JsonKey(name: 'ban_ocg') String? banOcg,@JsonKey(name: 'ban_goat') String? banGoat,@JsonKey(name: 'ban_edison') String? banEdison
+@JsonKey(name: 'ban_tcg') String? banTcg,@JsonKey(name: 'ban_ocg') String? banOcg,@JsonKey(name: 'ban_goat') String? banGoat,@JsonKey(name: 'ban_edison') String? banEdison,@JsonKey(name: 'ban_hat') String? banHat
 });
 
 
@@ -914,12 +914,13 @@ class _$BanlistInfoCopyWithImpl<$Res>
 
 /// Create a copy of BanlistInfo
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? banTcg = freezed,Object? banOcg = freezed,Object? banGoat = freezed,Object? banEdison = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? banTcg = freezed,Object? banOcg = freezed,Object? banGoat = freezed,Object? banEdison = freezed,Object? banHat = freezed,}) {
   return _then(BanlistInfo(
 banTcg: freezed == banTcg ? _self.banTcg : banTcg // ignore: cast_nullable_to_non_nullable
 as String?,banOcg: freezed == banOcg ? _self.banOcg : banOcg // ignore: cast_nullable_to_non_nullable
 as String?,banGoat: freezed == banGoat ? _self.banGoat : banGoat // ignore: cast_nullable_to_non_nullable
 as String?,banEdison: freezed == banEdison ? _self.banEdison : banEdison // ignore: cast_nullable_to_non_nullable
+as String?,banHat: freezed == banHat ? _self.banHat : banHat // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -1005,10 +1006,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'ban_tcg')  String? banTcg, @JsonKey(name: 'ban_ocg')  String? banOcg, @JsonKey(name: 'ban_goat')  String? banGoat, @JsonKey(name: 'ban_edison')  String? banEdison)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'ban_tcg')  String? banTcg, @JsonKey(name: 'ban_ocg')  String? banOcg, @JsonKey(name: 'ban_goat')  String? banGoat, @JsonKey(name: 'ban_edison')  String? banEdison, @JsonKey(name: 'ban_hat')  String? banHat)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BanlistInfo() when $default != null:
-return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison);case _:
+return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison,_that.banHat);case _:
   return orElse();
 
 }
@@ -1026,10 +1027,10 @@ return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'ban_tcg')  String? banTcg, @JsonKey(name: 'ban_ocg')  String? banOcg, @JsonKey(name: 'ban_goat')  String? banGoat, @JsonKey(name: 'ban_edison')  String? banEdison)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'ban_tcg')  String? banTcg, @JsonKey(name: 'ban_ocg')  String? banOcg, @JsonKey(name: 'ban_goat')  String? banGoat, @JsonKey(name: 'ban_edison')  String? banEdison, @JsonKey(name: 'ban_hat')  String? banHat)  $default,) {final _that = this;
 switch (_that) {
 case _BanlistInfo():
-return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison);case _:
+return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison,_that.banHat);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1046,10 +1047,10 @@ return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'ban_tcg')  String? banTcg, @JsonKey(name: 'ban_ocg')  String? banOcg, @JsonKey(name: 'ban_goat')  String? banGoat, @JsonKey(name: 'ban_edison')  String? banEdison)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'ban_tcg')  String? banTcg, @JsonKey(name: 'ban_ocg')  String? banOcg, @JsonKey(name: 'ban_goat')  String? banGoat, @JsonKey(name: 'ban_edison')  String? banEdison, @JsonKey(name: 'ban_hat')  String? banHat)?  $default,) {final _that = this;
 switch (_that) {
 case _BanlistInfo() when $default != null:
-return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison);case _:
+return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison,_that.banHat);case _:
   return null;
 
 }
@@ -1061,13 +1062,14 @@ return $default(_that.banTcg,_that.banOcg,_that.banGoat,_that.banEdison);case _:
 @JsonSerializable()
 
 class _BanlistInfo implements BanlistInfo {
-  const _BanlistInfo({@JsonKey(name: 'ban_tcg') this.banTcg, @JsonKey(name: 'ban_ocg') this.banOcg, @JsonKey(name: 'ban_goat') this.banGoat, @JsonKey(name: 'ban_edison') this.banEdison});
+  const _BanlistInfo({@JsonKey(name: 'ban_tcg') this.banTcg, @JsonKey(name: 'ban_ocg') this.banOcg, @JsonKey(name: 'ban_goat') this.banGoat, @JsonKey(name: 'ban_edison') this.banEdison, @JsonKey(name: 'ban_hat') this.banHat});
   factory _BanlistInfo.fromJson(Map<String, dynamic> json) => _$BanlistInfoFromJson(json);
 
 @override@JsonKey(name: 'ban_tcg') final  String? banTcg;
 @override@JsonKey(name: 'ban_ocg') final  String? banOcg;
 @override@JsonKey(name: 'ban_goat') final  String? banGoat;
 @override@JsonKey(name: 'ban_edison') final  String? banEdison;
+@override@JsonKey(name: 'ban_hat') final  String? banHat;
 
 /// Create a copy of BanlistInfo
 /// with the given fields replaced by the non-null parameter values.
@@ -1082,18 +1084,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _BanlistInfo&&(identical(other.banTcg, banTcg) || other.banTcg == banTcg)&&(identical(other.banOcg, banOcg) || other.banOcg == banOcg)&&(identical(other.banGoat, banGoat) || other.banGoat == banGoat)&&(identical(other.banEdison, banEdison) || other.banEdison == banEdison));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _BanlistInfo&&(identical(other.banTcg, banTcg) || other.banTcg == banTcg)&&(identical(other.banOcg, banOcg) || other.banOcg == banOcg)&&(identical(other.banGoat, banGoat) || other.banGoat == banGoat)&&(identical(other.banEdison, banEdison) || other.banEdison == banEdison)&&(identical(other.banHat, banHat) || other.banHat == banHat));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,banTcg,banOcg,banGoat,banEdison);
+    return Object.hash(runtimeType,banTcg,banOcg,banGoat,banEdison,banHat);
 }
 
 @override
 String toString() {
-    return 'BanlistInfo(banTcg: $banTcg, banOcg: $banOcg, banGoat: $banGoat, banEdison: $banEdison)';
+    return 'BanlistInfo(banTcg: $banTcg, banOcg: $banOcg, banGoat: $banGoat, banEdison: $banEdison, banHat: $banHat)';
 }
 
 
@@ -1104,7 +1106,7 @@ abstract mixin class _$BanlistInfoCopyWith<$Res> implements $BanlistInfoCopyWith
   factory _$BanlistInfoCopyWith(_BanlistInfo value, $Res Function(_BanlistInfo) _then) = __$BanlistInfoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'ban_tcg') String? banTcg,@JsonKey(name: 'ban_ocg') String? banOcg,@JsonKey(name: 'ban_goat') String? banGoat,@JsonKey(name: 'ban_edison') String? banEdison
+@JsonKey(name: 'ban_tcg') String? banTcg,@JsonKey(name: 'ban_ocg') String? banOcg,@JsonKey(name: 'ban_goat') String? banGoat,@JsonKey(name: 'ban_edison') String? banEdison,@JsonKey(name: 'ban_hat') String? banHat
 });
 
 
@@ -1121,12 +1123,13 @@ class __$BanlistInfoCopyWithImpl<$Res>
 
 /// Create a copy of BanlistInfo
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? banTcg = freezed,Object? banOcg = freezed,Object? banGoat = freezed,Object? banEdison = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? banTcg = freezed,Object? banOcg = freezed,Object? banGoat = freezed,Object? banEdison = freezed,Object? banHat = freezed,}) {
   return _then(_BanlistInfo(
 banTcg: freezed == banTcg ? _self.banTcg : banTcg // ignore: cast_nullable_to_non_nullable
 as String?,banOcg: freezed == banOcg ? _self.banOcg : banOcg // ignore: cast_nullable_to_non_nullable
 as String?,banGoat: freezed == banGoat ? _self.banGoat : banGoat // ignore: cast_nullable_to_non_nullable
 as String?,banEdison: freezed == banEdison ? _self.banEdison : banEdison // ignore: cast_nullable_to_non_nullable
+as String?,banHat: freezed == banHat ? _self.banHat : banHat // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

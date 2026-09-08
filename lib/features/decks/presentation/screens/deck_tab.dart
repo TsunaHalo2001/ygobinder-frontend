@@ -37,6 +37,17 @@ bool isAfterGoatCutoff(YgoCard card) {
   return false;
 }
 
+bool isAfterHatCutoff(YgoCard card) {
+  final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
+  if (tcgDateStr != null && tcgDateStr.trim().isNotEmpty) {
+    final parsed = DateTime.tryParse(tcgDateStr.trim());
+    if (parsed != null) {
+      return parsed.isAfter(DateTime(2014, 5, 16));
+    }
+  }
+  return false;
+}
+
 enum BanlistStatus { forbidden, limited, semiLimited, unlimited }
 
 BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
@@ -57,6 +68,14 @@ BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
   } else if (format == 'EDISON') {
     rawStatus = info?.banEdison;
     // Edison rule: If card has no Edison record (or empty), it is not legal in Edison -> forbidden!
+    if (rawStatus == null || rawStatus.isEmpty) {
+      return BanlistStatus.forbidden;
+    }
+  } else if (format == 'HAT') {
+    if (isAfterHatCutoff(card)) {
+      return BanlistStatus.forbidden;
+    }
+    rawStatus = info?.banHat;
     if (rawStatus == null || rawStatus.isEmpty) {
       return BanlistStatus.forbidden;
     }
@@ -437,6 +456,7 @@ class _DeckTabState extends ConsumerState<DeckTab> {
                     PopupMenuItem(value: 'OCG', child: Text('OCG Format')),
                     PopupMenuItem(value: 'GOAT', child: Text('GOAT Format')),
                     PopupMenuItem(value: 'EDISON', child: Text('EDISON Format')),
+                    PopupMenuItem(value: 'HAT', child: Text('HAT Format')),
                   ],
                 ),
               )

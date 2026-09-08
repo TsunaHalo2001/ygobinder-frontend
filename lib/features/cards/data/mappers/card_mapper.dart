@@ -98,6 +98,7 @@ class CardMapper {
       banOcg: Value(banlist.banOcg),
       banGoat: Value(banlist.banGoat),
       banEdison: Value(banlist.banEdison),
+      banHat: Value(banlist.banHat),
     );
   }
 
@@ -199,6 +200,7 @@ class CardMapper {
       banOcg: banlist.banOcg,
       banGoat: banlist.banGoat,
       banEdison: banlist.banEdison,
+      banHat: banlist.banHat,
     );
   }
 }

@@ -6,7 +6,7 @@
 
 ## 📌 App Information
 
-- **Current Version**: `1.3.0+16` (Version 1.3.0)
+- **Current Version**: `1.4.0+17` (Version 1.4.0)
 - **Developer**: Tsuna2001
 - **Framework**: Flutter 3.x (Dart 3.x)
 - **State Management**: Flutter Riverpod
@@ -38,6 +38,9 @@
 ## ✨ Key Features
 
 - 📚 **Collection & Binder Management**: Track your cards, quantities, conditions, rarities, set codes, purchase prices, and custom collection numbers.
+- 🎩 **HAT Format Banlist & Card Regulations**:
+  - Full support for Hand Artifact Traptrix (HAT) retro format with May 16, 2014 release cutoff date.
+  - Unified **`REGULATIONS`** button and bottom sheet in Card Detail displaying card legality across TCG, OCG, GOAT, EDISON, and HAT formats.
 - 🎨 **App Theme Management (Light, Dark, System Default)**:
   - Seamlessly switch between Light Mode, Dark Mode, and System Default theme in Settings with real-time reactivity and local SQLite persistence.
 - 📋 **Quote Mode & Quoted Cards Deck (#0)**:

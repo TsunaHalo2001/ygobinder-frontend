@@ -90,6 +90,7 @@ class BanlistInfos extends Table {
   TextColumn get banOcg => text().nullable()();
   TextColumn get banGoat => text().nullable()();
   TextColumn get banEdison => text().nullable()();
+  TextColumn get banHat => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {cardId};
@@ -247,7 +248,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -318,6 +319,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 16) {
         await m.createTable(currencyRates);
+      }
+      if (from < 17) {
+        await m.addColumn(banlistInfos, banlistInfos.banHat);
       }
     },
     beforeOpen: (details) async {
