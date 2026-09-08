@@ -204,7 +204,9 @@ class CardRepository {
     bool? defShowQuestionMark,
     String? sortBy, // ✅ Added sort field
     bool sortDescending = false, // ✅ Added sort direction
+    bool onlyGoat = false, // ✅ Added only Goat filter
     bool onlyEdison = false, // ✅ Added only Edison filter
+    bool onlyHat = false, // ✅ Added only Hat filter
     bool onlyFavorites = false, // ✅ Added only Favorites filter
     bool onlyWanted = false, // ✅ Added only Wanted filter
   }) async {
@@ -228,7 +230,9 @@ class CardRepository {
       defShowQuestionMark: defShowQuestionMark,
       sortBy: sortBy, // ✅ Passed sortBy
       sortDescending: sortDescending, // ✅ Passed sortDescending
+      onlyGoat: onlyGoat, // ✅ Passed onlyGoat
       onlyEdison: onlyEdison, // ✅ Passed onlyEdison
+      onlyHat: onlyHat, // ✅ Passed onlyHat
       onlyFavorites: onlyFavorites,
       onlyWanted: onlyWanted,
     );

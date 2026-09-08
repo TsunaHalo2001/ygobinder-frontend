@@ -50,7 +50,9 @@ class CardList extends _$CardList {
   
   String _currentSortBy = 'name';
   bool _currentSortDescending = false;
+  bool _currentOnlyGoatFilter = false;
   bool _currentOnlyEdisonFilter = false;
+  bool _currentOnlyHatFilter = false;
   bool _currentOnlyFavoritesFilter = false;
   bool _currentOnlyWantedFilter = false;
 
@@ -74,7 +76,9 @@ class CardList extends _$CardList {
     _currentDefShowQuestionMark = null;
     _currentSortBy = 'name';
     _currentSortDescending = false;
+    _currentOnlyGoatFilter = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyHatFilter = false;
     _currentOnlyFavoritesFilter = false;
     _currentOnlyWantedFilter = false;
     
@@ -109,7 +113,9 @@ class CardList extends _$CardList {
       defShowQuestionMark: _currentDefShowQuestionMark,
       sortBy: _currentSortBy,
       sortDescending: _currentSortDescending,
+      onlyGoat: _currentOnlyGoatFilter,
       onlyEdison: _currentOnlyEdisonFilter,
+      onlyHat: _currentOnlyHatFilter,
       onlyFavorites: _currentOnlyFavoritesFilter,
       onlyWanted: _currentOnlyWantedFilter,
     );
@@ -128,7 +134,9 @@ class CardList extends _$CardList {
       _currentAtkShowQuestionMark != null ||
       _currentDefFilter != null ||
       _currentDefShowQuestionMark != null ||
+      _currentOnlyGoatFilter ||
       _currentOnlyEdisonFilter ||
+      _currentOnlyHatFilter ||
       _currentOnlyFavoritesFilter ||
       _currentOnlyWantedFilter;
 
@@ -146,7 +154,9 @@ class CardList extends _$CardList {
   int? get currentDefFilter => _currentDefFilter;
   String? get currentDefOperator => _currentDefOperator;
   bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
+  bool get currentOnlyGoatFilter => _currentOnlyGoatFilter;
   bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
+  bool get currentOnlyHatFilter => _currentOnlyHatFilter;
   bool get currentOnlyFavoritesFilter => _currentOnlyFavoritesFilter;
   bool get currentOnlyWantedFilter => _currentOnlyWantedFilter;
   
@@ -262,7 +272,9 @@ class CardList extends _$CardList {
     int? def,
     String? defOperator,
     bool? defShowQuestionMark,
+    bool? onlyGoat,
     bool? onlyEdison,
+    bool? onlyHat,
     bool? onlyFavorites,
     bool? onlyWanted,
   }) async {
@@ -280,7 +292,9 @@ class CardList extends _$CardList {
     _currentDefFilter = def;
     _currentDefOperator = defOperator;
     _currentDefShowQuestionMark = defShowQuestionMark;
+    if (onlyGoat != null) _currentOnlyGoatFilter = onlyGoat;
     if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
+    if (onlyHat != null) _currentOnlyHatFilter = onlyHat;
     if (onlyFavorites != null) _currentOnlyFavoritesFilter = onlyFavorites;
     if (onlyWanted != null) _currentOnlyWantedFilter = onlyWanted;
     _offset = 0;
@@ -338,7 +352,9 @@ class CardList extends _$CardList {
     _currentDefFilter = null;
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
+    _currentOnlyGoatFilter = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyHatFilter = false;
     _currentOnlyFavoritesFilter = false;
     _currentOnlyWantedFilter = false;
     _offset = 0;
@@ -374,7 +390,9 @@ class CardList extends _$CardList {
     _currentDefFilter = null;
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
+    _currentOnlyGoatFilter = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyHatFilter = false;
     _currentOnlyFavoritesFilter = false;
     _currentOnlyWantedFilter = false;
     _currentSortBy = 'name';
@@ -417,7 +435,9 @@ class DeckCardList extends _$DeckCardList {
 
   String _currentSortBy = 'name';
   bool _currentSortDescending = false;
+  bool _currentOnlyGoatFilter = false;
   bool _currentOnlyEdisonFilter = false;
+  bool _currentOnlyHatFilter = false;
   bool _currentOnlyFavoritesFilter = false;
   bool _currentOnlyWantedFilter = false;
 
@@ -441,7 +461,9 @@ class DeckCardList extends _$DeckCardList {
     _currentDefShowQuestionMark = null;
     _currentSortBy = 'name';
     _currentSortDescending = false;
+    _currentOnlyGoatFilter = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyHatFilter = false;
     _currentOnlyFavoritesFilter = false;
     _currentOnlyWantedFilter = false;
 
@@ -476,7 +498,9 @@ class DeckCardList extends _$DeckCardList {
       defShowQuestionMark: _currentDefShowQuestionMark,
       sortBy: _currentSortBy,
       sortDescending: _currentSortDescending,
+      onlyGoat: _currentOnlyGoatFilter,
       onlyEdison: _currentOnlyEdisonFilter,
+      onlyHat: _currentOnlyHatFilter,
       onlyFavorites: _currentOnlyFavoritesFilter,
       onlyWanted: _currentOnlyWantedFilter,
     );
@@ -495,7 +519,9 @@ class DeckCardList extends _$DeckCardList {
       _currentAtkShowQuestionMark != null ||
       _currentDefFilter != null ||
       _currentDefShowQuestionMark != null ||
+      _currentOnlyGoatFilter ||
       _currentOnlyEdisonFilter ||
+      _currentOnlyHatFilter ||
       _currentOnlyFavoritesFilter ||
       _currentOnlyWantedFilter;
 
@@ -513,7 +539,9 @@ class DeckCardList extends _$DeckCardList {
   int? get currentDefFilter => _currentDefFilter;
   String? get currentDefOperator => _currentDefOperator;
   bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
+  bool get currentOnlyGoatFilter => _currentOnlyGoatFilter;
   bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
+  bool get currentOnlyHatFilter => _currentOnlyHatFilter;
   bool get currentOnlyFavoritesFilter => _currentOnlyFavoritesFilter;
   bool get currentOnlyWantedFilter => _currentOnlyWantedFilter;
 
@@ -577,7 +605,9 @@ class DeckCardList extends _$DeckCardList {
     int? def,
     String? defOperator,
     bool? defShowQuestionMark,
+    bool? onlyGoat,
     bool? onlyEdison,
+    bool? onlyHat,
     bool? onlyFavorites,
     bool? onlyWanted,
   }) async {
@@ -595,7 +625,9 @@ class DeckCardList extends _$DeckCardList {
     _currentDefFilter = def;
     _currentDefOperator = defOperator;
     _currentDefShowQuestionMark = defShowQuestionMark;
+    if (onlyGoat != null) _currentOnlyGoatFilter = onlyGoat;
     if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
+    if (onlyHat != null) _currentOnlyHatFilter = onlyHat;
     if (onlyFavorites != null) _currentOnlyFavoritesFilter = onlyFavorites;
     if (onlyWanted != null) _currentOnlyWantedFilter = onlyWanted;
     _offset = 0;
@@ -653,7 +685,9 @@ class DeckCardList extends _$DeckCardList {
     _currentDefFilter = null;
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
+    _currentOnlyGoatFilter = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyHatFilter = false;
     _currentOnlyFavoritesFilter = false;
     _currentOnlyWantedFilter = false;
     _offset = 0;
@@ -689,7 +723,11 @@ class DeckCardList extends _$DeckCardList {
     _currentDefFilter = null;
     _currentDefOperator = null;
     _currentDefShowQuestionMark = null;
+    _currentOnlyGoatFilter = false;
     _currentOnlyEdisonFilter = false;
+    _currentOnlyHatFilter = false;
+    _currentOnlyFavoritesFilter = false;
+    _currentOnlyWantedFilter = false;
     _currentOnlyFavoritesFilter = false;
     _currentOnlyWantedFilter = false;
     _currentSortBy = 'name';

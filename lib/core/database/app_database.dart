@@ -968,7 +968,9 @@ class AppDatabase extends _$AppDatabase {
     bool? defShowQuestionMark, // ✅ Added
     String? sortBy, // ✅ Added sort field
     bool sortDescending = false, // ✅ Added sort direction
+    bool onlyGoat = false, // ✅ Added only Goat filter
     bool onlyEdison = false, // ✅ Added only Edison filter
+    bool onlyHat = false, // ✅ Added only Hat filter
     bool onlyFavorites = false, // ✅ Added only Favorites filter
     bool onlyWanted = false, // ✅ Added only Wanted filter
   }) {
@@ -1068,6 +1070,29 @@ class AppDatabase extends _$AppDatabase {
       }
     }
 
+    if (onlyGoat) {
+      final goatCutoff = DateTime(2005, 8, 17, 23, 59, 59);
+      query = query..where((t) => t.tcgDate.isNotNull() & t.tcgDate.isSmallerOrEqualValue(goatCutoff));
+      query = query..where((t) => t.frameType.like('%synchro%').not() &
+                                  t.frameType.like('%xyz%').not() &
+                                  t.frameType.like('%pendulum%').not() &
+                                  t.frameType.like('%link%').not() &
+                                  t.type.like('%Tuner%').not() &
+                                  t.type.like('%Link%').not() &
+                                  t.type.like('%Synchro%').not() &
+                                  t.type.like('%XYZ%').not());
+      query = query..where((t) {
+        final bannedInGoat = selectOnly(banlistInfos)
+          ..addColumns([banlistInfos.cardId])
+          ..where(
+            banlistInfos.banGoat.equals('Banned') |
+            banlistInfos.banGoat.equals('Forbidden') |
+            banlistInfos.banGoat.equals('0')
+          );
+        return t.id.isInQuery(bannedInGoat).not();
+      });
+    }
+
     if (onlyEdison) {
       // ✅ Filter for cards available in Edison
       query = query..where((t) {
@@ -1076,6 +1101,24 @@ class AppDatabase extends _$AppDatabase {
             ..addColumns([banlistInfos.cardId])
             ..where(banlistInfos.banEdison.isNotNull())
         );
+      });
+    }
+
+    if (onlyHat) {
+      final hatCutoff = DateTime(2014, 5, 16, 23, 59, 59);
+      query = query..where((t) => t.tcgDate.isNotNull() & t.tcgDate.isSmallerOrEqualValue(hatCutoff));
+      query = query..where((t) => t.frameType.like('%pendulum%').not() &
+                                  t.frameType.like('%link%').not() &
+                                  t.type.like('%Link%').not());
+      query = query..where((t) {
+        final bannedInHat = selectOnly(banlistInfos)
+          ..addColumns([banlistInfos.cardId])
+          ..where(
+            banlistInfos.banHat.equals('Banned') |
+            banlistInfos.banHat.equals('Forbidden') |
+            banlistInfos.banHat.equals('0')
+          );
+        return t.id.isInQuery(bannedInHat).not();
       });
     }
 

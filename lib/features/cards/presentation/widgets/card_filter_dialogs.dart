@@ -91,7 +91,9 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
   int? _tempDef;
   String? _tempDefOperator;
   bool? _tempDefShowQuestionMark;
+  bool _tempOnlyGoat = false;
   bool _tempOnlyEdison = false;
+  bool _tempOnlyHat = false;
   bool _tempOnlyFavorites = false;
   bool _tempOnlyWanted = false;
 
@@ -117,7 +119,9 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
     _tempDef = notifier.currentDefFilter;
     _tempDefOperator = notifier.currentDefOperator;
     _tempDefShowQuestionMark = notifier.currentDefShowQuestionMark;
+    _tempOnlyGoat = notifier.currentOnlyGoatFilter;
     _tempOnlyEdison = notifier.currentOnlyEdisonFilter;
+    _tempOnlyHat = notifier.currentOnlyHatFilter;
     _tempOnlyFavorites = notifier.currentOnlyFavoritesFilter;
     _tempOnlyWanted = notifier.currentOnlyWantedFilter;
 
@@ -149,7 +153,9 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
             def: type == 'Monster' ? int.tryParse(_defController.text) : null,
             defOperator: type == 'Monster' ? _tempDefOperator : null,
             defShowQuestionMark: type == 'Monster' ? _tempDefShowQuestionMark : null,
+            onlyGoat: _tempOnlyGoat,
             onlyEdison: _tempOnlyEdison,
+            onlyHat: _tempOnlyHat,
             onlyFavorites: _tempOnlyFavorites,
             onlyWanted: _tempOnlyWanted,
           );
@@ -169,7 +175,9 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
             def: type == 'Monster' ? int.tryParse(_defController.text) : null,
             defOperator: type == 'Monster' ? _tempDefOperator : null,
             defShowQuestionMark: type == 'Monster' ? _tempDefShowQuestionMark : null,
+            onlyGoat: _tempOnlyGoat,
             onlyEdison: _tempOnlyEdison,
+            onlyHat: _tempOnlyHat,
             onlyFavorites: _tempOnlyFavorites,
             onlyWanted: _tempOnlyWanted,
           );
@@ -229,7 +237,9 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                     defController: _defController,
                     selectedDefOperator: _tempDefOperator,
                     selectedDefShowQuestionMark: _tempDefShowQuestionMark,
+                    onlyGoat: _tempOnlyGoat,
                     onlyEdison: _tempOnlyEdison,
+                    onlyHat: _tempOnlyHat,
                     onlyFavorites: _tempOnlyFavorites,
                     onlyWanted: _tempOnlyWanted,
                     onAttributeSelected: (attr) => setState(() => _tempAttribute = attr),
@@ -243,7 +253,33 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                     onAtkShowQuestionMarkChanged: (show) => setState(() => _tempAtkShowQuestionMark = show),
                     onDefOperatorChanged: (op) => setState(() => _tempDefOperator = op),
                     onDefShowQuestionMarkChanged: (show) => setState(() => _tempDefShowQuestionMark = show),
-                    onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val),
+                    onOnlyGoatChanged: (val) {
+                      setState(() {
+                        _tempOnlyGoat = val;
+                        if (val) {
+                          _tempOnlyEdison = false;
+                          _tempOnlyHat = false;
+                        }
+                      });
+                    },
+                    onOnlyEdisonChanged: (val) {
+                      setState(() {
+                        _tempOnlyEdison = val;
+                        if (val) {
+                          _tempOnlyGoat = false;
+                          _tempOnlyHat = false;
+                        }
+                      });
+                    },
+                    onOnlyHatChanged: (val) {
+                      setState(() {
+                        _tempOnlyHat = val;
+                        if (val) {
+                          _tempOnlyGoat = false;
+                          _tempOnlyEdison = false;
+                        }
+                      });
+                    },
                     onOnlyFavoritesChanged: (val) => setState(() => _tempOnlyFavorites = val),
                     onOnlyWantedChanged: (val) => setState(() => _tempOnlyWanted = val),
                     onApply: () {
@@ -258,11 +294,39 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                   _FilterTabContent(
                     type: 'Spell',
                     selectedRace: _tempRace,
+                    onlyGoat: _tempOnlyGoat,
                     onlyEdison: _tempOnlyEdison,
+                    onlyHat: _tempOnlyHat,
                     onlyFavorites: _tempOnlyFavorites,
                     onlyWanted: _tempOnlyWanted,
                     onRaceSelected: (race) => setState(() => _tempRace = race),
-                    onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val),
+                    onOnlyGoatChanged: (val) {
+                      setState(() {
+                        _tempOnlyGoat = val;
+                        if (val) {
+                          _tempOnlyEdison = false;
+                          _tempOnlyHat = false;
+                        }
+                      });
+                    },
+                    onOnlyEdisonChanged: (val) {
+                      setState(() {
+                        _tempOnlyEdison = val;
+                        if (val) {
+                          _tempOnlyGoat = false;
+                          _tempOnlyHat = false;
+                        }
+                      });
+                    },
+                    onOnlyHatChanged: (val) {
+                      setState(() {
+                        _tempOnlyHat = val;
+                        if (val) {
+                          _tempOnlyGoat = false;
+                          _tempOnlyEdison = false;
+                        }
+                      });
+                    },
                     onOnlyFavoritesChanged: (val) => setState(() => _tempOnlyFavorites = val),
                     onOnlyWantedChanged: (val) => setState(() => _tempOnlyWanted = val),
                     onApply: () {
@@ -277,12 +341,39 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
                   _FilterTabContent(
                     type: 'Trap',
                     selectedRace: _tempRace,
+                    onlyGoat: _tempOnlyGoat,
                     onlyEdison: _tempOnlyEdison,
+                    onlyHat: _tempOnlyHat,
                     onlyFavorites: _tempOnlyFavorites,
                     onlyWanted: _tempOnlyWanted,
                     onRaceSelected: (race) => setState(() => _tempRace = race),
-                    onOnlyEdisonChanged: (val) => setState(() => _tempOnlyEdison = val),
-                    onOnlyFavoritesChanged: (val) => setState(() => _tempOnlyFavorites = val),
+                    onOnlyGoatChanged: (val) {
+                      setState(() {
+                        _tempOnlyGoat = val;
+                        if (val) {
+                          _tempOnlyEdison = false;
+                          _tempOnlyHat = false;
+                        }
+                      });
+                    },
+                    onOnlyEdisonChanged: (val) {
+                      setState(() {
+                        _tempOnlyEdison = val;
+                        if (val) {
+                          _tempOnlyGoat = false;
+                          _tempOnlyHat = false;
+                        }
+                      });
+                    },
+                    onOnlyHatChanged: (val) {
+                      setState(() {
+                        _tempOnlyHat = val;
+                        if (val) {
+                          _tempOnlyGoat = false;
+                          _tempOnlyEdison = false;
+                        }
+                      });
+                    },
                     onOnlyWantedChanged: (val) => setState(() => _tempOnlyWanted = val),
                     onApply: () {
                       _applyFilters('Trap');
@@ -418,7 +509,9 @@ class _FilterTabContent extends StatelessWidget {
   final TextEditingController? defController;
   final String? selectedDefOperator;
   final bool? selectedDefShowQuestionMark;
+  final bool onlyGoat;
   final bool onlyEdison;
+  final bool onlyHat;
   final bool onlyFavorites;
   final bool onlyWanted;
 
@@ -433,7 +526,9 @@ class _FilterTabContent extends StatelessWidget {
   final ValueChanged<bool?>? onAtkShowQuestionMarkChanged;
   final ValueChanged<String?>? onDefOperatorChanged;
   final ValueChanged<bool?>? onDefShowQuestionMarkChanged;
+  final ValueChanged<bool>? onOnlyGoatChanged;
   final ValueChanged<bool>? onOnlyEdisonChanged;
+  final ValueChanged<bool>? onOnlyHatChanged;
   final ValueChanged<bool>? onOnlyFavoritesChanged;
   final ValueChanged<bool>? onOnlyWantedChanged;
   final VoidCallback? onApply;
@@ -454,7 +549,9 @@ class _FilterTabContent extends StatelessWidget {
     this.defController,
     this.selectedDefOperator,
     this.selectedDefShowQuestionMark,
+    this.onlyGoat = false,
     this.onlyEdison = false,
+    this.onlyHat = false,
     this.onlyFavorites = false,
     this.onlyWanted = false,
     this.onAttributeSelected,
@@ -468,7 +565,9 @@ class _FilterTabContent extends StatelessWidget {
     this.onAtkShowQuestionMarkChanged,
     this.onDefOperatorChanged,
     this.onDefShowQuestionMarkChanged,
+    this.onOnlyGoatChanged,
     this.onOnlyEdisonChanged,
+    this.onOnlyHatChanged,
     this.onOnlyFavoritesChanged,
     this.onOnlyWantedChanged,
     this.onApply,
@@ -664,7 +763,7 @@ class _FilterTabContent extends StatelessWidget {
                   subtitle: const Text('Show only cards marked as favorites', style: TextStyle(fontSize: 12, color: Colors.white38)),
                   value: onlyFavorites,
                   onChanged: onOnlyFavoritesChanged,
-                  activeColor: Colors.amber,
+                  activeThumbColor: Colors.amber,
                   contentPadding: EdgeInsets.zero,
                 ),
                 SwitchListTile(
@@ -678,7 +777,15 @@ class _FilterTabContent extends StatelessWidget {
                   subtitle: const Text('Show only cards marked as wanted', style: TextStyle(fontSize: 12, color: Colors.white38)),
                   value: onlyWanted,
                   onChanged: onOnlyWantedChanged,
-                  activeColor: theme.colorScheme.primary,
+                  activeThumbColor: theme.colorScheme.primary,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                SwitchListTile(
+                  title: const Text('ONLY GOAT FORMAT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
+                  subtitle: const Text('Hide cards not legal in GOAT (released after Aug 17, 2005)', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                  value: onlyGoat,
+                  onChanged: onOnlyGoatChanged,
+                  activeThumbColor: Colors.amber,
                   contentPadding: EdgeInsets.zero,
                 ),
                 SwitchListTile(
@@ -687,6 +794,14 @@ class _FilterTabContent extends StatelessWidget {
                   value: onlyEdison,
                   onChanged: onOnlyEdisonChanged,
                   activeThumbColor: Colors.blueAccent,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                SwitchListTile(
+                  title: const Text('ONLY HAT FORMAT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.1)),
+                  subtitle: const Text('Hide cards not legal in HAT (released after May 16, 2014)', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                  value: onlyHat,
+                  onChanged: onOnlyHatChanged,
+                  activeThumbColor: Colors.purpleAccent,
                   contentPadding: EdgeInsets.zero,
                 ),
               ],
