@@ -5,8 +5,9 @@ import 'package:flutter/foundation.dart';
 class RawApiCacheData {
   final List<dynamic> cards;
   final List<dynamic> sets;
+  final String? version;
 
-  RawApiCacheData({required this.cards, required this.sets});
+  RawApiCacheData({required this.cards, required this.sets, this.version});
 }
 
 class CardDataService {
@@ -19,6 +20,24 @@ class CardDataService {
     connectTimeout: const Duration(seconds: 13),
     receiveTimeout: const Duration(seconds: 30),
   ));
+
+  Future<String?> fetchCacheVersion() async {
+    try {
+      final response = await _dio.get<dynamic>(cacheUrl);
+      if (response.statusCode == 200 && response.data != null) {
+        dynamic decoded = response.data;
+        if (decoded is String) decoded = jsonDecode(decoded);
+
+        if (decoded is Map<String, dynamic>) {
+          final ver = decoded['data sets version'] ?? decoded['version'] ?? decoded['data_sets_version'];
+          if (ver != null) return ver.toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching cache version: $e');
+    }
+    return null;
+  }
 
   Future<RawApiCacheData> fetchRawCardData({
     void Function(int received, int total)? onProgress,
@@ -35,7 +54,8 @@ class CardDataService {
         if (decoded is Map<String, dynamic>) {
           final cards = (decoded['data'] ?? decoded['cards'] ?? decoded['results']) as List<dynamic>? ?? [];
           final sets = (decoded['sets']) as List<dynamic>? ?? [];
-          return RawApiCacheData(cards: cards, sets: sets);
+          final version = (decoded['data sets version'] ?? decoded['version'] ?? decoded['data_sets_version']) as String?;
+          return RawApiCacheData(cards: cards, sets: sets, version: version);
         } else if (decoded is List) {
           return RawApiCacheData(cards: decoded, sets: []);
         }

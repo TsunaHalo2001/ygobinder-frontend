@@ -6,6 +6,7 @@ import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/providers/theme_provider.dart';
 import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
+import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +14,43 @@ import 'dart:io';
 
 bool get _isGoogleSignInSupported =>
     kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
+
+final appVersionCheckProvider = FutureProvider.autoDispose<String?>((ref) async {
+  final dataService = CardDataService();
+  return dataService.fetchCacheVersion();
+});
+
+bool isAppVersionOlder(String appVersion, String serverVersion) {
+  try {
+    int getBuildNumber(String v) {
+      if (v.contains('+')) {
+        final parts = v.split('+');
+        return int.tryParse(parts.last) ?? 0;
+      }
+      return 0;
+    }
+
+    final appBuild = getBuildNumber(appVersion);
+    final serverBuild = getBuildNumber(serverVersion);
+
+    if (appBuild > 0 && serverBuild > 0) {
+      return appBuild < serverBuild;
+    }
+
+    final appSem = appVersion.split('+').first.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final serverSem = serverVersion.split('+').first.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+
+    for (var i = 0; i < 3; i++) {
+      final a = i < appSem.length ? appSem[i] : 0;
+      final s = i < serverSem.length ? serverSem[i] : 0;
+      if (a < s) return true;
+      if (a > s) return false;
+    }
+  } catch (e) {
+    debugPrint('Error comparing versions: $e');
+  }
+  return false;
+}
 
 class OptionsTab extends ConsumerWidget {
   const OptionsTab({super.key});
@@ -221,6 +259,8 @@ class OptionsTab extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final user = authState.value;
     final theme = Theme.of(context);
+    final versionAsync = ref.watch(appVersionCheckProvider);
+    const String currentAppVersion = '1.3.0+16';
 
     return Scaffold(
       appBar: AppBar(
@@ -230,6 +270,49 @@ class OptionsTab extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         children: [
+          // App Update Notification Banner
+          versionAsync.when(
+            data: (serverVersion) {
+              if (serverVersion != null && isAppVersionOlder(currentAppVersion, serverVersion)) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.amber, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.system_update_rounded, color: Colors.amber, size: 28),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          'Update your App',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
           // Account Section
           if (user != null)
             Container(
