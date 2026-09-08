@@ -30,6 +30,64 @@ Color getThemeRed(BuildContext context) {
   return Theme.of(context).brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800;
 }
 
+enum OverallRegulationStatus {
+  forbidden,
+  limited,
+  semiLimited,
+  unlimited,
+}
+
+bool isAfterGoatCutoff(YgoCard card) {
+  final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
+  if (tcgDateStr != null && tcgDateStr.trim().isNotEmpty) {
+    final parsed = DateTime.tryParse(tcgDateStr.trim());
+    if (parsed != null) {
+      return parsed.isAfter(DateTime(2005, 8, 17));
+    }
+  }
+  return false;
+}
+
+OverallRegulationStatus _getOverallRegulationStatus(BanlistInfo? info, YgoCard card) {
+  if (info == null) return OverallRegulationStatus.forbidden;
+
+  // GOAT status: Released after Aug 17, 2005 -> Banned in GOAT!
+  final goatStatus = isAfterGoatCutoff(card)
+      ? 'banned'
+      : (info.banGoat?.trim().toLowerCase() ?? 'unlimited');
+
+  // Edison status: null or empty means NOT legal in Edison -> Banned!
+  final edisonStatus = (info.banEdison == null || info.banEdison!.trim().isEmpty)
+      ? 'banned'
+      : info.banEdison!.trim().toLowerCase();
+
+  final statuses = [
+    info.banTcg?.trim().toLowerCase(),
+    info.banOcg?.trim().toLowerCase(),
+    goatStatus,
+    edisonStatus,
+  ].whereType<String>().toList();
+
+  bool hasBanned = false;
+  bool hasLimited = false;
+  bool hasSemiLimited = false;
+
+  for (final s in statuses) {
+    if (s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0') {
+      hasBanned = true;
+    } else if (s == 'limited' || s == '1') {
+      hasLimited = true;
+    } else if (s == 'semi-limited' || s == 'semilimited' || s == '2') {
+      hasSemiLimited = true;
+    }
+  }
+
+  if (hasBanned) return OverallRegulationStatus.forbidden;
+  if (hasLimited) return OverallRegulationStatus.limited;
+  if (hasSemiLimited) return OverallRegulationStatus.semiLimited;
+  return OverallRegulationStatus.unlimited;
+}
+
 String formatWithThousandSeparators(double value, {int decimals = 2}) {
   final parts = value.toStringAsFixed(decimals).split('.');
   final integerPart = parts[0];
@@ -570,109 +628,213 @@ class _CardInfo extends ConsumerWidget {
     );
   }
 
-  Widget _buildBanlistStatus(ThemeData theme) {
+  Widget _buildRegulationsButton(BuildContext context, ThemeData theme) {
+    final status = _getOverallRegulationStatus(card.banlistInfo, card);
+    final isDark = theme.brightness == Brightness.dark;
+
+    late Color statusColor;
+    late String statusText;
+    late IconData statusIcon;
+
+    switch (status) {
+      case OverallRegulationStatus.forbidden:
+        statusColor = isDark ? Colors.redAccent : Colors.red.shade800;
+        statusText = 'Forbidden';
+        statusIcon = Icons.block_rounded;
+        break;
+      case OverallRegulationStatus.limited:
+        statusColor = isDark ? Colors.orangeAccent : Colors.orange.shade800;
+        statusText = 'Limited';
+        statusIcon = Icons.looks_one_rounded;
+        break;
+      case OverallRegulationStatus.semiLimited:
+        statusColor = isDark ? Colors.amber : Colors.amber.shade900;
+        statusText = 'Semi-Limited';
+        statusIcon = Icons.looks_two_rounded;
+        break;
+      case OverallRegulationStatus.unlimited:
+        statusColor = isDark ? Colors.greenAccent : Colors.green.shade800;
+        statusText = 'Unlimited';
+        statusIcon = Icons.check_circle_rounded;
+        break;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: isDark ? 0.18 : 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor, width: 1.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () => _showRegulationsBottomSheet(context),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(statusIcon, color: statusColor, size: 20),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'REGULATIONS',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.unfold_more_rounded, color: statusColor.withValues(alpha: 0.8), size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showRegulationsBottomSheet(BuildContext context) {
+    final theme = Theme.of(context);
     final info = card.banlistInfo;
-    if (info == null) return const SizedBox.shrink();
 
-    final List<Widget> items = [];
-
-    void addStatus(String? status, String label) {
-      if (status == null) return;
-      final String s = status.toLowerCase();
-      final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0';
-      final bool isLimited = s == 'limited' || s == '1';
-      final bool isSemiLimited = s == 'semi-limited' || s == 'semilimited' || s == '2';
-      final bool isEdisonUnlimited = label == 'EDI' && (s == 'unlimited' || s == '3');
-
-      if (isBanned || isLimited || isSemiLimited || isEdisonUnlimited) {
-        IconData iconData = Icons.block;
-        Color iconColor = Colors.redAccent;
-
-        if (isLimited) {
-          iconData = Icons.looks_one_outlined;
-          iconColor = Colors.orangeAccent;
-        } else if (isSemiLimited) {
-          iconData = Icons.looks_two_outlined;
-          iconColor = Colors.yellowAccent;
-        } else if (isEdisonUnlimited) {
-          iconData = Icons.looks_3_outlined; // ✅ Visual for 3 copies in Edison
-          iconColor = Colors.greenAccent;
-        }
-
-        items.add(
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(iconData, color: iconColor, size: 64),
-              Positioned(
-                top: 18,
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [
-                      const Shadow(blurRadius: 4.0, color: Colors.black),
-                      const Shadow(blurRadius: 2.0, color: Colors.black),
-                    ],
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.gavel_rounded, color: theme.colorScheme.primary, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'CARD REGULATIONS - ${card.name}',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+
+            // Formats List
+            _buildRegulationTile(context, 'TCG Format', info?.banTcg, Icons.public_rounded),
+            _buildRegulationTile(context, 'OCG Format', info?.banOcg, Icons.location_city_rounded),
+            _buildRegulationTile(context, 'GOAT Format', info?.banGoat, Icons.history_rounded),
+            _buildRegulationTile(context, 'Edison Format', info?.banEdison, Icons.timer_rounded),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegulationTile(BuildContext context, String formatName, String? status, IconData icon) {
+    final theme = Theme.of(context);
+    final isEdisonFormat = formatName.toLowerCase().contains('edison');
+    final isGoatFormat = formatName.toLowerCase().contains('goat');
+
+    String s = (status ?? '').trim().toLowerCase();
+    if (isEdisonFormat && s.isEmpty) {
+      s = 'banned'; // Not legal in Edison -> Banned!
+    } else if (isGoatFormat && isAfterGoatCutoff(card)) {
+      s = 'banned'; // Released after Aug 17, 2005 -> Banned in GOAT!
+    } else if (s.isEmpty) {
+      s = 'unlimited';
+    }
+    
+    final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0';
+    final bool isLimited = s == 'limited' || s == '1';
+    final bool isSemiLimited = s == 'semi-limited' || s == 'semilimited' || s == '2';
+    
+    Color statusColor = getThemeGreen(context);
+    String statusText = 'Unlimited (Legal)';
+    IconData statusIcon = Icons.check_circle_rounded;
+
+    if (isBanned) {
+      statusColor = getThemeRed(context);
+      if (isGoatFormat && isAfterGoatCutoff(card)) {
+        statusText = 'Forbidden (Not legal in GOAT)';
+      } else if (isEdisonFormat && (status == null || status.trim().isEmpty)) {
+        statusText = 'Forbidden (Not legal in Edison)';
+      } else {
+        statusText = 'Forbidden (Banned)';
+      }
+      statusIcon = Icons.block_rounded;
+    } else if (isLimited) {
+      statusColor = getThemeAmber(context);
+      statusText = 'Limited (1 copy)';
+      statusIcon = Icons.looks_one_rounded;
+    } else if (isSemiLimited) {
+      statusColor = getThemeAmber(context);
+      statusText = 'Semi-Limited (2 copies)';
+      statusIcon = Icons.looks_two_rounded;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: theme.colorScheme.primary, size: 24),
+          title: Text(
+            formatName,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.onSurface),
+          ),
+          subtitle: Row(
+            children: [
+              Icon(statusIcon, color: statusColor, size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  statusText,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-        );
-      } else {
-        items.add(
-          Text(
-            '$label: $status',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: foregroundColor,
-            ),
-          ),
-        );
-      }
-    }
-
-    addStatus(info.banTcg, 'TCG');
-    addStatus(info.banOcg, 'OCG');
-    addStatus(info.banGoat, 'GOAT');
-    
-    // ✅ Edison Status
-    if (info.banEdison != null) {
-      addStatus(info.banEdison, 'EDI');
-    }
-
-    if (items.isEmpty) {
-      // ✅ Special indicator if available in Edison (Now Green with "EDI")
-      if (info.banEdison != null) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.greenAccent),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.verified_rounded, color: Colors.greenAccent, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'EDI',
-                style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        );
-      }
-      return const SizedBox.shrink();
-    }
-
-    return Wrap(
-      spacing: 24,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: items,
+        ),
+      ),
     );
   }
 
@@ -932,7 +1094,7 @@ class _CardInfo extends ConsumerWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             runSpacing: 16,
             children: [
-              _buildBanlistStatus(theme),
+              _buildRegulationsButton(context, theme),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,

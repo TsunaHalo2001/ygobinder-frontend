@@ -235,9 +235,9 @@ class OptionsTab extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [
@@ -249,25 +249,40 @@ class OptionsTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Text(
                     user.displayName ?? 'Duelist',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                   ),
                   if (user.email != null && user.email!.isNotEmpty)
                     Text(
                       user.email!,
-                      style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                     ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
+                  OutlinedButton.icon(
                     onPressed: () async {
                       await ref.read(authProvider.notifier).signOut();
                       if (context.mounted) context.go('/login');
                     },
-                    icon: const Icon(Icons.logout, size: 18),
-                    label: const Text('LOGOUT'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-                      foregroundColor: Colors.redAccent,
-                      side: const BorderSide(color: Colors.redAccent),
+                    icon: Icon(
+                      Icons.logout_rounded,
+                      size: 18,
+                      color: theme.brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800,
+                    ),
+                    label: Text(
+                      'LOGOUT',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                        color: theme.brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800,
+                      side: BorderSide(
+                        color: theme.brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800,
+                        width: 1.5,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ],
@@ -277,21 +292,21 @@ class OptionsTab extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [
                   Icon(
                     _isGoogleSignInSupported ? Icons.cloud_off_rounded : Icons.storage_rounded,
                     size: 40,
-                    color: Colors.white24,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     _isGoogleSignInSupported ? 'GUEST MODE' : 'LOCAL MODE',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -299,7 +314,7 @@ class OptionsTab extends ConsumerWidget {
                         ? 'Sign in to sync your inventory and decks across all your devices.'
                         : 'Your inventory and decks are saved locally on this device.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                    style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
                   ),
                   if (_isGoogleSignInSupported) ...[
                     const SizedBox(height: 16),

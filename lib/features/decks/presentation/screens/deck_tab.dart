@@ -26,6 +26,17 @@ Color getThemeOrange(BuildContext context) {
   return Theme.of(context).brightness == Brightness.dark ? Colors.orangeAccent : Colors.orange.shade800;
 }
 
+bool isAfterGoatCutoff(YgoCard card) {
+  final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
+  if (tcgDateStr != null && tcgDateStr.trim().isNotEmpty) {
+    final parsed = DateTime.tryParse(tcgDateStr.trim());
+    if (parsed != null) {
+      return parsed.isAfter(DateTime(2005, 8, 17));
+    }
+  }
+  return false;
+}
+
 enum BanlistStatus { forbidden, limited, semiLimited, unlimited }
 
 BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
@@ -38,6 +49,10 @@ BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
   } else if (format == 'OCG') {
     rawStatus = info?.banOcg;
   } else if (format == 'GOAT') {
+    // GOAT rule: If card was released after August 17, 2005, it is not legal in GOAT -> forbidden!
+    if (isAfterGoatCutoff(card)) {
+      return BanlistStatus.forbidden;
+    }
     rawStatus = info?.banGoat;
   } else if (format == 'EDISON') {
     rawStatus = info?.banEdison;
