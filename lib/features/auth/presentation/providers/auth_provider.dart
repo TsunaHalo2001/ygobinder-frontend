@@ -4,15 +4,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
 import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'package:ygobinder/core/providers/firebase_providers.dart';
 
 part 'auth_provider.g.dart';
 
-bool _isFirebaseSupported() => kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
-
 @riverpod
 FirebaseAuth? firebaseAuth(Ref ref) {
-  if (!_isFirebaseSupported()) return null;
+  if (!isFirebaseSupported()) return null;
   return FirebaseAuth.instance;
 }
 

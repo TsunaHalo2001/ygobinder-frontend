@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:ygobinder/core/theme/theme_colors.dart';
+import 'package:ygobinder/core/utils/formatters.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:collection/collection.dart';
+import 'package:ygobinder/features/cards/data/models/ban_status.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
@@ -20,45 +23,11 @@ import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
-Color getThemeGreen(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade800;
-}
-
-Color getThemeAmber(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.amber : Colors.amber.shade900;
-}
-
-Color getThemeRed(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.redAccent : Colors.red.shade800;
-}
-
 enum OverallRegulationStatus {
   forbidden,
   limited,
   semiLimited,
   unlimited,
-}
-
-bool isAfterGoatCutoff(YgoCard card) {
-  final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
-  if (tcgDateStr != null && tcgDateStr.trim().isNotEmpty) {
-    final parsed = DateTime.tryParse(tcgDateStr.trim());
-    if (parsed != null) {
-      return parsed.isAfter(DateTime(2005, 8, 17));
-    }
-  }
-  return false;
-}
-
-bool isAfterHatCutoff(YgoCard card) {
-  final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
-  if (tcgDateStr != null && tcgDateStr.trim().isNotEmpty) {
-    final parsed = DateTime.tryParse(tcgDateStr.trim());
-    if (parsed != null) {
-      return parsed.isAfter(DateTime(2014, 5, 16));
-    }
-  }
-  return false;
 }
 
 OverallRegulationStatus _getOverallRegulationStatus(BanlistInfo? info, YgoCard card) {
@@ -93,52 +62,15 @@ OverallRegulationStatus _getOverallRegulationStatus(BanlistInfo? info, YgoCard c
     hatStatus,
   ].whereType<String>().toList();
 
-  bool hasBanned = false;
-  bool hasLimited = false;
-  bool hasSemiLimited = false;
-
-  for (final s in statuses) {
-    if (s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0') {
-      hasBanned = true;
-    } else if (s == 'limited' || s == '1') {
-      hasLimited = true;
-    } else if (s == 'semi-limited' || s == 'semilimited' || s == '2') {
-      hasSemiLimited = true;
-    }
-  }
+  final parsed = statuses.map(parseBanStatus).toSet();
+  final hasBanned = parsed.contains(BanStatus.forbidden);
+  final hasLimited = parsed.contains(BanStatus.limited);
+  final hasSemiLimited = parsed.contains(BanStatus.semiLimited);
 
   if (hasBanned) return OverallRegulationStatus.forbidden;
   if (hasLimited) return OverallRegulationStatus.limited;
   if (hasSemiLimited) return OverallRegulationStatus.semiLimited;
   return OverallRegulationStatus.unlimited;
-}
-
-String formatWithThousandSeparators(double value, {int decimals = 2}) {
-  final parts = value.toStringAsFixed(decimals).split('.');
-  final integerPart = parts[0];
-  final decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
-
-  final formattedInteger = integerPart.replaceAllMapped(
-    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-    (Match m) => '${m[1]},',
-  );
-
-  return '$formattedInteger$decimalPart';
-}
-
-String formatLastUpdatedTimestamp(String? isoString) {
-  if (isoString == null || isoString.trim().isEmpty) return '';
-  final dt = DateTime.tryParse(isoString);
-  if (dt == null) return '';
-
-  final local = dt.toLocal();
-  final day = local.day.toString().padLeft(2, '0');
-  final month = local.month.toString().padLeft(2, '0');
-  final year = local.year;
-  final hour = local.hour.toString().padLeft(2, '0');
-  final minute = local.minute.toString().padLeft(2, '0');
-
-  return '$day/$month/$year $hour:$minute';
 }
 
 class CardDetailScreen extends ConsumerWidget {
@@ -825,9 +757,10 @@ class _CardInfo extends ConsumerWidget {
       s = 'unlimited'; // Legal if released before cutoff!
     }
     
-    final bool isBanned = s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == '0';
-    final bool isLimited = s == 'limited' || s == '1';
-    final bool isSemiLimited = s == 'semi-limited' || s == 'semilimited' || s == '2';
+    final parsedStatus = parseBanStatus(s);
+    final bool isBanned = parsedStatus == BanStatus.forbidden;
+    final bool isLimited = parsedStatus == BanStatus.limited;
+    final bool isSemiLimited = parsedStatus == BanStatus.semiLimited;
     
     Color statusColor = getThemeGreen(context);
     String statusText = 'Unlimited (Legal)';
@@ -2519,7 +2452,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
-        '$arrow $sign$formattedDiff (${sign}${percent.toStringAsFixed(1)}%)',
+        '$arrow $sign$formattedDiff ($sign${percent.toStringAsFixed(1)}%)',
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,

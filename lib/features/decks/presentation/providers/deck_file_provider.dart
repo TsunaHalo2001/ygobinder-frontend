@@ -8,10 +8,13 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
+import 'package:ygobinder/core/utils/formatters.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/cards/data/services/price_resolver.dart';
 import 'package:ygobinder/features/decks/data/repositories/deck_sync_repository.dart';
+import 'package:ygobinder/features/decks/data/ydk.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -117,48 +120,13 @@ class DeckFileContent extends _$DeckFileContent {
   }
 
   void createNewDeck([String name = 'New Deck']) {
-    final buffer = StringBuffer();
-    buffer.writeln('#main');
-    buffer.writeln('#extra');
-    buffer.writeln('!side');
     state = DeckState(
-      content: buffer.toString(),
+      content: buildYdk(),
       name: name,
     );
   }
 
-  Map<String, List<int>> parseYdk() {
-    final Map<String, List<int>> categorizedCards = {
-      'main': [],
-      'extra': [],
-      'side': [],
-    };
-
-    if (state.content.isEmpty) return categorizedCards;
-
-    final lines = state.content.split('\n');
-    String currentCategory = '';
-
-    for (var line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) continue;
-
-      if (trimmed == '#main') {
-        currentCategory = 'main';
-      } else if (trimmed == '#extra') {
-        currentCategory = 'extra';
-      } else if (trimmed == '!side') {
-        currentCategory = 'side';
-      } else {
-        final cardId = int.tryParse(trimmed);
-        if (cardId != null && currentCategory.isNotEmpty) {
-          categorizedCards[currentCategory]?.add(cardId);
-        }
-      }
-    }
-
-    return categorizedCards;
-  }
+  Map<String, List<int>> parseYdk() => parseYdkContent(state.content);
 
   Future<void> loadQuoteDeck() async {
     final db = ref.read(databaseProvider);
@@ -189,19 +157,8 @@ class DeckFileContent extends _$DeckFileContent {
       }
     }
 
-    final buffer = StringBuffer();
-    buffer.writeln('#main');
-    for (final id in mainCards) {
-      buffer.writeln(id);
-    }
-    buffer.writeln('#extra');
-    for (final id in extraCards) {
-      buffer.writeln(id);
-    }
-    buffer.writeln('!side');
-
     state = DeckState(
-      content: buffer.toString(),
+      content: buildYdk(main: mainCards, extra: extraCards),
       name: 'Quoted Cards (#0)',
       isQuoteDeck: true,
     );
@@ -235,20 +192,11 @@ class DeckFileContent extends _$DeckFileContent {
   }
 
   void _updateContentFromCategorized(Map<String, List<int>> categorized) {
-    final buffer = StringBuffer();
-    buffer.writeln('#main');
-    for (final id in categorized['main'] ?? []) {
-      buffer.writeln(id);
-    }
-    buffer.writeln('#extra');
-    for (final id in categorized['extra'] ?? []) {
-      buffer.writeln(id);
-    }
-    buffer.writeln('!side');
-    for (final id in categorized['side'] ?? []) {
-      buffer.writeln(id);
-    }
-    state = DeckState(content: buffer.toString(), name: state.name, isQuoteDeck: state.isQuoteDeck);
+    state = DeckState(
+      content: buildYdkFromCategorized(categorized),
+      name: state.name,
+      isQuoteDeck: state.isQuoteDeck,
+    );
   }
 
   Future<void> saveToDatabase(String name) async {
@@ -283,25 +231,11 @@ class DeckFileContent extends _$DeckFileContent {
     final deck = await db.getDeckById(deckId);
     final cards = await db.getDeckCards(deckId);
     
-    final main = cards.where((c) => c.category == 'main').map((c) => c.cardId);
-    final extra = cards.where((c) => c.category == 'extra').map((c) => c.cardId);
-    final side = cards.where((c) => c.category == 'side').map((c) => c.cardId);
-
-    final buffer = StringBuffer();
-    buffer.writeln('#main');
-    for (final id in main) {
-      buffer.writeln(id);
-    }
-    buffer.writeln('#extra');
-    for (final id in extra) {
-      buffer.writeln(id);
-    }
-    buffer.writeln('!side');
-    for (final id in side) {
-      buffer.writeln(id);
-    }
-
-    state = DeckState(content: buffer.toString(), name: deck?.name, isQuoteDeck: false);
+    state = DeckState(
+      content: buildYdkFromCategorized(groupDeckCardsByCategory(cards)),
+      name: deck?.name,
+      isQuoteDeck: false,
+    );
   }
 
   Future<void> deleteDeck(int deckId) async {
@@ -331,9 +265,11 @@ class DeckFileContent extends _$DeckFileContent {
       final tempFile = File(p.join(tempDir.path, fileName));
       await tempFile.writeAsString(state.content);
 
-      await Share.shareXFiles(
-        [XFile(tempFile.path)],
-        subject: 'YGO Deck: ${state.name ?? "deck"}',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(tempFile.path)],
+          subject: 'YGO Deck: ${state.name ?? "deck"}',
+        ),
       );
     } else {
       // Desktop/Web fallback: Save As dialog
@@ -346,89 +282,67 @@ class DeckFileContent extends _$DeckFileContent {
     }
   }
 
-  Future<void> shareQuoteEstimate(CurrencyInfo currencyInfo) async {
+  /// Loads quote collection (#0) items and prices them; null when empty.
+  Future<_QuoteEstimate?> _buildQuoteEstimate() async {
     final db = ref.read(databaseProvider);
     final quoteItems = await (db.select(db.collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
-
-    if (quoteItems.isEmpty) return;
+    if (quoteItems.isEmpty) return null;
 
     final cardIds = quoteItems.map((i) => i.cardId).toSet().toList();
-    final driftCards = await (db.select(db.cards)..where((t) => t.id.isIn(cardIds))).get();
+    final (driftCards, setPrices, globalPrices) = await (
+      (db.select(db.cards)..where((t) => t.id.isIn(cardIds))).get(),
+      (db.select(db.setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get(),
+      (db.select(db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get(),
+    ).wait;
     final cardNameById = {for (final c in driftCards) c.id: c.name};
+    final resolver = PriceResolver(globalPrices: globalPrices, setPrices: setPrices);
 
-    final livePricesList = await (db.select(db.setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-    final livePricesBySetCode = <String, double>{};
-    for (final sp in livePricesList) {
-      final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-      if (sp.setCode != null && sp.setCode!.isNotEmpty) {
-        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}_${sp.printing.trim().toLowerCase()}'] = p;
-        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
-      }
-    }
+    final rows = [
+      for (final item in quoteItems)
+        _QuoteRow(
+          item: item,
+          cardName: cardNameById[item.cardId] ?? 'Unknown Card',
+          unitPriceUsd: resolver.quoteItemPrice(item),
+        ),
+    ];
+    return _QuoteEstimate(rows, DateTime.now());
+  }
 
-    final globalPricesList = await (db.select(db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-    final globalPriceById = <int, double>{};
-    for (final p in globalPricesList) {
-      globalPriceById[p.cardId] = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-    }
-
-    final now = DateTime.now();
-    final day = now.day.toString().padLeft(2, '0');
-    final month = now.month.toString().padLeft(2, '0');
-    final year = now.year;
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
-    final dateStr = '$day/$month/$year $hour:$minute';
+  Future<void> shareQuoteEstimate(CurrencyInfo currencyInfo) async {
+    final estimate = await _buildQuoteEstimate();
+    if (estimate == null) return;
 
     final buffer = StringBuffer();
     buffer.writeln('================================================================================');
     buffer.writeln('                        YGOBINDER - QUOTE ESTIMATE');
     buffer.writeln('================================================================================');
-    buffer.writeln('Date Generated : $dateStr');
+    buffer.writeln('Date Generated : ${estimate.dateLabel}');
     buffer.writeln('Currency       : ${currencyInfo.code}');
     buffer.writeln('Source         : Quote Collection (#0)');
     buffer.writeln('--------------------------------------------------------------------------------\n');
 
-    double totalEstimateUsd = 0.0;
-    int totalCardCount = 0;
-
     buffer.writeln('#   QTY   CARD NAME                          SET CODE    RARITY                     UNIT PRICE    SUBTOTAL');
     buffer.writeln('--------------------------------------------------------------------------------------------------------------');
 
-    for (var i = 0; i < quoteItems.length; i++) {
-      final item = quoteItems[i];
-      final cardName = cardNameById[item.cardId] ?? 'Unknown Card';
-      final setCode = item.setCode;
-      final rarity = item.rarity;
-      final qty = item.quantity;
-
-      final key = '${item.cardId}_${setCode.trim().toUpperCase()}_${rarity.trim().toLowerCase()}';
-      final fallbackKey = '${item.cardId}_${setCode.trim().toUpperCase()}';
-
-      double unitPriceUsd = livePricesBySetCode[key] ??
-          livePricesBySetCode[fallbackKey] ??
-          (item.priceAtPurchase ?? 0.0);
-
-      if (unitPriceUsd <= 0.0) {
-        unitPriceUsd = globalPriceById[item.cardId] ?? 0.0;
-      }
-
-      final subtotalUsd = unitPriceUsd * qty;
-      totalEstimateUsd += subtotalUsd;
-      totalCardCount += qty;
+    for (var i = 0; i < estimate.rows.length; i++) {
+      final row = estimate.rows[i];
+      final setCode = row.item.setCode;
+      final rarity = row.item.rarity;
+      final cardName = row.cardName;
 
       final padNum = (i + 1).toString().padRight(3);
-      final padQty = '${qty}x'.padRight(5);
+      final padQty = '${row.item.quantity}x'.padRight(5);
       final padName = (cardName.length > 33 ? '${cardName.substring(0, 30)}...' : cardName).padRight(33);
       final padCode = setCode.padRight(11);
       final padRarity = (rarity.length > 25 ? '${rarity.substring(0, 22)}...' : rarity).padRight(25);
-      final padUnitPrice = currencyInfo.formatPrice(unitPriceUsd).padRight(13);
-      final padSubtotal = currencyInfo.formatPrice(subtotalUsd);
+      final padUnitPrice = currencyInfo.formatPrice(row.unitPriceUsd).padRight(13);
+      final padSubtotal = currencyInfo.formatPrice(row.subtotalUsd);
 
       buffer.writeln('$padNum $padQty $padName $padCode $padRarity $padUnitPrice $padSubtotal');
     }
 
-    final totalFormatted = currencyInfo.formatPrice(totalEstimateUsd);
+    final totalFormatted = currencyInfo.formatPrice(estimate.totalUsd);
+    final totalCardCount = estimate.totalCardCount;
 
     buffer.writeln('--------------------------------------------------------------------------------------------------------------');
     buffer.writeln('TOTAL QUOTED CARDS : $totalCardCount cards');
@@ -437,17 +351,19 @@ class DeckFileContent extends _$DeckFileContent {
     buffer.writeln('Generated by YGOBINDER App • Unofficial Yu-Gi-Oh! Binder & Manager');
 
     final contentStr = buffer.toString();
-    final fileName = 'Quoted_Cards_Estimate_${year}-${month}-${day}.txt';
+    final fileName = 'Quoted_Cards_Estimate_${estimate.fileDate}.txt';
 
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File(p.join(tempDir.path, fileName));
       await tempFile.writeAsString(contentStr);
 
-      await Share.shareXFiles(
-        [XFile(tempFile.path)],
-        subject: 'YGOBinder Quote Estimate ($totalFormatted)',
-        text: 'YGOBinder Quote Estimate:\nTotal: $totalFormatted ($totalCardCount cards)',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(tempFile.path)],
+          subject: 'YGOBinder Quote Estimate ($totalFormatted)',
+          text: 'YGOBinder Quote Estimate:\nTotal: $totalFormatted ($totalCardCount cards)',
+        ),
       );
     } else {
       await FilePicker.saveFile(
@@ -460,79 +376,26 @@ class DeckFileContent extends _$DeckFileContent {
   }
 
   Future<void> shareQuoteEstimatePdf(CurrencyInfo currencyInfo) async {
-    final db = ref.read(databaseProvider);
-    final quoteItems = await (db.select(db.collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
-
-    if (quoteItems.isEmpty) return;
-
-    final cardIds = quoteItems.map((i) => i.cardId).toSet().toList();
-    final driftCards = await (db.select(db.cards)..where((t) => t.id.isIn(cardIds))).get();
-    final cardNameById = {for (final c in driftCards) c.id: c.name};
-
-    final livePricesList = await (db.select(db.setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-    final livePricesBySetCode = <String, double>{};
-    for (final sp in livePricesList) {
-      final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-      if (sp.setCode != null && sp.setCode!.isNotEmpty) {
-        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}_${sp.printing.trim().toLowerCase()}'] = p;
-        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
-      }
-    }
-
-    final globalPricesList = await (db.select(db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-    final globalPriceById = <int, double>{};
-    for (final p in globalPricesList) {
-      globalPriceById[p.cardId] = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-    }
-
-    final now = DateTime.now();
-    final day = now.day.toString().padLeft(2, '0');
-    final month = now.month.toString().padLeft(2, '0');
-    final year = now.year;
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
-    final dateStr = '$day/$month/$year $hour:$minute';
+    final estimate = await _buildQuoteEstimate();
+    if (estimate == null) return;
 
     final pdf = pw.Document();
 
-    final tableData = <List<String>>[];
-    double totalEstimateUsd = 0.0;
-    int totalCardCount = 0;
+    final tableData = [
+      for (var i = 0; i < estimate.rows.length; i++)
+        [
+          '${i + 1}',
+          '${estimate.rows[i].item.quantity}x',
+          estimate.rows[i].cardName,
+          estimate.rows[i].item.setCode,
+          estimate.rows[i].item.rarity,
+          currencyInfo.formatPrice(estimate.rows[i].unitPriceUsd),
+          currencyInfo.formatPrice(estimate.rows[i].subtotalUsd),
+        ],
+    ];
 
-    for (var i = 0; i < quoteItems.length; i++) {
-      final item = quoteItems[i];
-      final cardName = cardNameById[item.cardId] ?? 'Unknown Card';
-      final setCode = item.setCode;
-      final rarity = item.rarity;
-      final qty = item.quantity;
-
-      final key = '${item.cardId}_${setCode.trim().toUpperCase()}_${rarity.trim().toLowerCase()}';
-      final fallbackKey = '${item.cardId}_${setCode.trim().toUpperCase()}';
-
-      double unitPriceUsd = livePricesBySetCode[key] ??
-          livePricesBySetCode[fallbackKey] ??
-          (item.priceAtPurchase ?? 0.0);
-
-      if (unitPriceUsd <= 0.0) {
-        unitPriceUsd = globalPriceById[item.cardId] ?? 0.0;
-      }
-
-      final subtotalUsd = unitPriceUsd * qty;
-      totalEstimateUsd += subtotalUsd;
-      totalCardCount += qty;
-
-      tableData.add([
-        '${i + 1}',
-        '${qty}x',
-        cardName,
-        setCode,
-        rarity,
-        currencyInfo.formatPrice(unitPriceUsd),
-        currencyInfo.formatPrice(subtotalUsd),
-      ]);
-    }
-
-    final totalFormatted = currencyInfo.formatPrice(totalEstimateUsd);
+    final totalCardCount = estimate.totalCardCount;
+    final totalFormatted = currencyInfo.formatPrice(estimate.totalUsd);
 
     pdf.addPage(
       pw.MultiPage(
@@ -560,7 +423,7 @@ class DeckFileContent extends _$DeckFileContent {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text('Date: $dateStr', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                    pw.Text('Date: ${estimate.dateLabel}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                     pw.Text('Currency: ${currencyInfo.code}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
                   ],
                 ),
@@ -615,17 +478,19 @@ class DeckFileContent extends _$DeckFileContent {
     );
 
     final pdfBytes = await pdf.save();
-    final fileName = 'Quoted_Cards_Estimate_${year}-${month}-${day}.pdf';
+    final fileName = 'Quoted_Cards_Estimate_${estimate.fileDate}.pdf';
 
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File(p.join(tempDir.path, fileName));
       await tempFile.writeAsBytes(pdfBytes);
 
-      await Share.shareXFiles(
-        [XFile(tempFile.path)],
-        subject: 'YGOBinder Quote Estimate PDF ($totalFormatted)',
-        text: 'YGOBinder Quote Estimate PDF:\nTotal: $totalFormatted ($totalCardCount cards)',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(tempFile.path)],
+          subject: 'YGOBinder Quote Estimate PDF ($totalFormatted)',
+          text: 'YGOBinder Quote Estimate PDF:\nTotal: $totalFormatted ($totalCardCount cards)',
+        ),
       );
     } else {
       await FilePicker.saveFile(
@@ -722,4 +587,31 @@ Future<Map<String, List<YgoCard>>> categorizedDeckCards(Ref ref) async {
     'extra': categorizedIds['extra']!.map((id) => _deckCardCache[id]).whereType<YgoCard>().toList(),
     'side': categorizedIds['side']!.map((id) => _deckCardCache[id]).whereType<YgoCard>().toList(),
   };
+}
+
+class _QuoteRow {
+  final DriftCollectionItem item;
+  final String cardName;
+  final double unitPriceUsd;
+
+  const _QuoteRow({required this.item, required this.cardName, required this.unitPriceUsd});
+
+  double get subtotalUsd => unitPriceUsd * item.quantity;
+}
+
+class _QuoteEstimate {
+  final List<_QuoteRow> rows;
+  final DateTime generatedAt;
+
+  _QuoteEstimate(this.rows, this.generatedAt);
+
+  double get totalUsd => rows.fold(0.0, (sum, r) => sum + r.subtotalUsd);
+  int get totalCardCount => rows.fold(0, (sum, r) => sum + r.item.quantity);
+
+  /// e.g. `26/11/2026 14:05`
+  String get dateLabel => formatDateTime(generatedAt);
+
+  /// e.g. `2026-11-26`
+  String get fileDate =>
+      '${generatedAt.year}-${generatedAt.month.toString().padLeft(2, '0')}-${generatedAt.day.toString().padLeft(2, '0')}';
 }

@@ -408,39 +408,9 @@ class AppDatabase extends _$AppDatabase {
     return result?.read(cardSets.cardId);
   }
 
-  Future<List<DriftCard>> searchCards(String query) { // ← Fixed: DriftCard
-    return (select(cards)..where((t) => t.name.like('%$query%'))..limit(20)).get();
-  }
-
-  Future<List<DriftCard>> getCardsByArchetype(String archetype) { // ← Fixed: DriftCard
-    return (select(cards)
-      ..where((t) => t.archetype.equals(archetype))
-      ..orderBy([(t) => OrderingTerm.asc(t.name)]))
-        .get();
-  }
-
-  Stream<List<DriftCard>> watchAllCards() { // ← Fixed: DriftCard
-    return select(cards).watch();
-  }
-
   // ==========================================
   // COLLECTION QUERIES
   // ==========================================
-
-  Stream<List<CollectionItemWithCard>> watchCollection() { // ← Fixed: returns Stream, not Future
-    final query = select(collectionItems).join([
-      innerJoin(cards, cards.id.equalsExp(collectionItems.cardId)),
-    ]);
-
-    return query.watch().map((rows) {
-      return rows.map((row) {
-        return CollectionItemWithCard(
-          collectionItem: row.readTable(collectionItems),
-          card: row.readTable(cards),
-        );
-      }).toList();
-    });
-  }
 
   /// Fast query for deck builder: watches only collectionItems to map cardId -> totalQuantity
   Stream<Map<int, int>> watchCollectionCardQuantities() {
@@ -519,11 +489,6 @@ class AppDatabase extends _$AppDatabase {
     await refreshUserOwnedSets();
   }
 
-  Future<void> clearCollection() async {
-    await delete(collectionItems).go();
-    await refreshUserOwnedSets();
-  }
-
   /// Removes every account-specific row (collection, decks, favorites,
   /// wanted, owned sets). Global card data and settings are kept.
   Future<void> clearUserData() async {
@@ -541,12 +506,6 @@ class AppDatabase extends _$AppDatabase {
     final deletedCount = await (delete(collectionItems)..where((t) => t.collectionNumber.equals(0))).go();
     await refreshUserOwnedSets();
     return deletedCount;
-  }
-
-  Future<int> getCollectionSize() async {
-    final query = selectOnly(collectionItems)..addColumns([collectionItems.id.count()]);
-    final result = await query.getSingle();
-    return result.read(collectionItems.id.count()) ?? 0;
   }
 
   Stream<int> watchTotalCardCount() {
@@ -797,32 +756,6 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
 
   // ← Fixed: Removed 'drift.' prefix. These classes are generated in this same file.
-  Future<void> saveCard(CardsCompanion card) async {
-    await into(cards).insertOnConflictUpdate(card);
-  }
-
-  Future<void> saveCardImages(List<CardImagesCompanion> images) async {
-    await batch((batch) {
-      batch.insertAll(cardImages, images, mode: InsertMode.insertOrReplace);
-    });
-  }
-
-  Future<void> saveCardPrices(List<CardPricesCompanion> prices) async {
-    await batch((batch) {
-      batch.insertAll(cardPrices, prices, mode: InsertMode.insertOrReplace);
-    });
-  }
-
-  Future<void> saveCardSets(List<CardSetsCompanion> sets) async {
-    await batch((batch) {
-      batch.insertAll(cardSets, sets, mode: InsertMode.insertOrReplace);
-    });
-  }
-
-  Future<void> saveBanlistInfo(BanlistInfosCompanion banlistInfo) async {
-    await into(banlistInfos).insertOnConflictUpdate(banlistInfo);
-  }
-
   // ==========================================
   // GET RELATED DATA
   // ==========================================
@@ -1209,18 +1142,6 @@ class AppDatabase extends _$AppDatabase {
     return (select(setInfos)..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
   }
 
-  Stream<List<DriftSetInfo>> watchAllSetInfos() {
-    return (select(setInfos)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
-  }
-
-  Future<DriftSetInfo?> getSetInfoByAbbreviation(String abbreviation) {
-    return (select(setInfos)..where((t) => t.abbreviation.equals(abbreviation))).getSingleOrNull();
-  }
-
-  Future<DriftSetInfo?> getSetInfoByName(String name) {
-    return (select(setInfos)..where((t) => t.name.equals(name))).getSingleOrNull();
-  }
-
   Future<void> upsertDeck(String syncId, String name, Map<String, List<int>> categorizedCards, DateTime updatedAt) async {
     await transaction(() async {
       final existing = await (select(decks)..where((t) => t.syncId.equals(syncId))).getSingleOrNull();
@@ -1296,10 +1217,6 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // USER OWNED SETS QUERIES
   // ==========================================
-
-  Stream<List<DriftUserOwnedSet>> watchUserOwnedSets() {
-    return (select(userOwnedSets)..orderBy([(t) => OrderingTerm.desc(t.totalCardsOwned)])).watch();
-  }
 
   Future<List<DriftUserOwnedSet>> getUserOwnedSets() {
     return (select(userOwnedSets)..orderBy([(t) => OrderingTerm.desc(t.totalCardsOwned)])).get();
@@ -1444,19 +1361,8 @@ class AppDatabase extends _$AppDatabase {
     return byCard.values.toList();
   }
 
-  Future<List<DriftSetCardPrice>> getPricesForSetAndCard(int setId, int cardId) {
-    return (select(setCardPrices)
-          ..where((t) => t.setId.equals(setId) & t.cardId.equals(cardId)))
-        .get();
-  }
-
   Stream<List<DriftSetCardPrice>> watchPricesForCard(int cardId) {
     return (select(setCardPrices)..where((t) => t.cardId.equals(cardId))).watch();
-  }
-
-  Stream<List<DriftSetCardPrice>> watchPricesForCardIds(List<int> cardIds) {
-    if (cardIds.isEmpty) return Stream.value([]);
-    return (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).watch();
   }
 
   // ==========================================
@@ -1473,13 +1379,6 @@ class AppDatabase extends _$AppDatabase {
     return select(currencyRates).watch();
   }
 
-  Future<List<DriftCurrencyRate>> getAllCurrencyRates() {
-    return select(currencyRates).get();
-  }
-
-  Future<DriftCurrencyRate?> getCurrencyRate(String code) {
-    return (select(currencyRates)..where((t) => t.currencyCode.equals(code.toUpperCase()))).getSingleOrNull();
-  }
 }
 
 // ==========================================
@@ -1498,15 +1397,6 @@ LazyDatabase _openConnection() {
 // HELPER CLASSES
 // ==========================================
 
-class CollectionItemWithCard {
-  final DriftCollectionItem collectionItem; // ← Fixed: DriftCollectionItem
-  final DriftCard card; // ← Fixed: DriftCard
-
-  CollectionItemWithCard({
-    required this.collectionItem,
-    required this.card,
-  });
-}
 
 /// A favorite/wanted flag as stored in the cloud.
 typedef CardFlagRecord = ({int cardId, String syncId, DateTime updatedAt});

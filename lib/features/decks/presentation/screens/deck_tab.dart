@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ygobinder/core/theme/theme_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:ygobinder/features/decks/presentation/providers/deck_file_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/price_providers.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_list_provider.dart';
+import 'package:ygobinder/features/cards/data/models/ban_status.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/widgets/card_filter_dialogs.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
@@ -13,18 +15,6 @@ import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
-
-Color getThemeGreen(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade800;
-}
-
-Color getThemeAmber(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.amber : Colors.amber.shade900;
-}
-
-Color getThemeOrange(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.orangeAccent : Colors.orange.shade800;
-}
 
 bool isAfterGoatCutoff(YgoCard card) {
   final tcgDateStr = card.miscInfo?.firstOrNull?.tcgDate;
@@ -48,9 +38,7 @@ bool isAfterHatCutoff(YgoCard card) {
   return false;
 }
 
-enum BanlistStatus { forbidden, limited, semiLimited, unlimited }
-
-BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
+BanStatus getBanStatus(YgoCard card, String banlist) {
   final info = card.banlistInfo;
   final format = banlist.toUpperCase();
 
@@ -62,69 +50,58 @@ BanlistStatus getBanlistStatus(YgoCard card, String banlist) {
   } else if (format == 'GOAT') {
     // GOAT rule: If card was released after August 17, 2005, it is not legal in GOAT -> forbidden!
     if (isAfterGoatCutoff(card)) {
-      return BanlistStatus.forbidden;
+      return BanStatus.forbidden;
     }
     rawStatus = info?.banGoat;
   } else if (format == 'EDISON') {
     rawStatus = info?.banEdison;
     // Edison rule: If card has no Edison record (or empty), it is not legal in Edison -> forbidden!
     if (rawStatus == null || rawStatus.isEmpty) {
-      return BanlistStatus.forbidden;
+      return BanStatus.forbidden;
     }
   } else if (format == 'HAT') {
     if (isAfterHatCutoff(card)) {
-      return BanlistStatus.forbidden;
+      return BanStatus.forbidden;
     }
     rawStatus = info?.banHat;
     if (rawStatus == null || rawStatus.isEmpty) {
-      return BanlistStatus.forbidden;
+      return BanStatus.forbidden;
     }
   }
 
   if (rawStatus == null || rawStatus.isEmpty) {
-    return BanlistStatus.unlimited;
+    return BanStatus.unlimited;
   }
 
-  final lower = rawStatus.toLowerCase().trim();
-  if (lower.contains('forbid') || lower.contains('banned') || lower == '0') {
-    return BanlistStatus.forbidden;
-  } else if (lower.contains('semi') || lower == '2') {
-    return BanlistStatus.semiLimited;
-  } else if (lower.contains('limited') || lower == '1') {
-    return BanlistStatus.limited;
-  } else if (lower.contains('legal') || lower.contains('unlimited') || lower == '3') {
-    return BanlistStatus.unlimited;
-  }
-
-  return BanlistStatus.unlimited;
+  return parseBanStatus(rawStatus);
 }
 
 class _BanlistBadge extends StatelessWidget {
-  final BanlistStatus status;
+  final BanStatus status;
 
   const _BanlistBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    if (status == BanlistStatus.unlimited) return const SizedBox.shrink();
+    if (status == BanStatus.unlimited) return const SizedBox.shrink();
 
     Color color;
     String text;
 
     switch (status) {
-      case BanlistStatus.forbidden:
+      case BanStatus.forbidden:
         color = Colors.redAccent;
         text = '0';
         break;
-      case BanlistStatus.limited:
+      case BanStatus.limited:
         color = Colors.amber;
         text = '1';
         break;
-      case BanlistStatus.semiLimited:
+      case BanStatus.semiLimited:
         color = Colors.orangeAccent;
         text = '2';
         break;
-      case BanlistStatus.unlimited:
+      case BanStatus.unlimited:
         return const SizedBox.shrink();
     }
 
@@ -917,7 +894,7 @@ class _DeckCardTile extends ConsumerWidget {
     final card = visual.card;
     final isOwned = visual.isOwned;
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
-    final banlistStatus = getBanlistStatus(card, selectedBanlist);
+    final banlistStatus = getBanStatus(card, selectedBanlist);
 
     Widget imageWidget;
     if (imageUrl.isEmpty) {
@@ -1348,7 +1325,7 @@ class _DeckCardQuantityTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
-    final banlistStatus = getBanlistStatus(card, selectedBanlist);
+    final banlistStatus = getBanStatus(card, selectedBanlist);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1401,7 +1378,7 @@ class _DeckCardQuantityTile extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    '${card.type}',
+                    card.type,
                     style: const TextStyle(fontSize: 10, color: Colors.white54),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1479,7 +1456,7 @@ class _SidebarCardTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final cacheManager = ref.watch(imageCacheManagerProvider);
     final imageUrl = card.cardImages?.firstOrNull?.imageUrlSmall ?? '';
-    final banlistStatus = getBanlistStatus(card, selectedBanlist);
+    final banlistStatus = getBanStatus(card, selectedBanlist);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1688,11 +1665,11 @@ class _DeckTotalPriceSummary extends ConsumerWidget {
     final theme = Theme.of(context);
     final currencyInfo = ref.watch(activeCurrencyInfoProvider);
 
-    final allCardIds = [
+    final allCardIds = {
       ...deckData.main.map((vc) => vc.card.id),
       ...deckData.extra.map((vc) => vc.card.id),
       ...deckData.side.map((vc) => vc.card.id),
-    ].toSet().toList();
+    };
 
     // Long-lived streams (providers) instead of new DB streams on every build.
     final collectionByCardId =

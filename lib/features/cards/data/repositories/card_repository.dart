@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
@@ -145,12 +146,6 @@ class CardRepository {
     );
   }
 
-  Future<List<YgoCard>> searchCards(String query) async {
-    final cards = await _db.searchCards(query);
-
-    return cards.map((card) => CardMapper.toYgoCard(card)).toList();
-  }
-
   Future<List<YgoCard>> getCardsPage({
     required int offset,
     required int limit,
@@ -162,90 +157,55 @@ class CardRepository {
       filters: filters,
     );
 
-    if (driftCards.isEmpty) return [];
-
-    // Efficiently fetch all images and banlist info for these cards in one batch
-    final cardIds = driftCards.map((c) => c.id).toList();
-    
-    final imagesFuture = (_db.select(_db.cardImages)
-      ..where((t) => t.cardId.isIn(cardIds)))
-        .get();
-        
-    final banlistFuture = (_db.select(_db.banlistInfos)
-      ..where((t) => t.cardId.isIn(cardIds)))
-        .get();
-
-    final [allImages, allBanlists] = await Future.wait([imagesFuture, banlistFuture]);
-
-    // Group images by cardId
-    final imagesByCardId = <int, List<DriftCardImage>>{};
-    for (final img in allImages as List<DriftCardImage>) {
-      imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
-    }
-    
-    // Group banlist by cardId
-    final banlistByCardId = {
-      for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b
-    };
-
-    return driftCards.map((card) {
-      return CardMapper.toYgoCard(
-        card,
-        images: imagesByCardId[card.id] ?? [],
-        banlist: banlistByCardId[card.id],
-      );
-    }).toList();
+    return _attachRelations(driftCards);
   }
 
   Future<List<YgoCard>> getCardsByIds(List<int> cardIds) async {
     if (cardIds.isEmpty) return [];
 
     final driftCards = await (_db.select(_db.cards)..where((t) => t.id.isIn(cardIds))).get();
+    return _attachRelations(driftCards, withPricesAndSets: true);
+  }
 
+  /// Maps [driftCards] to [YgoCard]s, loading images and banlist info (and
+  /// optionally prices and sets) for all of them in a few batched queries.
+  Future<List<YgoCard>> _attachRelations(List<DriftCard> driftCards, {bool withPricesAndSets = false}) async {
     if (driftCards.isEmpty) return [];
+    final cardIds = driftCards.map((c) => c.id).toList();
 
-    final imagesFuture = (_db.select(_db.cardImages)..where((t) => t.cardId.isIn(cardIds))).get();
-    final banlistFuture = (_db.select(_db.banlistInfos)..where((t) => t.cardId.isIn(cardIds))).get();
-    final pricesFuture = (_db.select(_db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-    final setsFuture = (_db.select(_db.cardSets)..where((t) => t.cardId.isIn(cardIds))).get();
+    final (images, banlists, prices, sets) = await (
+      (_db.select(_db.cardImages)..where((t) => t.cardId.isIn(cardIds))).get(),
+      (_db.select(_db.banlistInfos)..where((t) => t.cardId.isIn(cardIds))).get(),
+      withPricesAndSets
+          ? (_db.select(_db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get()
+          : Future.value(const <DriftCardPrice>[]),
+      withPricesAndSets
+          ? (_db.select(_db.cardSets)..where((t) => t.cardId.isIn(cardIds))).get()
+          : Future.value(const <DriftCardSet>[]),
+    ).wait;
 
-    final [allImages, allBanlists, allPrices, allSets] = await Future.wait([
-      imagesFuture,
-      banlistFuture,
-      pricesFuture,
-      setsFuture,
-    ]);
-
-    final imagesByCardId = <int, List<DriftCardImage>>{};
-    for (final img in allImages as List<DriftCardImage>) {
-      imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
-    }
-
-    final banlistByCardId = {for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b};
-
-    final pricesByCardId = <int, List<DriftCardPrice>>{};
-    for (final p in allPrices as List<DriftCardPrice>) {
-      pricesByCardId.putIfAbsent(p.cardId, () => []).add(p);
-    }
-
-    final setsByCardId = <int, List<DriftCardSet>>{};
-    for (final s in allSets as List<DriftCardSet>) {
-      setsByCardId.putIfAbsent(s.cardId, () => []).add(s);
-    }
+    final imagesByCardId = _groupBy(images, (DriftCardImage i) => i.cardId);
+    final pricesByCardId = _groupBy(prices, (DriftCardPrice p) => p.cardId);
+    final setsByCardId = _groupBy(sets, (DriftCardSet s) => s.cardId);
+    final banlistByCardId = {for (final b in banlists) b.cardId: b};
 
     return driftCards.map((card) {
       return CardMapper.toYgoCard(
         card,
-        images: imagesByCardId[card.id] ?? [],
+        images: imagesByCardId[card.id] ?? const [],
         banlist: banlistByCardId[card.id],
-        prices: pricesByCardId[card.id] ?? [],
-        sets: setsByCardId[card.id] ?? [],
+        prices: pricesByCardId[card.id] ?? const [],
+        sets: setsByCardId[card.id] ?? const [],
       );
     }).toList();
   }
 
-  Stream<List<YgoCard>> watchAllCards() {
-    return _db.watchAllCards().map((cards) => cards.map((card) => CardMapper.toYgoCard(card)).toList());
+  static Map<int, List<T>> _groupBy<T>(Iterable<T> rows, int Function(T) key) {
+    final grouped = <int, List<T>>{};
+    for (final row in rows) {
+      grouped.putIfAbsent(key(row), () => []).add(row);
+    }
+    return grouped;
   }
 
   Future<void> addCardToCollection({
@@ -465,6 +425,13 @@ class CardRepository {
     // product id instead of card id (they never match any card).
     await _db.deleteOrphanSetCardPrices();
 
+    // Printing codes the user actually owns, preferred over other codes of
+    // the same card in a set (e.g. LOB-EN001 over LOB-001).
+    final ownedCodesByCard = <int, Set<String>>{};
+    for (final item in await _db.select(_db.collectionItems).get()) {
+      ownedCodesByCard.putIfAbsent(item.cardId, () => {}).add(item.setCode.trim().toUpperCase());
+    }
+
     final totalSets = setsToSync.length;
 
     for (var i = 0; i < totalSets; i++) {
@@ -474,7 +441,7 @@ class CardRepository {
       onProgress(i + 1, totalSets, task.setName);
 
       try {
-        await _updateSetPrices(task, isCancelled);
+        await _updateSetPrices(task, ownedCodesByCard, isCancelled);
       } catch (e) {
         // Allow sync to proceed for remaining sets
         debugPrint('Error updating prices for set ${task.setId}: $e');
@@ -488,7 +455,11 @@ class CardRepository {
 
   /// Fetches `/cards` + `/pricing` for one set and stores per-printing prices
   /// for every local card that has a printing in that set.
-  Future<void> _updateSetPrices(_SetSyncTask task, bool Function() isCancelled) async {
+  Future<void> _updateSetPrices(
+    _SetSyncTask task,
+    Map<int, Set<String>> ownedCodesByCard,
+    bool Function() isCancelled,
+  ) async {
     final setCards = await _dataService.fetchSetCards(task.setId);
     if (setCards == null || setCards.isEmpty) return;
 
@@ -507,10 +478,13 @@ class CardRepository {
     );
 
     final companions = <SetCardPricesCompanion>[];
+    final prefix = '${task.setCode.toUpperCase()}-';
     for (final printing in printings) {
+      final ownedCode = ownedCodesByCard[printing.cardId]?.firstWhereOrNull((c) => c.startsWith(prefix));
+      final setCode = ownedCode ?? printing.setCode;
       final products = SetPriceService.matchProducts(
         setCards,
-        setCode: printing.setCode,
+        setCode: setCode,
         cardName: printing.cardName,
       );
       if (products.isEmpty) continue;
@@ -518,7 +492,7 @@ class CardRepository {
         pricingData: pricingData,
         fallbackSetId: task.setId,
         cardId: printing.cardId,
-        setCode: printing.setCode,
+        setCode: setCode,
         products: products,
         previousPrices: previousPrices,
       ));

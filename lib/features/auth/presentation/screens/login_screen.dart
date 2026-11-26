@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/core/app_version.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -54,7 +55,7 @@ class LoginScreen extends ConsumerWidget {
                   ),
                 ),
                 const Text(
-                  'Version 1.4.0',
+                  'Version $kAppVersionName',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white38,

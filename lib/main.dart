@@ -11,15 +11,15 @@ import 'package:ygobinder/features/scanner/presentation/screens/camera_scanner_s
 import 'package:ygobinder/features/auth/presentation/screens/login_screen.dart';
 import 'package:ygobinder/core/providers/theme_provider.dart';
 
-import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'package:ygobinder/core/providers/firebase_providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // ✅ Guard Firebase initialization: Only run on supported platforms
   // (Android, iOS, macOS, Web). Linux and Windows require additional setup.
-  if (kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+  if (isFirebaseSupported()) {
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,

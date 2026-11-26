@@ -48,7 +48,7 @@ final class FirebaseAuthProvider
   }
 }
 
-String _$firebaseAuthHash() => r'38e8588489dbb10450ca16aace86818956d6e02d';
+String _$firebaseAuthHash() => r'a456a75247131751590f6d6fc4d6ecb3eed1258d';
 
 @ProviderFor(authStateChanges)
 final authStateChangesProvider = AuthStateChangesProvider._();

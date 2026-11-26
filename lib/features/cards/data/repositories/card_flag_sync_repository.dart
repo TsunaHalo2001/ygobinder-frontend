@@ -10,13 +10,15 @@ class CardFlagSyncRepository {
     this._firestore,
     this._auth, {
     required this.collectionName,
-    required Future<void> Function(AppDatabase db, List<CardFlagRecord> records) saveLocally,
-  }) : _saveLocally = saveLocally;
+    required this.saveLocally,
+  });
 
   final FirebaseFirestore? _firestore;
   final FirebaseAuth? _auth;
   final String collectionName;
-  final Future<void> Function(AppDatabase db, List<CardFlagRecord> records) _saveLocally;
+
+  /// Writes the records pulled by [fullSync] into the local database.
+  final Future<void> Function(AppDatabase db, List<CardFlagRecord> records) saveLocally;
 
   CollectionReference<Map<String, dynamic>>? get _collection {
     final uid = _auth?.currentUser?.uid;
@@ -67,7 +69,7 @@ class CardFlagSyncRepository {
           updatedAt: updatedAt.toDate(),
         ));
       }
-      if (records.isNotEmpty) await _saveLocally(db, records);
+      if (records.isNotEmpty) await saveLocally(db, records);
     } catch (e) {
       debugPrint('$collectionName sync error: $e');
     }

@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:ygobinder/core/utils/formatters.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
 part 'currency_provider.g.dart';
@@ -21,16 +22,7 @@ class CurrencyInfo {
     final isJpy = code == 'JPY';
     final decimals = isJpy ? 0 : 2;
 
-    final parts = converted.toStringAsFixed(decimals).split('.');
-    final integerPart = parts[0];
-    final decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
-
-    final formattedInteger = integerPart.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-
-    final formattedVal = '$formattedInteger$decimalPart';
+    final formattedVal = formatWithThousandSeparators(converted, decimals: decimals);
 
     if (code == 'USD') return '\$$formattedVal';
     if (code == 'EUR') return '€$formattedVal';

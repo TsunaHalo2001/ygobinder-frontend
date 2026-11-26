@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -72,7 +71,7 @@ class CardDataService {
         onReceiveProgress: onProgress,
         options: Options(
           responseType: ResponseType.bytes,
-          headers: {if (etag != null) 'If-None-Match': etag},
+          headers: {'If-None-Match': ?etag},
           validateStatus: (status) => status == 200 || status == 304,
         ),
       );
