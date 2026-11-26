@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/cards/data/services/card_cache_parser.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
 import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
@@ -17,12 +17,21 @@ class CardRepository {
 
   CardRepository(this._db, this._dataService, [this._syncRepo]);
 
+  static const _etagSettingKey = 'card_cache_etag';
+
+  /// Downloads and stores the full card database.
+  ///
+  /// Unless [force] is true, the stored ETag is sent so an unchanged file is
+  /// answered with 304 and the (expensive) parse + rewrite is skipped.
   Future<void> syncAllCards({
     void Function(String status, double? progress)? onStatusChange,
+    bool force = false,
   }) async {
     onStatusChange?.call('Downloading card data...', 0.0);
 
-    final rawCache = await _dataService.fetchRawCardData(
+    final etag = force ? null : await _usableCachedEtag();
+    final download = await _dataService.downloadCardCache(
+      etag: etag,
       onProgress: (received, total) {
         if (total > 0) {
           final progress = (received / total).clamp(0.0, 1.0);
@@ -31,19 +40,32 @@ class CardRepository {
       },
     );
 
-    onStatusChange?.call(
-        'Parsing ${rawCache.cards.length} cards & ${rawCache.sets.length} sets...', null);
-    final cards = await fetchAndParseCards(rawCache.cards);
-    final setInfos = await fetchAndParseSets(rawCache.sets);
+    if (!download.notModified) {
+      final parsed = await parseCardCacheInBackground(
+        download.bytes!,
+        onDecoded: (cardCount, setCount) =>
+            onStatusChange?.call('Parsing $cardCount cards & $setCount sets...', null),
+      );
 
-    onStatusChange?.call('Saving database...', null);
-    await saveCardsAndSets(cards, setInfos);
+      onStatusChange?.call('Saving database...', null);
+      await saveParsedCardCache(parsed);
+      if (download.etag != null) {
+        await _db.saveSetting(_etagSettingKey, download.etag!);
+      }
+    }
     await syncCurrencyRates();
 
     final todayString = DateTime.now().toIso8601String();
     await _db.saveSetting('last_sync_date', todayString);
 
     onStatusChange?.call('Sync complete!', 1.0);
+  }
+
+  /// The stored ETag, only if the local card table is actually populated.
+  Future<String?> _usableCachedEtag() async {
+    final etag = await _db.getSetting(_etagSettingKey);
+    if (etag == null || etag.isEmpty) return null;
+    return await _db.hasCards() ? etag : null;
   }
 
   Future<void> syncCurrencyRates() async {
@@ -81,96 +103,38 @@ class CardRepository {
     await syncCurrencyRates();
   }
 
-  Future<List<YgoCard>> fetchAndParseCards(List<dynamic> apiData) async {
-    return Isolate.run(() {
-      final validData = apiData.where((item) => item['type'] != 'Skill Card').toList();
-
-      return validData.map((item) => YgoCard.fromJson(item as Map<String, dynamic>)).toList();
-    });
-  }
-
-  Future<List<SetInfosCompanion>> fetchAndParseSets(List<dynamic> apiSets) async {
-    if (apiSets.isEmpty) return [];
-    return Isolate.run(() {
-      return apiSets.map((item) {
-        final json = item as Map<String, dynamic>;
-        return SetInfosCompanion.insert(
-          id: Value(json['id'] as int),
-          name: json['name'] as String,
-          abbreviation: Value(json['abbreviation'] as String?),
-          setType: Value(json['type'] as String?),
-          isSupplemental: Value(json['is_supplemental'] as bool? ?? false),
-          publishedOn: Value(json['published_on'] as String?),
-          modifiedOn: Value(json['modified_on'] as String?),
-          productCount: Value(json['product_count'] as int?),
-          skuCount: Value(json['sku_count'] as int?),
-          setSymbolUrl: Value(json['set_symbol_url'] as String?),
-          setSymbolCached: Value(json['set_symbol_cached'] as bool? ?? false),
-          apiUrl: Value(json['api_url'] as String?),
-          cardsUrl: Value(json['cards_url'] as String?),
-          sealedUrl: Value(json['sealed_url'] as String?),
-          pricingUrl: Value(json['pricing_url'] as String?),
-          skusUrl: Value(json['skus_url'] as String?),
-        );
-      }).toList();
-    });
-  }
-
-  Future<void> saveCardsAndSets(List<YgoCard> cards, List<SetInfosCompanion> setInfos) async {
-    // 1. Prepare all data in memory first (Very fast, no DB calls yet)
-    final cardCompanions = cards.map((c) => CardMapper.toDriftCardCompanion(c)).toList();
-    final imageCompanions = <CardImagesCompanion>[];
-    final priceCompanions = <CardPricesCompanion>[];
-    final setCompanions = <CardSetsCompanion>[];
-    final banlistCompanions = <BanlistInfosCompanion>[];
-
-    for (final card in cards) {
-      if (card.cardImages?.isNotEmpty ?? false) {
-        imageCompanions.addAll(CardMapper.toDriftCardImagesCompanions(card.id, card.cardImages!));
-      }
-      if (card.cardPrices?.isNotEmpty ?? false) {
-        priceCompanions.addAll(CardMapper.toDriftCardPricesCompanions(card.id, card.cardPrices!));
-      }
-      if (card.cardSets?.isNotEmpty ?? false) {
-        setCompanions.addAll(CardMapper.toDriftCardSetsCompanions(card.id, card.cardSets!));
-      }
-      if (card.banlistInfo != null) {
-        final banlist = CardMapper.toDriftBanlistInfoCompanion(card.id, card.banlistInfo);
-        if (banlist != null) banlistCompanions.add(banlist);
-      }
-    }
-
-    // 2. Execute ONE massive transaction (The "Second Plane" speed boost)
+  /// Replaces all global card data with [parsed] in one transaction.
+  Future<void> saveParsedCardCache(ParsedCardCache parsed) async {
     await _db.transaction(() async {
-      // Clear old related data (Since this is a full sync, it's faster to clear than to update row-by-row)
+      // Full sync: clearing related tables is faster than row-by-row updates
       await _db.delete(_db.cardImages).go();
       await _db.delete(_db.cardPrices).go();
       await _db.delete(_db.cardSets).go();
       await _db.delete(_db.banlistInfos).go();
       await _db.delete(_db.setInfos).go();
 
-      // Batch insert everything at once
       await _db.batch((batch) {
-        batch.insertAll(_db.cards, cardCompanions, mode: InsertMode.insertOrReplace);
-        batch.insertAll(_db.cardImages, imageCompanions);
-        batch.insertAll(_db.cardPrices, priceCompanions);
-        batch.insertAll(_db.cardSets, setCompanions);
-        batch.insertAll(_db.banlistInfos, banlistCompanions);
-        if (setInfos.isNotEmpty) {
-          batch.insertAll(_db.setInfos, setInfos, mode: InsertMode.insertOrReplace);
+        batch.insertAll(_db.cards, parsed.cards, mode: InsertMode.insertOrReplace);
+        batch.insertAll(_db.cardImages, parsed.images);
+        batch.insertAll(_db.cardPrices, parsed.prices);
+        batch.insertAll(_db.cardSets, parsed.cardSets);
+        batch.insertAll(_db.banlistInfos, parsed.banlists);
+        if (parsed.setInfos.isNotEmpty) {
+          batch.insertAll(_db.setInfos, parsed.setInfos, mode: InsertMode.insertOrReplace);
         }
       });
     });
   }
 
   Future<YgoCard?> getCardWithDetails(int cardId) async {
-    final card = await _db.getCardById(cardId);
+    final (card, images, prices, sets, banlist) = await (
+      _db.getCardById(cardId),
+      _db.getCardImages(cardId),
+      _db.getCardPrices(cardId),
+      _db.getCardSets(cardId),
+      _db.getBanlistInfo(cardId),
+    ).wait;
     if (card == null) return null;
-
-    final images = await _db.getCardImages(cardId);
-    final prices = await _db.getCardPrices(cardId);
-    final sets = await _db.getCardSets(cardId);
-    final banlist = await _db.getBanlistInfo(cardId);
 
     return CardMapper.toYgoCard(
       card,

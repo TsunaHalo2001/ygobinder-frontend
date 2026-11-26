@@ -9,6 +9,7 @@ import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_detail_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
+import 'package:ygobinder/features/cards/presentation/providers/price_providers.dart';
 import 'package:ygobinder/features/cards/presentation/providers/favorite_providers.dart';
 import 'package:ygobinder/features/cards/data/repositories/favorite_sync_repository.dart';
 import 'package:ygobinder/features/cards/presentation/providers/wanted_providers.dart';
@@ -268,7 +269,7 @@ class _CardDetailScaffold extends ConsumerWidget {
               final syncRepo = ref.read(favoriteSyncRepositoryProvider);
               final newIsFav = await db.toggleFavorite(card.id);
               // Not awaited: Firestore completes only on server ack (offline-safe).
-              unawaited(syncRepo.syncFavorite(card.id, newIsFav).catchError((Object e) {
+              unawaited(syncRepo.syncFlag(card.id, newIsFav).catchError((Object e) {
                 debugPrint('Favorite cloud sync failed: $e');
               }));
             },
@@ -286,7 +287,7 @@ class _CardDetailScaffold extends ConsumerWidget {
               final syncRepo = ref.read(wantedSyncRepositoryProvider);
               final newIsWanted = await db.toggleWanted(card.id);
               // Not awaited: Firestore completes only on server ack (offline-safe).
-              unawaited(syncRepo.syncWanted(card.id, newIsWanted).catchError((Object e) {
+              unawaited(syncRepo.syncFlag(card.id, newIsWanted).catchError((Object e) {
                 debugPrint('Wanted cloud sync failed: $e');
               }));
             },
@@ -1219,7 +1220,6 @@ class _CardInfo extends ConsumerWidget {
 
   Widget _buildInventoryTable(BuildContext context, WidgetRef ref) {
     final inventoryAsync = ref.watch(cardInventoryProvider(card.id));
-    final db = ref.watch(databaseProvider);
     final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final theme = Theme.of(context);
 
@@ -1234,10 +1234,10 @@ class _CardInfo extends ConsumerWidget {
         }
         final sortedCollectionNumbers = grouped.keys.toList()..sort();
 
-        return StreamBuilder<List<DriftSetCardPrice>>(
-          stream: db.watchPricesForCard(card.id),
-          builder: (context, snapshot) {
-            final setPricesList = snapshot.data ?? [];
+        return Builder(
+          builder: (context) {
+            final setPricesList =
+                ref.watch(setPricesForCardProvider(card.id)).value ?? const <DriftSetCardPrice>[];
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2234,7 +2234,6 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final db = ref.watch(databaseProvider);
     final currencyInfo = ref.watch(activeCurrencyInfoProvider);
     final cardSets = widget.card.cardSets ?? [];
 
@@ -2323,10 +2322,10 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
 
           // Stream of cached prices for this card
           Expanded(
-            child: StreamBuilder<List<DriftSetCardPrice>>(
-              stream: db.watchPricesForCard(widget.card.id),
-              builder: (context, snapshot) {
-                final pricesList = snapshot.data ?? [];
+            child: Builder(
+              builder: (context) {
+                final pricesList =
+                    ref.watch(setPricesForCardProvider(widget.card.id)).value ?? const <DriftSetCardPrice>[];
 
                 if (cardSets.isEmpty) {
                   return const Center(child: Text('No printings available', style: TextStyle(color: Colors.white38)));

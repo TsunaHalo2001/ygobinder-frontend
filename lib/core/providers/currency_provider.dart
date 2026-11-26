@@ -100,6 +100,21 @@ Stream<Map<String, double>> currencyRatesStream(Ref ref) {
   });
 }
 
+const _currencySymbols = {
+  'USD': '\$',
+  'EUR': '€',
+  'GBP': '£',
+  'MXN': '\$',
+  'CAD': '\$',
+  'JPY': '¥',
+  'BRL': 'R\$',
+  'ARS': '\$',
+  'CLP': '\$',
+  'PEN': 'S/',
+  'COP': '\$',
+  'CUSTOM': '\$',
+};
+
 @riverpod
 CurrencyInfo activeCurrencyInfo(Ref ref) {
   final code = ref.watch(selectedCurrencyProvider);
@@ -114,24 +129,9 @@ CurrencyInfo activeCurrencyInfo(Ref ref) {
     rate = ratesMap[code] ?? 1.0;
   }
 
-  final symbols = {
-    'USD': '\$',
-    'EUR': '€',
-    'GBP': '£',
-    'MXN': '\$',
-    'CAD': '\$',
-    'JPY': '¥',
-    'BRL': 'R\$',
-    'ARS': '\$',
-    'CLP': '\$',
-    'PEN': 'S/',
-    'COP': '\$',
-    'CUSTOM': '\$',
-  };
-
   return CurrencyInfo(
     code: code,
-    symbol: symbols[code] ?? '\$',
+    symbol: _currencySymbols[code] ?? '\$',
     rateToUsd: rate,
   );
 }

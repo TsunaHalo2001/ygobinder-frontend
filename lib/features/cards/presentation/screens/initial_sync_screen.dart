@@ -6,7 +6,10 @@ import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 class InitialSyncScreen extends ConsumerStatefulWidget {
-  const InitialSyncScreen({super.key});
+  /// When true, re-downloads and rewrites the card data even if unchanged.
+  final bool force;
+
+  const InitialSyncScreen({super.key, this.force = false});
 
   @override
   ConsumerState<InitialSyncScreen> createState() => _InitialSyncScreenState();
@@ -37,6 +40,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
       final repo = ref.read(cardRepositoryProvider);
 
       await repo.syncAllCards(
+        force: widget.force,
         onStatusChange: (status, progress) {
           if (!mounted) return;
           setState(() {

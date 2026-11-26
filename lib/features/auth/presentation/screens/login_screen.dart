@@ -67,11 +67,9 @@ class LoginScreen extends ConsumerWidget {
                 else
                   ElevatedButton.icon(
                     onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
-                    icon: Image.network(
-                      'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-                      height: 24,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.login),
-                    ),
+                    // Image.network cannot decode the Google SVG logo, so the
+                    // request always ended in this fallback icon anyway.
+                    icon: const Icon(Icons.login),
                     label: const Text(
                       'SIGN IN WITH GOOGLE',
                       style: TextStyle(

@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
+import 'package:ygobinder/features/cards/data/services/price_resolver.dart';
 
 part 'app_database.g.dart';
 
@@ -372,6 +373,15 @@ class AppDatabase extends _$AppDatabase {
     return (select(cards)..where((t) => t.id.equals(cardId))).getSingleOrNull();
   }
 
+  /// Whether the global card table has any rows.
+  Future<bool> hasCards() async {
+    final row = await (selectOnly(cards)
+          ..addColumns([cards.id])
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
+
   Future<DriftCard?> getCardByName(String name) {
     return (select(cards)..where((t) => t.name.equals(name))).getSingleOrNull();
   }
@@ -605,253 +615,122 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<CardPriceStat>> watchTopExpensiveCards(int limit) {
-    late StreamController<List<CardPriceStat>> controller;
-    StreamSubscription? sub1;
-    StreamSubscription? sub2;
-
-    Future<void> recalculate() async {
-      try {
-        final items = await select(collectionItems).get();
-        if (items.isEmpty) {
-          if (!controller.isClosed) controller.add([]);
-          return;
-        }
-
-        final cardIds = items.map((i) => i.cardId).toSet().toList();
-
-        final driftCards = await (select(cards)..where((t) => t.id.isIn(cardIds))).get();
-        final cardNameById = {for (final c in driftCards) c.id: c.name};
-
-        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final globalPriceById = <int, double>{};
-        for (final p in gPrices) {
-          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-          globalPriceById[p.cardId] = price;
-        }
-
-        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final setPricesMap = <String, double>{};
-        for (final sp in sPrices) {
-          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          if (sp.setCode != null && sp.setCode!.isNotEmpty) {
-            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
-          }
-          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
-          if (price > currentMax) {
-            setPricesMap['${sp.cardId}'] = price;
-          }
-        }
-
-        final stats = <CardPriceStat>[];
-        for (final cardId in cardIds) {
-          final name = cardNameById[cardId];
-          if (name == null) continue;
-
-          final cardItems = items.where((i) => i.cardId == cardId);
-
-          double maxOwnedCardPrice = 0.0;
-
-          for (final item in cardItems) {
-            final baseSetCode = item.setCode.trim().toUpperCase();
-            final setPriceKey = '${item.cardId}_$baseSetCode';
-
-            final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
-            final globalPrice = globalPriceById[item.cardId] ?? 0.0;
-            final purchasePrice = item.priceAtPurchase ?? 0.0;
-
-            double itemPrice = setPrice;
-            if (itemPrice <= 0.0) itemPrice = globalPrice;
-            if (itemPrice <= 0.0) itemPrice = purchasePrice;
-
-            if (itemPrice > maxOwnedCardPrice) {
-              maxOwnedCardPrice = itemPrice;
-            }
-          }
-
-          if (maxOwnedCardPrice > 0.0) {
-            stats.add(CardPriceStat(
-              cardId: cardId,
-              cardName: name,
-              price: maxOwnedCardPrice,
-            ));
-          }
-        }
-
-        stats.sort((a, b) => b.price.compareTo(a.price));
-        if (!controller.isClosed) {
-          controller.add(stats.take(limit).toList());
-        }
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-      }
-    }
-
-    controller = StreamController<List<CardPriceStat>>(
-      onListen: () {
-        recalculate();
-        sub1 = select(collectionItems).watch().listen((_) => recalculate());
-        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
-      },
-      onCancel: () {
-        sub1?.cancel();
-        sub2?.cancel();
-        controller.close();
-      },
-    );
-
-    return controller.stream;
+    return _watchDerived({collectionItems, setCardPrices}, () => _topExpensiveCards(limit));
   }
 
   Stream<double> watchTotalCollectionValue() {
-    late StreamController<double> controller;
-    StreamSubscription? sub1;
-    StreamSubscription? sub2;
-
-    Future<void> recalculate() async {
-      try {
-        final items = await (select(collectionItems)..where((t) => t.collectionNumber.isNotValue(0))).get();
-        if (items.isEmpty) {
-          if (!controller.isClosed) controller.add(0.0);
-          return;
-        }
-
-        final cardIds = items.map((i) => i.cardId).toSet().toList();
-
-        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final globalPriceById = <int, double>{};
-        for (final p in gPrices) {
-          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-          globalPriceById[p.cardId] = price;
-        }
-
-        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final setPricesMap = <String, double>{};
-        for (final sp in sPrices) {
-          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          if (sp.setCode != null) {
-            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
-          }
-          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
-          if (price > currentMax) {
-            setPricesMap['${sp.cardId}'] = price;
-          }
-        }
-
-        double totalValue = 0.0;
-
-        for (final item in items) {
-          final baseSetCode = item.setCode.trim().toUpperCase();
-          final setPriceKey = '${item.cardId}_$baseSetCode';
-
-          final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
-          final globalPrice = globalPriceById[item.cardId] ?? 0.0;
-          final purchasePrice = item.priceAtPurchase ?? 0.0;
-
-          double cardPrice = setPrice;
-          if (cardPrice <= 0.0) cardPrice = globalPrice;
-          if (cardPrice <= 0.0) cardPrice = purchasePrice;
-
-          totalValue += cardPrice * item.quantity;
-        }
-
-        if (!controller.isClosed) {
-          controller.add(totalValue);
-        }
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-      }
-    }
-
-    controller = StreamController<double>(
-      onListen: () {
-        recalculate();
-        sub1 = select(collectionItems).watch().listen((_) => recalculate());
-        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
-      },
-      onCancel: () {
-        sub1?.cancel();
-        sub2?.cancel();
-        controller.close();
-      },
-    );
-
-    return controller.stream;
+    return _watchDerived({collectionItems, setCardPrices}, () => _collectionValue(quote: false));
   }
 
   Stream<double> watchQuoteCollectionValue() {
-    late StreamController<double> controller;
-    StreamSubscription? sub1;
-    StreamSubscription? sub2;
+    return _watchDerived({collectionItems, setCardPrices}, () => _collectionValue(quote: true));
+  }
 
-    Future<void> recalculate() async {
-      try {
-        final items = await (select(collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
-        if (items.isEmpty) {
-          if (!controller.isClosed) controller.add(0.0);
-          return;
+  /// Emits [compute] on listen and again whenever any of [tables] changes.
+  ///
+  /// Uses drift's table-update notifications (no query just to detect
+  /// changes) and coalesces bursts: while a computation runs, further
+  /// changes schedule exactly one more run, so results are never emitted
+  /// out of order.
+  Stream<T> _watchDerived<T>(Set<TableInfo> tables, Future<T> Function() compute) {
+    late StreamController<T> controller;
+    StreamSubscription<Set<TableUpdate>>? updatesSub;
+    var running = false;
+    var dirty = false;
+
+    Future<void> run() async {
+      if (running) {
+        dirty = true;
+        return;
+      }
+      running = true;
+      do {
+        dirty = false;
+        try {
+          final value = await compute();
+          if (!dirty && !controller.isClosed) controller.add(value);
+        } catch (e, stack) {
+          if (!dirty && !controller.isClosed) controller.addError(e, stack);
         }
+      } while (dirty && !controller.isClosed);
+      running = false;
+    }
 
-        final cardIds = items.map((i) => i.cardId).toSet().toList();
+    controller = StreamController<T>(
+      onListen: () {
+        run();
+        updatesSub = tableUpdates(TableUpdateQuery.onAllTables(tables)).listen((_) => run());
+      },
+      onCancel: () async {
+        await updatesSub?.cancel();
+        await controller.close();
+      },
+    );
+    return controller.stream;
+  }
 
-        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final globalPriceById = <int, double>{};
-        for (final p in gPrices) {
-          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-          globalPriceById[p.cardId] = price;
-        }
+  /// Loads every price needed to value the given cards.
+  Future<PriceResolver> _loadPriceResolver(List<int> cardIds) async {
+    final (globalPrices, setPrices) = await (
+      (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get(),
+      (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get(),
+    ).wait;
+    return PriceResolver(globalPrices: globalPrices, setPrices: setPrices);
+  }
 
-        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final setPricesMap = <String, double>{};
-        for (final sp in sPrices) {
-          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          if (sp.setCode != null) {
-            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
-          }
-          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
-          if (price > currentMax) {
-            setPricesMap['${sp.cardId}'] = price;
-          }
-        }
+  /// Total value of the real collections ([quote] false) or of the quote
+  /// collection #0 ([quote] true).
+  Future<double> _collectionValue({required bool quote}) async {
+    final items = await (select(collectionItems)
+          ..where((t) => quote ? t.collectionNumber.equals(0) : t.collectionNumber.isNotValue(0)))
+        .get();
+    if (items.isEmpty) return 0.0;
 
-        double totalValue = 0.0;
+    final resolver = await _loadPriceResolver(items.map((i) => i.cardId).toSet().toList());
+    var totalValue = 0.0;
+    for (final item in items) {
+      totalValue += resolver.collectionItemPrice(item) * item.quantity;
+    }
+    return totalValue;
+  }
 
-        for (final item in items) {
-          final baseSetCode = item.setCode.trim().toUpperCase();
-          final setPriceKey = '${item.cardId}_$baseSetCode';
+  Future<List<CardPriceStat>> _topExpensiveCards(int limit) async {
+    final items = await select(collectionItems).get();
+    if (items.isEmpty) return [];
 
-          final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
-          final globalPrice = globalPriceById[item.cardId] ?? 0.0;
-          final purchasePrice = item.priceAtPurchase ?? 0.0;
+    final itemsByCard = <int, List<DriftCollectionItem>>{};
+    for (final item in items) {
+      itemsByCard.putIfAbsent(item.cardId, () => []).add(item);
+    }
+    final cardIds = itemsByCard.keys.toList();
 
-          double cardPrice = setPrice;
-          if (cardPrice <= 0.0) cardPrice = globalPrice;
-          if (cardPrice <= 0.0) cardPrice = purchasePrice;
+    final (namesRows, resolver) = await (
+      (selectOnly(cards)
+            ..addColumns([cards.id, cards.name])
+            ..where(cards.id.isIn(cardIds)))
+          .get(),
+      _loadPriceResolver(cardIds),
+    ).wait;
+    final cardNameById = {for (final r in namesRows) r.read(cards.id)!: r.read(cards.name)!};
 
-          totalValue += cardPrice * item.quantity;
-        }
+    final stats = <CardPriceStat>[];
+    for (final entry in itemsByCard.entries) {
+      final name = cardNameById[entry.key];
+      if (name == null) continue;
 
-        if (!controller.isClosed) {
-          controller.add(totalValue);
-        }
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
+      var maxOwnedCardPrice = 0.0;
+      for (final item in entry.value) {
+        final itemPrice = resolver.collectionItemPrice(item);
+        if (itemPrice > maxOwnedCardPrice) maxOwnedCardPrice = itemPrice;
+      }
+
+      if (maxOwnedCardPrice > 0.0) {
+        stats.add(CardPriceStat(cardId: entry.key, cardName: name, price: maxOwnedCardPrice));
       }
     }
 
-    controller = StreamController<double>(
-      onListen: () {
-        recalculate();
-        sub1 = select(collectionItems).watch().listen((_) => recalculate());
-        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
-      },
-      onCancel: () {
-        sub1?.cancel();
-        sub2?.cancel();
-        controller.close();
-      },
-    );
-
-    return controller.stream;
+    stats.sort((a, b) => b.price.compareTo(a.price));
+    return stats.take(limit).toList();
   }
 
   Stream<YgoCard?> watchNewestCard() {
@@ -1225,147 +1104,101 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
-      // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
-      final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
-      final existingCardIds = await (selectOnly(cards)..addColumns([cards.id])..where(cards.id.isIn(allCardIds)))
-          .get()
-          .then((rows) => rows.map((r) => r.read(cards.id)).toSet());
-
-      for (final entry in categorizedCards.entries) {
-        final category = entry.key;
-        final cardIds = entry.value;
-
-        for (final cardId in cardIds) {
-          if (!existingCardIds.contains(cardId)) continue; // Skip missing cards
-
-          await into(deckCards).insert(
-            DeckCardsCompanion.insert(
-              deckId: deckId,
-              cardId: cardId,
-              category: category,
-            ),
-          );
-        }
-      }
-
+      await _insertDeckCards(deckId, categorizedCards);
       return deckId;
     });
   }
 
   // ==========================================
-  // FAVORITES QUERIES
+  // FAVORITES / WANTED QUERIES
   // ==========================================
+  // Both tables share the same shape (cardId PK, syncId, timestamps), so the
+  // logic lives in the generic helpers below.
 
-  Stream<bool> watchIsFavorite(int cardId) {
-    return (select(favoriteCards)..where((t) => t.cardId.equals(cardId)))
-        .watch()
-        .map((rows) => rows.isNotEmpty);
-  }
+  Stream<bool> watchIsFavorite(int cardId) => _watchFlag(favoriteCards, favoriteCards.cardId, cardId);
 
-  Future<bool> isFavorite(int cardId) async {
-    final item = await (select(favoriteCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    return item != null;
-  }
-
-  Future<bool> toggleFavorite(int cardId, {String? syncId}) async {
-    final existing = await (select(favoriteCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    if (existing != null) {
-      await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
-      return false;
-    } else {
-      final id = syncId ?? const Uuid().v4();
-      await into(favoriteCards).insert(
-        FavoriteCardsCompanion.insert(
-          cardId: Value(cardId),
-          syncId: Value(id),
-          createdAt: Value(DateTime.now()),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
-      return true;
-    }
-  }
-
-  Stream<List<int>> watchFavoriteCardIds() {
-    return select(favoriteCards).watch().map((rows) => rows.map((r) => r.cardId).toList());
-  }
-
-  Future<List<DriftFavoriteCard>> getAllFavoriteCards() {
-    return select(favoriteCards).get();
-  }
-
-  Future<void> upsertFavoriteCard(int cardId, String syncId, DateTime updatedAt) async {
-    await into(favoriteCards).insert(
-      FavoriteCardsCompanion.insert(
+  Future<bool> toggleFavorite(int cardId, {String? syncId}) {
+    return _toggleFlag(
+      favoriteCards,
+      favoriteCards.cardId,
+      cardId,
+      (id, now) => FavoriteCardsCompanion.insert(
         cardId: Value(cardId),
-        syncId: Value(syncId),
-        createdAt: Value(updatedAt),
-        updatedAt: Value(updatedAt),
+        syncId: Value(syncId ?? id),
+        createdAt: Value(now),
+        updatedAt: Value(now),
       ),
-      mode: InsertMode.insertOrReplace,
     );
   }
 
-  Future<void> removeFavoriteCard(int cardId) async {
-    await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
+  /// Inserts or replaces favorites pulled from the cloud in one batch.
+  Future<void> upsertFavoriteCards(List<CardFlagRecord> records) {
+    return batch((b) => b.insertAll(
+          favoriteCards,
+          [
+            for (final r in records)
+              FavoriteCardsCompanion.insert(
+                cardId: Value(r.cardId),
+                syncId: Value(r.syncId),
+                createdAt: Value(r.updatedAt),
+                updatedAt: Value(r.updatedAt),
+              ),
+          ],
+          mode: InsertMode.insertOrReplace,
+        ));
   }
 
-  // ==========================================
-  // WANTED QUERIES
-  // ==========================================
+  Stream<bool> watchIsWanted(int cardId) => _watchFlag(wantedCards, wantedCards.cardId, cardId);
 
-  Stream<bool> watchIsWanted(int cardId) {
-    return (select(wantedCards)..where((t) => t.cardId.equals(cardId)))
-        .watch()
-        .map((rows) => rows.isNotEmpty);
-  }
-
-  Future<bool> isWanted(int cardId) async {
-    final item = await (select(wantedCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    return item != null;
-  }
-
-  Future<bool> toggleWanted(int cardId, {String? syncId}) async {
-    final existing = await (select(wantedCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    if (existing != null) {
-      await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
-      return false;
-    } else {
-      final id = syncId ?? const Uuid().v4();
-      await into(wantedCards).insert(
-        WantedCardsCompanion.insert(
-          cardId: Value(cardId),
-          syncId: Value(id),
-          createdAt: Value(DateTime.now()),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
-      return true;
-    }
-  }
-
-  Stream<List<int>> watchWantedCardIds() {
-    return select(wantedCards).watch().map((rows) => rows.map((r) => r.cardId).toList());
-  }
-
-  Future<List<DriftWantedCard>> getAllWantedCards() {
-    return select(wantedCards).get();
-  }
-
-  Future<void> upsertWantedCard(int cardId, String syncId, DateTime updatedAt) async {
-    await into(wantedCards).insert(
-      WantedCardsCompanion.insert(
+  Future<bool> toggleWanted(int cardId, {String? syncId}) {
+    return _toggleFlag(
+      wantedCards,
+      wantedCards.cardId,
+      cardId,
+      (id, now) => WantedCardsCompanion.insert(
         cardId: Value(cardId),
-        syncId: Value(syncId),
-        createdAt: Value(updatedAt),
-        updatedAt: Value(updatedAt),
+        syncId: Value(syncId ?? id),
+        createdAt: Value(now),
+        updatedAt: Value(now),
       ),
-      mode: InsertMode.insertOrReplace,
     );
   }
 
-  Future<void> removeWantedCard(int cardId) async {
-    await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
+  /// Inserts or replaces wanted cards pulled from the cloud in one batch.
+  Future<void> upsertWantedCards(List<CardFlagRecord> records) {
+    return batch((b) => b.insertAll(
+          wantedCards,
+          [
+            for (final r in records)
+              WantedCardsCompanion.insert(
+                cardId: Value(r.cardId),
+                syncId: Value(r.syncId),
+                createdAt: Value(r.updatedAt),
+                updatedAt: Value(r.updatedAt),
+              ),
+          ],
+          mode: InsertMode.insertOrReplace,
+        ));
+  }
+
+  Stream<bool> _watchFlag<T extends Table, D>(TableInfo<T, D> table, GeneratedColumn<int> cardIdColumn, int cardId) {
+    return (select(table)..where((_) => cardIdColumn.equals(cardId))).watch().map((rows) => rows.isNotEmpty);
+  }
+
+  /// Removes the flag if present, otherwise inserts [buildRow] (with a fresh
+  /// sync id). Returns the new flag state.
+  Future<bool> _toggleFlag<T extends Table, D>(
+    TableInfo<T, D> table,
+    GeneratedColumn<int> cardIdColumn,
+    int cardId,
+    Insertable<D> Function(String newSyncId, DateTime now) buildRow,
+  ) {
+    return transaction(() async {
+      final removed = await (delete(table)..where((_) => cardIdColumn.equals(cardId))).go();
+      if (removed > 0) return false;
+      await into(table).insert(buildRow(const Uuid().v4(), DateTime.now()));
+      return true;
+    });
   }
 
   // ==========================================
@@ -1414,27 +1247,30 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
-      // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
-      final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
-      final existingCardIds = await (selectOnly(cards)..addColumns([cards.id])..where(cards.id.isIn(allCardIds)))
-          .get()
-          .then((rows) => rows.map((r) => r.read(cards.id)).toSet());
-
-      for (final entry in categorizedCards.entries) {
-        final category = entry.key;
-        for (final cardId in entry.value) {
-          if (!existingCardIds.contains(cardId)) continue; // Skip missing cards
-
-          await into(deckCards).insert(
-            DeckCardsCompanion.insert(
-              deckId: deckId,
-              cardId: cardId,
-              category: category,
-            ),
-          );
-        }
-      }
+      await _insertDeckCards(deckId, categorizedCards);
     });
+  }
+
+  /// Inserts the deck's cards in one batch, skipping card ids that are not in
+  /// the local database (they would violate the foreign key, error 787).
+  Future<void> _insertDeckCards(int deckId, Map<String, List<int>> categorizedCards) async {
+    final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
+    if (allCardIds.isEmpty) return;
+
+    final existingRows = await (selectOnly(cards)
+          ..addColumns([cards.id])
+          ..where(cards.id.isIn(allCardIds)))
+        .get();
+    final existingCardIds = existingRows.map((r) => r.read(cards.id)).toSet();
+
+    final rows = [
+      for (final entry in categorizedCards.entries)
+        for (final cardId in entry.value)
+          if (existingCardIds.contains(cardId))
+            DeckCardsCompanion.insert(deckId: deckId, cardId: cardId, category: entry.key),
+    ];
+    if (rows.isEmpty) return;
+    await batch((b) => b.insertAll(deckCards, rows));
   }
 
   Future<DriftDeck?> getDeckBySyncId(String syncId) {
@@ -1501,11 +1337,19 @@ class AppDatabase extends _$AppDatabase {
         for (final info in allSetInfos) info.name.toUpperCase(): info
       };
 
-      final allCardSets = await select(cardSets).get();
+      // Only codes unknown to setInfos need a name from card_sets; look those
+      // up individually instead of loading the whole (100k+ rows) table.
       final setNameByAbbr = <String, String>{};
-      for (final cs in allCardSets) {
-        final baseCode = cs.setCode.contains('-') ? cs.setCode.split('-').first.toUpperCase() : cs.setCode.toUpperCase();
-        setNameByAbbr.putIfAbsent(baseCode, () => cs.setName);
+      for (final baseCode in ownedSetCounts.keys) {
+        if (setInfoByAbbr.containsKey(baseCode)) continue;
+        final row = await (selectOnly(cardSets)
+              ..addColumns([cardSets.setName])
+              ..where(cardSets.setCode.like('$baseCode-%') | cardSets.setCode.equals(baseCode))
+              ..orderBy([OrderingTerm.asc(cardSets.id)])
+              ..limit(1))
+            .getSingleOrNull();
+        final name = row?.read(cardSets.setName);
+        if (name != null) setNameByAbbr[baseCode] = name;
       }
 
       final companions = <UserOwnedSetsCompanion>[];
@@ -1663,6 +1507,9 @@ class CollectionItemWithCard {
     required this.card,
   });
 }
+
+/// A favorite/wanted flag as stored in the cloud.
+typedef CardFlagRecord = ({int cardId, String syncId, DateTime updatedAt});
 
 class CardPrinting {
   final int cardId;

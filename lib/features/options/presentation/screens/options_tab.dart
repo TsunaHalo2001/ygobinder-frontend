@@ -71,7 +71,7 @@ class OptionsTab extends ConsumerWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              context.go('/sync'); // Reuse the initial sync screen
+              context.go('/sync?force=true'); // Reuse the initial sync screen, forcing a full re-download
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,

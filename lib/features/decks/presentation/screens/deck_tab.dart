@@ -4,12 +4,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:ygobinder/features/decks/presentation/providers/deck_file_provider.dart';
+import 'package:ygobinder/features/cards/presentation/providers/price_providers.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_list_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/widgets/card_filter_dialogs.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
-import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
@@ -1687,7 +1687,6 @@ class _DeckTotalPriceSummary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final currencyInfo = ref.watch(activeCurrencyInfoProvider);
-    final db = ref.watch(databaseProvider);
 
     final allCardIds = [
       ...deckData.main.map((vc) => vc.card.id),
@@ -1695,206 +1694,191 @@ class _DeckTotalPriceSummary extends ConsumerWidget {
       ...deckData.side.map((vc) => vc.card.id),
     ].toSet().toList();
 
-    return StreamBuilder<List<CollectionItemWithCard>>(
-      stream: db.watchCollection(),
-      builder: (context, collectionSnapshot) {
-        final collectionList = collectionSnapshot.data ?? [];
+    // Long-lived streams (providers) instead of new DB streams on every build.
+    final collectionByCardId =
+        ref.watch(collectionItemsByCardProvider).value ?? const <int, List<DriftCollectionItem>>{};
+    final pricesByCard = ref.watch(setPricesByCardProvider).value ?? const <int, List<DriftSetCardPrice>>{};
+    final livePricesList = [for (final id in allCardIds) ...?pricesByCard[id]];
 
-        final collectionByCardId = <int, List<DriftCollectionItem>>{};
-        for (final row in collectionList) {
-          final item = row.collectionItem;
-          collectionByCardId.putIfAbsent(item.cardId, () => []).add(item);
+    final livePricesBySetCode = <String, double>{};
+    final maxLivePriceByCardId = <int, double>{};
+
+    for (final sp in livePricesList) {
+      final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
+      if (sp.setCode != null && sp.setCode!.isNotEmpty) {
+        livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
+      }
+      final currMax = maxLivePriceByCardId[sp.cardId] ?? 0.0;
+      if (p > currMax) {
+        maxLivePriceByCardId[sp.cardId] = p;
+      }
+    }
+
+    double ownedTotalUsd = 0.0;
+    double unownedTotalUsd = 0.0;
+    double mainTotalUsd = 0.0;
+    double extraTotalUsd = 0.0;
+    double sideTotalUsd = 0.0;
+    int missingCardsCount = 0;
+
+    final usedOwnedCountByCardId = <int, int>{};
+
+    void processCategory(
+      List<DeckVisualCard> visualCards,
+      void Function(double price) addToCategory,
+    ) {
+      for (final vc in visualCards) {
+        final card = vc.card;
+        final ownedItems = collectionByCardId[card.id] ?? [];
+        final usedCount = usedOwnedCountByCardId[card.id] ?? 0;
+        final totalOwnedQty = ownedItems.fold(0, (sum, i) => sum + i.quantity);
+
+        double price = 0.0;
+
+        if (usedCount < totalOwnedQty) {
+          // Card copy IS OWNED in collection!
+          usedOwnedCountByCardId[card.id] = usedCount + 1;
+
+          if (ownedItems.isNotEmpty) {
+            final item = ownedItems.first;
+            final baseCode = item.setCode.trim().toUpperCase();
+            final itemRarity = item.rarity.trim().toLowerCase();
+
+            // Match exact setCode AND rarity among this card's prices
+            final cardPrices = pricesByCard[card.id] ?? const <DriftSetCardPrice>[];
+            final matchingSetPrices = cardPrices.where((sp) {
+              final codeMatch = sp.setCode != null &&
+                  sp.setCode!.trim().toUpperCase() == baseCode;
+              final normPrinting = sp.printing.trim().toLowerCase();
+              final rarityMatch = normPrinting.contains(itemRarity) || itemRarity.contains(normPrinting);
+              return codeMatch && rarityMatch;
+            }).toList();
+
+            if (matchingSetPrices.isNotEmpty) {
+              price = matchingSetPrices.first.marketPrice ?? matchingSetPrices.first.lowPrice ?? 0.0;
+            } else {
+              // Fallback by setCode
+              final codeMatches = cardPrices.where((sp) =>
+                  sp.setCode != null &&
+                  sp.setCode!.trim().toUpperCase() == baseCode).toList();
+              if (codeMatches.isNotEmpty) {
+                price = codeMatches.first.marketPrice ?? codeMatches.first.lowPrice ?? 0.0;
+              } else if (item.priceAtPurchase != null && item.priceAtPurchase! > 0.0) {
+                price = item.priceAtPurchase!;
+              }
+            }
+          }
+
+          if (price <= 0.0) {
+            price = _getCardPriceInUsd(card, livePricesBySetCode, maxLivePriceByCardId);
+          }
+
+          ownedTotalUsd += price;
+        } else {
+          // Card copy IS MISSING / NOT IN INVENTORY!
+          price = maxLivePriceByCardId[card.id] ??
+              _getCardPriceInUsd(card, livePricesBySetCode, maxLivePriceByCardId);
+
+          unownedTotalUsd += price;
+          missingCardsCount++;
         }
 
-        return StreamBuilder<List<DriftSetCardPrice>>(
-          stream: db.watchPricesForCardIds(allCardIds),
-          builder: (context, pricesSnapshot) {
-            final livePricesList = pricesSnapshot.data ?? [];
+        addToCategory(price);
+      }
+    }
 
-            final livePricesBySetCode = <String, double>{};
-            final maxLivePriceByCardId = <int, double>{};
+    processCategory(deckData.main, (p) => mainTotalUsd += p);
+    processCategory(deckData.extra, (p) => extraTotalUsd += p);
+    processCategory(deckData.side, (p) => sideTotalUsd += p);
 
-            for (final sp in livePricesList) {
-              final p = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-              if (sp.setCode != null && sp.setCode!.isNotEmpty) {
-                livePricesBySetCode['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = p;
-              }
-              final currMax = maxLivePriceByCardId[sp.cardId] ?? 0.0;
-              if (p > currMax) {
-                maxLivePriceByCardId[sp.cardId] = p;
-              }
-            }
+    final overallTotalUsd = ownedTotalUsd + unownedTotalUsd;
 
-            double ownedTotalUsd = 0.0;
-            double unownedTotalUsd = 0.0;
-            double mainTotalUsd = 0.0;
-            double extraTotalUsd = 0.0;
-            double sideTotalUsd = 0.0;
-            int missingCardsCount = 0;
-
-            final usedOwnedCountByCardId = <int, int>{};
-
-            void processCategory(
-              List<DeckVisualCard> visualCards,
-              void Function(double price) addToCategory,
-            ) {
-              for (final vc in visualCards) {
-                final card = vc.card;
-                final ownedItems = collectionByCardId[card.id] ?? [];
-                final usedCount = usedOwnedCountByCardId[card.id] ?? 0;
-                final totalOwnedQty = ownedItems.fold(0, (sum, i) => sum + i.quantity);
-
-                double price = 0.0;
-
-                if (usedCount < totalOwnedQty) {
-                  // Card copy IS OWNED in collection!
-                  usedOwnedCountByCardId[card.id] = usedCount + 1;
-
-                  if (ownedItems.isNotEmpty) {
-                    final item = ownedItems.first;
-                    final baseCode = item.setCode.trim().toUpperCase();
-                    final itemRarity = item.rarity.trim().toLowerCase();
-
-                    // Match exact setCode AND rarity in livePricesList
-                    final matchingSetPrices = livePricesList.where((sp) {
-                      final codeMatch = sp.cardId == card.id &&
-                          sp.setCode != null &&
-                          sp.setCode!.trim().toUpperCase() == baseCode;
-                      final normPrinting = sp.printing.trim().toLowerCase();
-                      final rarityMatch = normPrinting.contains(itemRarity) || itemRarity.contains(normPrinting);
-                      return codeMatch && rarityMatch;
-                    }).toList();
-
-                    if (matchingSetPrices.isNotEmpty) {
-                      price = matchingSetPrices.first.marketPrice ?? matchingSetPrices.first.lowPrice ?? 0.0;
-                    } else {
-                      // Fallback by setCode
-                      final codeMatches = livePricesList.where((sp) =>
-                          sp.cardId == card.id &&
-                          sp.setCode != null &&
-                          sp.setCode!.trim().toUpperCase() == baseCode).toList();
-                      if (codeMatches.isNotEmpty) {
-                        price = codeMatches.first.marketPrice ?? codeMatches.first.lowPrice ?? 0.0;
-                      } else if (item.priceAtPurchase != null && item.priceAtPurchase! > 0.0) {
-                        price = item.priceAtPurchase!;
-                      }
-                    }
-                  }
-
-                  if (price <= 0.0) {
-                    price = _getCardPriceInUsd(card, livePricesBySetCode, maxLivePriceByCardId);
-                  }
-
-                  ownedTotalUsd += price;
-                } else {
-                  // Card copy IS MISSING / NOT IN INVENTORY!
-                  price = maxLivePriceByCardId[card.id] ??
-                      _getCardPriceInUsd(card, livePricesBySetCode, maxLivePriceByCardId);
-
-                  unownedTotalUsd += price;
-                  missingCardsCount++;
-                }
-
-                addToCategory(price);
-              }
-            }
-
-            processCategory(deckData.main, (p) => mainTotalUsd += p);
-            processCategory(deckData.extra, (p) => extraTotalUsd += p);
-            processCategory(deckData.side, (p) => sideTotalUsd += p);
-
-            final overallTotalUsd = ownedTotalUsd + unownedTotalUsd;
-
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                  width: 1.5,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet_rounded,
+                  color: theme.colorScheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'DECK TOTAL VALUE',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: theme.colorScheme.onSurface,
+                  letterSpacing: 1.2,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.account_balance_wallet_rounded,
-                          color: theme.colorScheme.primary, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'DECK TOTAL VALUE',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: theme.colorScheme.onSurface,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: getThemeGreen(context).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          currencyInfo.formatPrice(overallTotalUsd),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: getThemeGreen(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
-                  const SizedBox(height: 12),
-
-                  // Owned vs Missing Cards Summary
-                  _buildSummaryRow(
-                    'Cards Owned Value',
-                    currencyInfo.formatPrice(ownedTotalUsd),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: getThemeGreen(context).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  currencyInfo.formatPrice(overallTotalUsd),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                     color: getThemeGreen(context),
                   ),
-                  const SizedBox(height: 6),
-                  _buildSummaryRow(
-                    'Missing Cards Cost ($missingCardsCount missing)',
-                    currencyInfo.formatPrice(unownedTotalUsd),
-                    color: missingCardsCount > 0 ? getThemeOrange(context) : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
-                  const SizedBox(height: 12),
-
-                  // Section breakdown
-                  _buildSummaryRow(
-                    'Main Deck (${deckData.main.length} cards)',
-                    currencyInfo.formatPrice(mainTotalUsd),
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
-                  const SizedBox(height: 6),
-                  _buildSummaryRow(
-                    'Extra Deck (${deckData.extra.length} cards)',
-                    currencyInfo.formatPrice(extraTotalUsd),
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
-                  const SizedBox(height: 6),
-                  _buildSummaryRow(
-                    'Side Deck (${deckData.side.length} cards)',
-                    currencyInfo.formatPrice(sideTotalUsd),
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
-                ],
+                ),
               ),
-            );
-          },
-        );
-      },
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+          const SizedBox(height: 12),
+
+          // Owned vs Missing Cards Summary
+          _buildSummaryRow(
+            'Cards Owned Value',
+            currencyInfo.formatPrice(ownedTotalUsd),
+            color: getThemeGreen(context),
+          ),
+          const SizedBox(height: 6),
+          _buildSummaryRow(
+            'Missing Cards Cost ($missingCardsCount missing)',
+            currencyInfo.formatPrice(unownedTotalUsd),
+            color: missingCardsCount > 0 ? getThemeOrange(context) : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+          const SizedBox(height: 12),
+
+          // Section breakdown
+          _buildSummaryRow(
+            'Main Deck (${deckData.main.length} cards)',
+            currencyInfo.formatPrice(mainTotalUsd),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+          const SizedBox(height: 6),
+          _buildSummaryRow(
+            'Extra Deck (${deckData.extra.length} cards)',
+            currencyInfo.formatPrice(extraTotalUsd),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+          const SizedBox(height: 6),
+          _buildSummaryRow(
+            'Side Deck (${deckData.side.length} cards)',
+            currencyInfo.formatPrice(sideTotalUsd),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ],
+      ),
     );
   }
 

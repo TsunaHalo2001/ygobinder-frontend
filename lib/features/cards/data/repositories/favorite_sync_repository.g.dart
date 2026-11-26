@@ -8,18 +8,22 @@ part of 'favorite_sync_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Cloud sync for favorite cards (`users/{uid}/favorites`).
 
 @ProviderFor(favoriteSyncRepository)
 final favoriteSyncRepositoryProvider = FavoriteSyncRepositoryProvider._();
 
+/// Cloud sync for favorite cards (`users/{uid}/favorites`).
+
 final class FavoriteSyncRepositoryProvider
     extends
         $FunctionalProvider<
-          FavoriteSyncRepository,
-          FavoriteSyncRepository,
-          FavoriteSyncRepository
+          CardFlagSyncRepository,
+          CardFlagSyncRepository,
+          CardFlagSyncRepository
         >
-    with $Provider<FavoriteSyncRepository> {
+    with $Provider<CardFlagSyncRepository> {
+  /// Cloud sync for favorite cards (`users/{uid}/favorites`).
   FavoriteSyncRepositoryProvider._()
     : super(
         from: null,
@@ -36,23 +40,23 @@ final class FavoriteSyncRepositoryProvider
 
   @$internal
   @override
-  $ProviderElement<FavoriteSyncRepository> $createElement(
+  $ProviderElement<CardFlagSyncRepository> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  FavoriteSyncRepository create(Ref ref) {
+  CardFlagSyncRepository create(Ref ref) {
     return favoriteSyncRepository(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(FavoriteSyncRepository value) {
+  Override overrideWithValue(CardFlagSyncRepository value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<FavoriteSyncRepository>(value),
+      providerOverride: $SyncValueProvider<CardFlagSyncRepository>(value),
     );
   }
 }
 
 String _$favoriteSyncRepositoryHash() =>
-    r'31e840916fb9c8022e6f27387390f9ee9a3e2dc9';
+    r'89690ec491553dc874ec43a27df877c0a1cf3669';
