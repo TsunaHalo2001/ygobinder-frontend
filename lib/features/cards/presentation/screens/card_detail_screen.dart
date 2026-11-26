@@ -1,11 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:collection/collection.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
+import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_detail_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_inventory_provider.dart';
 import 'package:ygobinder/features/cards/presentation/providers/favorite_providers.dart';
@@ -266,7 +267,10 @@ class _CardDetailScaffold extends ConsumerWidget {
               final db = ref.read(databaseProvider);
               final syncRepo = ref.read(favoriteSyncRepositoryProvider);
               final newIsFav = await db.toggleFavorite(card.id);
-              await syncRepo.syncFavorite(card.id, newIsFav);
+              // Not awaited: Firestore completes only on server ack (offline-safe).
+              unawaited(syncRepo.syncFavorite(card.id, newIsFav).catchError((Object e) {
+                debugPrint('Favorite cloud sync failed: $e');
+              }));
             },
           ),
           IconButton(
@@ -281,7 +285,10 @@ class _CardDetailScaffold extends ConsumerWidget {
               final db = ref.read(databaseProvider);
               final syncRepo = ref.read(wantedSyncRepositoryProvider);
               final newIsWanted = await db.toggleWanted(card.id);
-              await syncRepo.syncWanted(card.id, newIsWanted);
+              // Not awaited: Firestore completes only on server ack (offline-safe).
+              unawaited(syncRepo.syncWanted(card.id, newIsWanted).catchError((Object e) {
+                debugPrint('Wanted cloud sync failed: $e');
+              }));
             },
           ),
           if (attributeAsset != null)
@@ -2161,12 +2168,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
     }
 
     // Map existing cached prices to preserve previous market price on update
-    final oldPricesMap = <String, double>{};
-    for (final cp in cachedPrices) {
-      if (cp.marketPrice != null && cp.marketPrice! > 0.0) {
-        oldPricesMap['${cp.setId}_${cp.printing.trim().toLowerCase()}'] = cp.marketPrice!;
-      }
-    }
+    final previousPrices = SetPriceService.previousPricesFrom(cachedPrices);
 
     // Clear old price records for this card before fetching fresh prices
     await db.deleteSetCardPricesForCard(widget.card.id);
@@ -2183,115 +2185,33 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
       }
 
       try {
-        // Step 2: Query Link 2 (https://openapi.tcgtracking.com/v1/2/sets/{set_id}/cards)
+        // Step 2: https://openapi.tcgtracking.com/v1/2/sets/{set_id}/cards
         final setCards = await dataService.fetchSetCards(task.setId);
-        final matchedProducts = <Map<String, dynamic>>[];
-
-        if (setCards != null && setCards.isNotEmpty) {
-          final cleanTargetCode = task.setCode.trim().toUpperCase();
-          final cleanCardName = widget.card.name.trim().toUpperCase();
-          final normCardName = cleanCardName.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-
-          final targetPrefix = cleanTargetCode.contains('-') ? cleanTargetCode.split('-').first : cleanTargetCode;
-          final targetDigits = cleanTargetCode.replaceAll(RegExp(r'[^0-9]'), '');
-
-          for (final item in setCards) {
-            final json = item as Map<String, dynamic>;
-            final number = (json['number'] as String?)?.trim().toUpperCase() ?? '';
-            final cleanName = (json['clean_name'] as String?)?.trim().toUpperCase() ??
-                (json['name'] as String?)?.trim().toUpperCase() ?? '';
-            final normApiName = cleanName.replaceAll(RegExp(r'[^A-Z0-9]'), '');
-
-            final itemPrefix = number.contains('-') ? number.split('-').first : number;
-            final itemDigits = number.replaceAll(RegExp(r'[^0-9]'), '');
-
-            bool isMatch = false;
-
-            // Strategy 1: Exact Set Code Match (e.g. "PGD-070" == "PGD-070")
-            if (number.isNotEmpty && number == cleanTargetCode) {
-              isMatch = true;
-            }
-            // Strategy 2: Exact Prefix & Digits Match (e.g. "PGD-EN070" vs "PGD-070")
-            else if (targetPrefix.isNotEmpty && itemPrefix == targetPrefix && targetDigits.isNotEmpty && itemDigits == targetDigits) {
-              isMatch = true;
-            }
-            // Strategy 3: Name Match AND matching Digits (e.g. "A Cat of Ill Omen" & digits "070" == "070")
-            else if (normApiName == normCardName) {
-              if (targetDigits.isNotEmpty && itemDigits.isNotEmpty) {
-                if (targetDigits == itemDigits) {
-                  isMatch = true;
-                }
-              } else {
-                isMatch = true;
-              }
-            }
-
-            if (isMatch) {
-              matchedProducts.add(json);
-            }
-          }
-        }
+        final matchedProducts = (setCards == null || setCards.isEmpty)
+            ? const <Map<String, dynamic>>[]
+            : SetPriceService.matchProducts(
+                setCards,
+                setCode: task.setCode,
+                cardName: widget.card.name,
+              );
 
         if (mounted && !_isCancelled) {
           await Future.delayed(const Duration(seconds: 1));
         }
 
-        // Step 3: Query Link 3 (https://openapi.tcgtracking.com/v1/2/sets/{set_id}/pricing)
+        // Step 3: https://openapi.tcgtracking.com/v1/2/sets/{set_id}/pricing
         final pricingData = await dataService.fetchSetPricing(task.setId);
         if (pricingData != null && mounted) {
-          final setId = pricingData['set_id'] as int? ?? task.setId;
-          final updatedStr = pricingData['updated'] as String? ?? DateTime.now().toIso8601String();
-          final pricesMap = pricingData['prices'] as Map<String, dynamic>?;
-
-          if (pricesMap != null && pricesMap.isNotEmpty) {
-            final companions = <SetCardPricesCompanion>[];
-
-            for (final product in matchedProducts) {
-              final productId = product['id']?.toString();
-              final productRarity = product['rarity'] as String? ?? '';
-
-              if (productId != null && pricesMap.containsKey(productId)) {
-                final cardData = pricesMap[productId] as Map<String, dynamic>?;
-                final tcgData = cardData?['tcg'] as Map<String, dynamic>?;
-
-                if (tcgData != null) {
-                  for (final entry in tcgData.entries) {
-                    final subPrinting = entry.key; // e.g. "Normal", "1st Edition", "Unlimited"
-                    final pMap = entry.value as Map<String, dynamic>?;
-
-                    final low = (pMap?['low'] as num?)?.toDouble();
-                    final market = (pMap?['market'] as num?)?.toDouble();
-
-                    final printingName = productRarity.isNotEmpty
-                        ? (subPrinting == 'Normal' ? productRarity : '$productRarity ($subPrinting)')
-                        : subPrinting;
-
-                    final key = '${setId}_${printingName.trim().toLowerCase()}';
-                    final oldPrice = oldPricesMap[key];
-                    final prevPrice = (oldPrice != null && market != null && (oldPrice - market).abs() >= 0.01)
-                        ? oldPrice
-                        : null;
-
-                    companions.add(
-                      SetCardPricesCompanion.insert(
-                        setId: setId,
-                        cardId: widget.card.id,
-                        setCode: Value(task.setCode),
-                        printing: printingName,
-                        lowPrice: Value(low),
-                        marketPrice: Value(market),
-                        previousMarketPrice: Value(prevPrice),
-                        lastUpdated: Value(updatedStr),
-                      ),
-                    );
-                  }
-                }
-              }
-            }
-
-            if (companions.isNotEmpty) {
-              await db.saveSetCardPrices(companions);
-            }
+          final companions = SetPriceService.buildCompanions(
+            pricingData: pricingData,
+            fallbackSetId: task.setId,
+            cardId: widget.card.id,
+            setCode: task.setCode,
+            products: matchedProducts,
+            previousPrices: previousPrices,
+          );
+          if (companions.isNotEmpty) {
+            await db.saveSetCardPrices(companions);
           }
         }
       } catch (e) {

@@ -25,6 +25,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
   }
 
   Future<void> _startSync() async {
+    if (!mounted) return;
     setState(() {
       _isSyncing = true;
       _error = null;
@@ -37,6 +38,7 @@ class _InitialSyncScreenState extends ConsumerState<InitialSyncScreen> {
 
       await repo.syncAllCards(
         onStatusChange: (status, progress) {
+          if (!mounted) return;
           setState(() {
             _status = status;
             _progress = progress;

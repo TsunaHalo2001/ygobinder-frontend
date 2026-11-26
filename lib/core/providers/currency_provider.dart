@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
-import 'package:ygobinder/core/database/app_database.dart';
 
 part 'currency_provider.g.dart';
 

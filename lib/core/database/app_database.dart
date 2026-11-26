@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
 
@@ -247,6 +248,22 @@ class CurrencyRates extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Opens the database with a custom executor (used by tests).
+  AppDatabase.forTesting(super.executor);
+
+  static const _indexStatements = [
+    'CREATE INDEX IF NOT EXISTS cards_name_idx ON cards (name)',
+    'CREATE INDEX IF NOT EXISTS cards_archetype_idx ON cards (archetype)',
+    'CREATE INDEX IF NOT EXISTS card_sets_card_id_idx ON card_sets (card_id)',
+    'CREATE INDEX IF NOT EXISTS card_sets_set_code_idx ON card_sets (set_code)',
+    'CREATE INDEX IF NOT EXISTS card_images_card_id_idx ON card_images (card_id)',
+    'CREATE INDEX IF NOT EXISTS card_prices_card_id_idx ON card_prices (card_id)',
+    'CREATE INDEX IF NOT EXISTS collection_items_col_num_idx ON collection_items (collection_number)',
+    'CREATE INDEX IF NOT EXISTS collection_items_print_idx ON collection_items (card_id, set_code, rarity)',
+    'CREATE INDEX IF NOT EXISTS deck_cards_deck_id_idx ON deck_cards (deck_id)',
+    'CREATE INDEX IF NOT EXISTS set_card_prices_card_id_idx ON set_card_prices (card_id)',
+  ];
+
   @override
   int get schemaVersion => 17;
 
@@ -256,13 +273,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 2) {
-        // Create new indexes for faster search using raw SQL
-        await customStatement('CREATE INDEX IF NOT EXISTS cards_name_idx ON cards (name)');
-        await customStatement('CREATE INDEX IF NOT EXISTS cards_archetype_idx ON cards (archetype)');
-        await customStatement('CREATE INDEX IF NOT EXISTS card_sets_card_id_idx ON card_sets (card_id)');
-        await customStatement('CREATE INDEX IF NOT EXISTS card_sets_set_code_idx ON card_sets (set_code)');
-      }
+      // v2 only added indexes; they are now ensured in beforeOpen.
       if (from < 3) {
         // Add new columns to CollectionItems using Migrator
         await m.addColumn(collectionItems, collectionItems.setCode);
@@ -271,10 +282,6 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(collectionItems, collectionItems.language);
         await m.addColumn(collectionItems, collectionItems.isFirstEdition);
         await m.addColumn(collectionItems, collectionItems.priceAtPurchase);
-        
-        // Add indexes for the new columns using raw SQL for simplicity
-        await customStatement('CREATE INDEX IF NOT EXISTS collection_items_col_num_idx ON collection_items (collection_number)');
-        await customStatement('CREATE INDEX IF NOT EXISTS collection_items_print_idx ON collection_items (card_id, set_code, rarity)');
       }
       if (from < 5) {
         // Ensure columns exist with correct DateTime type (Handles both v4 and v5)
@@ -326,9 +333,15 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
-      await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
-      await customStatement('CREATE INDEX IF NOT EXISTS set_card_prices_card_id_idx ON set_card_prices (card_id)').catchError((_) {});
+      if (!details.wasCreated) {
+        await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+        await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
+      }
+      // Indexes are (re)ensured on every open: older versions only created
+      // them in onUpgrade, so fresh installs never had them.
+      for (final statement in _indexStatements) {
+        await customStatement(statement).catchError((_) {});
+      }
     },
   );
 
@@ -499,6 +512,19 @@ class AppDatabase extends _$AppDatabase {
   Future<void> clearCollection() async {
     await delete(collectionItems).go();
     await refreshUserOwnedSets();
+  }
+
+  /// Removes every account-specific row (collection, decks, favorites,
+  /// wanted, owned sets). Global card data and settings are kept.
+  Future<void> clearUserData() async {
+    await transaction(() async {
+      await delete(collectionItems).go();
+      await delete(deckCards).go();
+      await delete(decks).go();
+      await delete(favoriteCards).go();
+      await delete(wantedCards).go();
+      await delete(userOwnedSets).go();
+    });
   }
 
   Future<int> deleteQuoteCollection() async {
@@ -947,36 +973,32 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  // Add this inside AppDatabase
   Future<List<DriftCard>> getCardsPage({
     required int offset,
     required int limit,
-    String? searchQuery,
-    String? typeFilter,
-    String? attributeFilter,
-    String? raceFilter,
-    String? subTypeFilter, // ✅ Added sub-type filter
-    String? frameFilter, // ✅ Added frame filter
-    int? levelFilter, // ✅ Added level filter
-    int? scaleFilter, // ✅ Added scale filter
-    int? linkValFilter, // ✅ Added link val filter
-    int? atkFilter,
-    String? atkOperator,
-    bool? atkShowQuestionMark, // ✅ Added
-    int? defFilter,
-    String? defOperator,
-    bool? defShowQuestionMark, // ✅ Added
-    String? sortBy, // ✅ Added sort field
-    bool sortDescending = false, // ✅ Added sort direction
-    bool onlyGoat = false, // ✅ Added only Goat filter
-    bool onlyEdison = false, // ✅ Added only Edison filter
-    bool onlyHat = false, // ✅ Added only Hat filter
-    bool onlyFavorites = false, // ✅ Added only Favorites filter
-    bool onlyWanted = false, // ✅ Added only Wanted filter
+    CardFilters filters = const CardFilters(),
   }) {
+    final searchQuery = filters.search;
+    final typeFilter = filters.type;
+    final attributeFilter = filters.attribute;
+    final raceFilter = filters.race;
+    final subTypeFilter = filters.subType;
+    final frameFilter = filters.frame;
+    final levelFilter = filters.level;
+    final scaleFilter = filters.scale;
+    final linkValFilter = filters.linkVal;
+    final atkFilter = filters.atk;
+    final atkOperator = filters.atkOperator;
+    final atkShowQuestionMark = filters.atkShowQuestionMark;
+    final defFilter = filters.def;
+    final defOperator = filters.defOperator;
+    final defShowQuestionMark = filters.defShowQuestionMark;
+    final sortBy = filters.sortBy;
+    final sortDescending = filters.sortDescending;
+
     var query = select(cards);
 
-    if (searchQuery != null && searchQuery.isNotEmpty) {
+    if (searchQuery.isNotEmpty) {
       final safeQuery = '%$searchQuery%';
       
       query = query..where((t) {
@@ -1070,7 +1092,7 @@ class AppDatabase extends _$AppDatabase {
       }
     }
 
-    if (onlyGoat) {
+    if (filters.onlyGoat) {
       final goatCutoff = DateTime(2005, 8, 17, 23, 59, 59);
       query = query..where((t) => t.tcgDate.isNotNull() & t.tcgDate.isSmallerOrEqualValue(goatCutoff));
       query = query..where((t) => t.frameType.like('%synchro%').not() &
@@ -1093,7 +1115,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyEdison) {
+    if (filters.onlyEdison) {
       // ✅ Filter for cards available in Edison
       query = query..where((t) {
         return t.id.isInQuery(
@@ -1104,7 +1126,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyHat) {
+    if (filters.onlyHat) {
       final hatCutoff = DateTime(2014, 5, 16, 23, 59, 59);
       query = query..where((t) => t.tcgDate.isNotNull() & t.tcgDate.isSmallerOrEqualValue(hatCutoff));
       query = query..where((t) => t.frameType.like('%pendulum%').not() &
@@ -1122,7 +1144,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyFavorites) {
+    if (filters.onlyFavorites) {
       query = query..where((t) {
         return t.id.isInQuery(
           selectOnly(favoriteCards)..addColumns([favoriteCards.cardId])
@@ -1130,7 +1152,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyWanted) {
+    if (filters.onlyWanted) {
       query = query..where((t) {
         return t.id.isInQuery(
           selectOnly(wantedCards)..addColumns([wantedCards.cardId])
@@ -1544,6 +1566,40 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<List<DriftSetCardPrice>> getSetCardPricesForSet(int setId) {
+    return (select(setCardPrices)..where((t) => t.setId.equals(setId))).get();
+  }
+
+  /// Deletes price rows whose card id does not exist (legacy rows keyed by
+  /// TCGplayer product id).
+  Future<int> deleteOrphanSetCardPrices() {
+    return customUpdate(
+      'DELETE FROM set_card_prices WHERE card_id NOT IN (SELECT id FROM cards)',
+      updates: {setCardPrices},
+      updateKind: UpdateKind.delete,
+    );
+  }
+
+  /// Returns one printing per card for every card that has a printing whose
+  /// code starts with `PREFIX-` (e.g. `LOB` → `LOB-EN001`).
+  Future<List<CardPrinting>> getCardPrintingsBySetPrefix(String prefix) async {
+    final query = select(cardSets).join([
+      innerJoin(cards, cards.id.equalsExp(cardSets.cardId)),
+    ])
+      ..where(cardSets.setCode.like('${prefix.toUpperCase()}-%'));
+
+    final rows = await query.get();
+    final byCard = <int, CardPrinting>{};
+    for (final row in rows) {
+      final cs = row.readTable(cardSets);
+      byCard.putIfAbsent(
+        cs.cardId,
+        () => CardPrinting(cardId: cs.cardId, setCode: cs.setCode, cardName: row.readTable(cards).name),
+      );
+    }
+    return byCard.values.toList();
+  }
+
   Future<List<DriftSetCardPrice>> getPricesForSetAndCard(int setId, int cardId) {
     return (select(setCardPrices)
           ..where((t) => t.setId.equals(setId) & t.cardId.equals(cardId)))
@@ -1605,6 +1661,18 @@ class CollectionItemWithCard {
   CollectionItemWithCard({
     required this.collectionItem,
     required this.card,
+  });
+}
+
+class CardPrinting {
+  final int cardId;
+  final String setCode;
+  final String cardName;
+
+  const CardPrinting({
+    required this.cardId,
+    required this.setCode,
+    required this.cardName,
   });
 }
 

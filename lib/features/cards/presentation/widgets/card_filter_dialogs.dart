@@ -69,6 +69,12 @@ const List<Map<String, dynamic>> _kFrames = [
 
 const List<String> _kSubTypes = ['Flip', 'Toon', 'Spirit', 'Union', 'Gemini', 'Tuner'];
 
+/// Returns the paged list notifier for the collection or the deck builder.
+PagedCardListMixin cardListNotifier(WidgetRef ref, {required bool isDeckBuilder}) {
+  if (isDeckBuilder) return ref.read(deckCardListProvider.notifier);
+  return ref.read(cardListProvider.notifier);
+}
+
 class CardFilterBottomSheet extends ConsumerStatefulWidget {
   final bool isDeckBuilder;
   const CardFilterBottomSheet({super.key, this.isDeckBuilder = false});
@@ -103,27 +109,25 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
   @override
   void initState() {
     super.initState();
-    final dynamic notifier = widget.isDeckBuilder
-        ? ref.read(deckCardListProvider.notifier)
-        : ref.read(cardListProvider.notifier);
-    _tempAttribute = notifier.currentAttributeFilter;
-    _tempRace = notifier.currentRaceFilter;
-    _tempSubType = notifier.currentSubTypeFilter;
-    _tempFrame = notifier.currentFrameFilter;
-    _tempLevel = notifier.currentLevelFilter;
-    _tempScale = notifier.currentScaleFilter;
-    _tempLinkVal = notifier.currentLinkValFilter;
-    _tempAtk = notifier.currentAtkFilter;
-    _tempAtkOperator = notifier.currentAtkOperator;
-    _tempAtkShowQuestionMark = notifier.currentAtkShowQuestionMark;
-    _tempDef = notifier.currentDefFilter;
-    _tempDefOperator = notifier.currentDefOperator;
-    _tempDefShowQuestionMark = notifier.currentDefShowQuestionMark;
-    _tempOnlyGoat = notifier.currentOnlyGoatFilter;
-    _tempOnlyEdison = notifier.currentOnlyEdisonFilter;
-    _tempOnlyHat = notifier.currentOnlyHatFilter;
-    _tempOnlyFavorites = notifier.currentOnlyFavoritesFilter;
-    _tempOnlyWanted = notifier.currentOnlyWantedFilter;
+    final f = _notifier.filters;
+    _tempAttribute = f.attribute;
+    _tempRace = f.race;
+    _tempSubType = f.subType;
+    _tempFrame = f.frame;
+    _tempLevel = f.level;
+    _tempScale = f.scale;
+    _tempLinkVal = f.linkVal;
+    _tempAtk = f.atk;
+    _tempAtkOperator = f.atkOperator;
+    _tempAtkShowQuestionMark = f.atkShowQuestionMark;
+    _tempDef = f.def;
+    _tempDefOperator = f.defOperator;
+    _tempDefShowQuestionMark = f.defShowQuestionMark;
+    _tempOnlyGoat = f.onlyGoat;
+    _tempOnlyEdison = f.onlyEdison;
+    _tempOnlyHat = f.onlyHat;
+    _tempOnlyFavorites = f.onlyFavorites;
+    _tempOnlyWanted = f.onlyWanted;
 
     _atkController.text = _tempAtk?.toString() ?? '';
     _defController.text = _tempDef?.toString() ?? '';
@@ -136,61 +140,35 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
     super.dispose();
   }
 
+  /// The list notifier this sheet controls (collection or deck builder).
+  PagedCardListMixin get _notifier => cardListNotifier(ref, isDeckBuilder: widget.isDeckBuilder);
+
   void _applyFilters(String type) {
-    if (widget.isDeckBuilder) {
-      ref.read(deckCardListProvider.notifier).applyFilters(
-            type: type,
-            attribute: type == 'Monster' ? _tempAttribute : null,
-            race: (type == 'Spell' || type == 'Trap' || type == 'Monster') ? _tempRace : null,
-            subType: type == 'Monster' ? _tempSubType : null,
-            frame: type == 'Monster' ? _tempFrame : null,
-            level: type == 'Monster' ? _tempLevel : null,
-            scale: type == 'Monster' ? _tempScale : null,
-            linkVal: type == 'Monster' ? _tempLinkVal : null,
-            atk: type == 'Monster' ? int.tryParse(_atkController.text) : null,
-            atkOperator: type == 'Monster' ? _tempAtkOperator : null,
-            atkShowQuestionMark: type == 'Monster' ? _tempAtkShowQuestionMark : null,
-            def: type == 'Monster' ? int.tryParse(_defController.text) : null,
-            defOperator: type == 'Monster' ? _tempDefOperator : null,
-            defShowQuestionMark: type == 'Monster' ? _tempDefShowQuestionMark : null,
-            onlyGoat: _tempOnlyGoat,
-            onlyEdison: _tempOnlyEdison,
-            onlyHat: _tempOnlyHat,
-            onlyFavorites: _tempOnlyFavorites,
-            onlyWanted: _tempOnlyWanted,
-          );
-    } else {
-      ref.read(cardListProvider.notifier).applyFilters(
-            type: type,
-            attribute: type == 'Monster' ? _tempAttribute : null,
-            race: (type == 'Spell' || type == 'Trap' || type == 'Monster') ? _tempRace : null,
-            subType: type == 'Monster' ? _tempSubType : null,
-            frame: type == 'Monster' ? _tempFrame : null,
-            level: type == 'Monster' ? _tempLevel : null,
-            scale: type == 'Monster' ? _tempScale : null,
-            linkVal: type == 'Monster' ? _tempLinkVal : null,
-            atk: type == 'Monster' ? int.tryParse(_atkController.text) : null,
-            atkOperator: type == 'Monster' ? _tempAtkOperator : null,
-            atkShowQuestionMark: type == 'Monster' ? _tempAtkShowQuestionMark : null,
-            def: type == 'Monster' ? int.tryParse(_defController.text) : null,
-            defOperator: type == 'Monster' ? _tempDefOperator : null,
-            defShowQuestionMark: type == 'Monster' ? _tempDefShowQuestionMark : null,
-            onlyGoat: _tempOnlyGoat,
-            onlyEdison: _tempOnlyEdison,
-            onlyHat: _tempOnlyHat,
-            onlyFavorites: _tempOnlyFavorites,
-            onlyWanted: _tempOnlyWanted,
-          );
-    }
+    final isMonster = type == 'Monster';
+    _notifier.applyFilters(
+      type: type,
+      attribute: isMonster ? _tempAttribute : null,
+      race: (type == 'Spell' || type == 'Trap' || isMonster) ? _tempRace : null,
+      subType: isMonster ? _tempSubType : null,
+      frame: isMonster ? _tempFrame : null,
+      level: isMonster ? _tempLevel : null,
+      scale: isMonster ? _tempScale : null,
+      linkVal: isMonster ? _tempLinkVal : null,
+      atk: isMonster ? int.tryParse(_atkController.text) : null,
+      atkOperator: isMonster ? _tempAtkOperator : null,
+      atkShowQuestionMark: isMonster ? _tempAtkShowQuestionMark : null,
+      def: isMonster ? int.tryParse(_defController.text) : null,
+      defOperator: isMonster ? _tempDefOperator : null,
+      defShowQuestionMark: isMonster ? _tempDefShowQuestionMark : null,
+      onlyGoat: _tempOnlyGoat,
+      onlyEdison: _tempOnlyEdison,
+      onlyHat: _tempOnlyHat,
+      onlyFavorites: _tempOnlyFavorites,
+      onlyWanted: _tempOnlyWanted,
+    );
   }
 
-  void _clearFilters() {
-    if (widget.isDeckBuilder) {
-      ref.read(deckCardListProvider.notifier).clearFilters();
-    } else {
-      ref.read(cardListProvider.notifier).clearFilters();
-    }
-  }
+  void _clearFilters() => _notifier.clearFilters();
 
   @override
   Widget build(BuildContext context) {
@@ -395,9 +373,7 @@ class _CardFilterBottomSheetState extends ConsumerState<CardFilterBottomSheet> {
 }
 
   int _getInitialTabIndex() {
-    final currentType = widget.isDeckBuilder
-        ? ref.read(deckCardListProvider.notifier).currentTypeFilter
-        : ref.read(cardListProvider.notifier).currentTypeFilter;
+    final currentType = _notifier.currentTypeFilter;
     if (currentType == 'Spell') return 1;
     if (currentType == 'Trap') return 2;
     return 0;
@@ -411,12 +387,9 @@ class CardSortBottomSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final sortBy = isDeckBuilder
-        ? ref.read(deckCardListProvider.notifier).currentSortBy
-        : ref.read(cardListProvider.notifier).currentSortBy;
-    final descending = isDeckBuilder
-        ? ref.read(deckCardListProvider.notifier).currentSortDescending
-        : ref.read(cardListProvider.notifier).currentSortDescending;
+    final notifier = cardListNotifier(ref, isDeckBuilder: isDeckBuilder);
+    final sortBy = notifier.currentSortBy;
+    final descending = notifier.currentSortDescending;
     final options = const [
       {'label': 'A-Z', 'field': 'name', 'desc': false, 'icon': Icons.sort_by_alpha_rounded},
       {'label': 'Z-A', 'field': 'name', 'desc': true, 'icon': Icons.sort_by_alpha_rounded},
@@ -457,11 +430,7 @@ class CardSortBottomSheet extends ConsumerWidget {
                 final isSelected = sortBy == opt['field'] && descending == opt['desc'];
                 return InkWell(
                   onTap: () {
-                    if (isDeckBuilder) {
-                      ref.read(deckCardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
-                    } else {
-                      ref.read(cardListProvider.notifier).setSort(opt['field'] as String, opt['desc'] as bool);
-                    }
+                    notifier.setSort(opt['field'] as String, opt['desc'] as bool);
                     Navigator.pop(context);
                   },
                   borderRadius: BorderRadius.circular(12),

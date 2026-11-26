@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
+import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
+import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
 import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 
 class CardRepository {
@@ -187,54 +190,12 @@ class CardRepository {
   Future<List<YgoCard>> getCardsPage({
     required int offset,
     required int limit,
-    String? searchQuery,
-    String? typeFilter,
-    String? attributeFilter,
-    String? raceFilter,
-    String? subTypeFilter,
-    String? frameFilter,
-    int? levelFilter,
-    int? scaleFilter,
-    int? linkValFilter,
-    int? atkFilter,
-    String? atkOperator,
-    bool? atkShowQuestionMark, // ✅ Added
-    int? defFilter,
-    String? defOperator,
-    bool? defShowQuestionMark,
-    String? sortBy, // ✅ Added sort field
-    bool sortDescending = false, // ✅ Added sort direction
-    bool onlyGoat = false, // ✅ Added only Goat filter
-    bool onlyEdison = false, // ✅ Added only Edison filter
-    bool onlyHat = false, // ✅ Added only Hat filter
-    bool onlyFavorites = false, // ✅ Added only Favorites filter
-    bool onlyWanted = false, // ✅ Added only Wanted filter
+    CardFilters filters = const CardFilters(),
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
       limit: limit,
-      searchQuery: searchQuery,
-      typeFilter: typeFilter,
-      attributeFilter: attributeFilter,
-      raceFilter: raceFilter,
-      subTypeFilter: subTypeFilter,
-      frameFilter: frameFilter,
-      levelFilter: levelFilter,
-      scaleFilter: scaleFilter,
-      linkValFilter: linkValFilter,
-      atkFilter: atkFilter,
-      atkOperator: atkOperator,
-      atkShowQuestionMark: atkShowQuestionMark,
-      defFilter: defFilter,
-      defOperator: defOperator,
-      defShowQuestionMark: defShowQuestionMark,
-      sortBy: sortBy, // ✅ Passed sortBy
-      sortDescending: sortDescending, // ✅ Passed sortDescending
-      onlyGoat: onlyGoat, // ✅ Passed onlyGoat
-      onlyEdison: onlyEdison, // ✅ Passed onlyEdison
-      onlyHat: onlyHat, // ✅ Passed onlyHat
-      onlyFavorites: onlyFavorites,
-      onlyWanted: onlyWanted,
+      filters: filters,
     );
 
     if (driftCards.isEmpty) return [];
@@ -338,13 +299,21 @@ class CardRepository {
       collectionNumber: collectionNumber,
     );
 
-    // Sync to Cloud
-    if (_syncRepo != null) {
+    // Sync to Cloud. Not awaited: Firestore only completes on server ack, so
+    // awaiting would block the UI while offline. Firestore queues the write.
+    final syncRepo = _syncRepo;
+    if (syncRepo != null) {
       final updatedItem = await _db.getCollectionItemById(itemId);
       if (updatedItem != null) {
-        await _syncRepo.syncItem(updatedItem);
+        _runCloudSync(() => syncRepo.syncItem(updatedItem));
       }
     }
+  }
+
+  void _runCloudSync(Future<void> Function() action) {
+    unawaited(Future(action).catchError((Object e) {
+      debugPrint('Cloud sync failed: $e');
+    }));
   }
 
   Future<int> clearQuoteCollection() async {
@@ -363,15 +332,16 @@ class CardRepository {
       quantityToRemove: quantity,
     );
 
-    // Sync to Cloud
-    if (_syncRepo != null && existing != null) {
+    // Sync to Cloud (not awaited, see addCardToCollection)
+    final syncRepo = _syncRepo;
+    if (syncRepo != null && existing != null) {
       final updatedItem = await _db.getCollectionItemById(collectionItemId);
       if (updatedItem != null) {
         // Still exists (decreased quantity)
-        await _syncRepo.syncItem(updatedItem);
+        _runCloudSync(() => syncRepo.syncItem(updatedItem));
       } else {
         // Completely removed
-        await _syncRepo.removeItem(existing);
+        _runCloudSync(() => syncRepo.removeItem(existing));
       }
     }
   }
@@ -527,6 +497,10 @@ class CardRepository {
       throw Exception('Could not match set IDs for owned sets.');
     }
 
+    // Remove rows written by older versions that keyed prices by TCGplayer
+    // product id instead of card id (they never match any card).
+    await _db.deleteOrphanSetCardPrices();
+
     final totalSets = setsToSync.length;
 
     for (var i = 0; i < totalSets; i++) {
@@ -536,56 +510,58 @@ class CardRepository {
       onProgress(i + 1, totalSets, task.setName);
 
       try {
-        final pricingData = await _dataService.fetchSetPricing(task.setId);
-        if (pricingData != null) {
-          final setId = pricingData['set_id'] as int? ?? task.setId;
-          final updatedStr = pricingData['updated'] as String? ?? DateTime.now().toIso8601String();
-          final pricesMap = pricingData['prices'] as Map<String, dynamic>?;
-
-          if (pricesMap != null && pricesMap.isNotEmpty) {
-            final companions = <SetCardPricesCompanion>[];
-
-            for (final entry in pricesMap.entries) {
-              final cardId = int.tryParse(entry.key);
-              if (cardId == null) continue;
-
-              final cardData = entry.value as Map<String, dynamic>?;
-              final tcgData = cardData?['tcg'] as Map<String, dynamic>?;
-
-              if (tcgData != null) {
-                for (final printingEntry in tcgData.entries) {
-                  final printing = printingEntry.key;
-                  final pMap = printingEntry.value as Map<String, dynamic>?;
-
-                  final low = (pMap?['low'] as num?)?.toDouble();
-                  final market = (pMap?['market'] as num?)?.toDouble();
-
-                  companions.add(
-                    SetCardPricesCompanion.insert(
-                      setId: setId,
-                      cardId: cardId,
-                      printing: printing,
-                      lowPrice: Value(low),
-                      marketPrice: Value(market),
-                      lastUpdated: Value(updatedStr),
-                    ),
-                  );
-                }
-              }
-            }
-
-            if (companions.isNotEmpty) {
-              await _db.saveSetCardPrices(companions);
-            }
-          }
-        }
+        await _updateSetPrices(task, isCancelled);
       } catch (e) {
         // Allow sync to proceed for remaining sets
+        debugPrint('Error updating prices for set ${task.setId}: $e');
       }
 
       if (i < totalSets - 1 && !isCancelled()) {
         await Future.delayed(const Duration(seconds: 1));
       }
+    }
+  }
+
+  /// Fetches `/cards` + `/pricing` for one set and stores per-printing prices
+  /// for every local card that has a printing in that set.
+  Future<void> _updateSetPrices(_SetSyncTask task, bool Function() isCancelled) async {
+    final setCards = await _dataService.fetchSetCards(task.setId);
+    if (setCards == null || setCards.isEmpty) return;
+
+    // One printing code per card in this set (e.g. LOB-EN001 for card 89631139).
+    final printings = await _db.getCardPrintingsBySetPrefix(task.setCode);
+    if (printings.isEmpty) return;
+
+    if (isCancelled()) return;
+    await Future.delayed(const Duration(seconds: 1)); // Respect API rate limit
+
+    final pricingData = await _dataService.fetchSetPricing(task.setId);
+    if (pricingData == null) return;
+
+    final previousPrices = SetPriceService.previousPricesFrom(
+      await _db.getSetCardPricesForSet(task.setId),
+    );
+
+    final companions = <SetCardPricesCompanion>[];
+    for (final printing in printings) {
+      final products = SetPriceService.matchProducts(
+        setCards,
+        setCode: printing.setCode,
+        cardName: printing.cardName,
+      );
+      if (products.isEmpty) continue;
+      companions.addAll(SetPriceService.buildCompanions(
+        pricingData: pricingData,
+        fallbackSetId: task.setId,
+        cardId: printing.cardId,
+        setCode: printing.setCode,
+        products: products,
+        previousPrices: previousPrices,
+      ));
+    }
+
+    if (companions.isNotEmpty) {
+      await _db.saveSetCardPrices(companions);
     }
   }
 }

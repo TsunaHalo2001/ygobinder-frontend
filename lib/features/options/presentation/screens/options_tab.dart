@@ -5,7 +5,6 @@ import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/providers/theme_provider.dart';
-import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
@@ -135,6 +134,7 @@ class OptionsTab extends ConsumerWidget {
     var currentSetName = 'Initializing...';
     var isCancelled = false;
     var isCompleted = false;
+    var started = false;
     String? errorMessage;
 
     showDialog(
@@ -143,7 +143,10 @@ class OptionsTab extends ConsumerWidget {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            if (processed == 0 && !isCancelled && errorMessage == null && !isCompleted) {
+            // Start the job exactly once, even if the dialog rebuilds before
+            // the first progress event.
+            if (!started) {
+              started = true;
               final repo = ref.read(cardRepositoryProvider);
               repo.updateOwnedSetCardPrices(
                 onProgress: (p, t, setName) {
