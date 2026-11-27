@@ -9,14 +9,26 @@ import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/services/card_cache_parser.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
+import 'package:ygobinder/features/cards/data/repositories/card_flag_sync_repository.dart';
+import 'package:ygobinder/features/decks/data/repositories/deck_sync_repository.dart';
 import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 
 class CardRepository {
   final AppDatabase _db;
   final CardDataService _dataService;
   final InventorySyncRepository? _syncRepo;
+  final CardFlagSyncRepository? _favoriteSyncRepo;
+  final CardFlagSyncRepository? _wantedSyncRepo;
+  final DeckSyncRepository? _deckSyncRepo;
 
-  CardRepository(this._db, this._dataService, [this._syncRepo]);
+  CardRepository(
+    this._db,
+    this._dataService, [
+    this._syncRepo,
+    this._favoriteSyncRepo,
+    this._wantedSyncRepo,
+    this._deckSyncRepo,
+  ]);
 
   static const _etagSettingKey = 'card_cache_etag';
 
@@ -54,6 +66,9 @@ class CardRepository {
         await _db.saveSetting(_etagSettingKey, download.etag!);
       }
     }
+    // Runs even when the card data is unchanged, so data left on retired ids
+    // by an older app version is repaired on the next sync.
+    await remapRetiredCardIds();
     await syncCurrencyRates();
 
     final todayString = DateTime.now().toIso8601String();
@@ -125,6 +140,57 @@ class CardRepository {
         }
       });
     });
+
+    // Cards that are no longer in the card data would otherwise stay forever
+    // as empty duplicates. Rows still used by inventory or decks are kept
+    // here; remapRetiredCardIds moves those that have a new id.
+    final parsedIds = {for (final c in parsed.cards) c.id.value};
+    final storedIds = await (_db.selectOnly(_db.cards)..addColumns([_db.cards.id]))
+        .map((row) => row.read(_db.cards.id)!)
+        .get();
+    await _db.deleteUnreferencedCards(storedIds.where((id) => !parsedIds.contains(id)));
+  }
+
+  /// Moves the user's data off card ids that the card data has retired (see
+  /// [AppDatabase.remapRetiredCardIds]) and pushes the corrections to the
+  /// cloud, so other devices and later pulls don't bring the old ids back.
+  Future<void> remapRetiredCardIds() async {
+    final remap = await _db.remapRetiredCardIds();
+    if (remap.removedCards > 0 || remap.hasUserDataChanges) {
+      debugPrint('Retired card ids: moved ${remap.inventory.length} inventory, '
+          '${remap.deckIds.length} decks, ${remap.favorites.length} favorites, '
+          '${remap.wanted.length} wanted; removed ${remap.removedCards} cards');
+    }
+    if (!remap.hasUserDataChanges) return;
+
+    final syncRepo = _syncRepo;
+    if (syncRepo != null) {
+      for (final change in remap.inventory) {
+        _runCloudSync(() async {
+          await syncRepo.removeItem(change.removed);
+          await syncRepo.syncItem(change.kept);
+        });
+      }
+    }
+    for (final (repo, changes) in [(_favoriteSyncRepo, remap.favorites), (_wantedSyncRepo, remap.wanted)]) {
+      if (repo == null) continue;
+      for (final change in changes) {
+        _runCloudSync(() async {
+          await repo.syncFlag(change.oldId, false);
+          await repo.syncFlag(change.newId, true, syncId: change.syncId);
+        });
+      }
+    }
+    final deckSyncRepo = _deckSyncRepo;
+    if (deckSyncRepo != null) {
+      for (final deckId in remap.deckIds) {
+        _runCloudSync(() async {
+          final deck = await _db.getDeckById(deckId);
+          if (deck == null) return;
+          await deckSyncRepo.syncDeck(deck, await _db.getDeckCards(deckId));
+        });
+      }
+    }
   }
 
   Future<YgoCard?> getCardWithDetails(int cardId) async {

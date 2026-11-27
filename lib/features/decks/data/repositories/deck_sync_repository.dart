@@ -59,14 +59,21 @@ class DeckSyncRepository {
       final snapshot = await collection.get().timeout(const Duration(seconds: 5));
       if (snapshot.docs.isEmpty) return;
 
+      // Card ids the card data has retired are replaced with the current ids;
+      // otherwise upsertDeck would drop them as unknown cards.
+      final aliases = await db.getRetiredCardIdAliases();
+      List<int> cardIds(Object? raw) => [for (final id in List<int>.from(raw as List? ?? const [])) aliases[id] ?? id];
+
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final syncId = doc.id;
         final name = data['name'] as String;
-        final main = List<int>.from(data['main'] ?? []);
-        final extra = List<int>.from(data['extra'] ?? []);
-        final side = List<int>.from(data['side'] ?? []);
+        final main = cardIds(data['main']);
+        final extra = cardIds(data['extra']);
+        final side = cardIds(data['side']);
         final cloudUpdatedAt = (data['updatedAt'] as Timestamp).toDate();
+        final hadRetiredIds = [data['main'], data['extra'], data['side']]
+            .any((raw) => List<int>.from(raw as List? ?? const []).any(aliases.containsKey));
 
         final existing = await db.getDeckBySyncId(syncId);
 
@@ -81,6 +88,10 @@ class DeckSyncRepository {
             },
             cloudUpdatedAt,
           );
+          if (hadRetiredIds) {
+            final deck = await db.getDeckBySyncId(syncId);
+            if (deck != null) await syncDeck(deck, await db.getDeckCards(deck.id));
+          }
         }
       }
     } catch (e) {

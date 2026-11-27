@@ -1215,6 +1215,155 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ==========================================
+  // RETIRED CARD IDS
+  // ==========================================
+  // The card data sometimes changes a card's id and keeps the old id only as
+  // one of its alternate artworks (Dark Magician 46986414 -> 46986420). The
+  // full sync never deletes card rows, so the old row stays behind without
+  // images, sets or prices, while the user's data still points at it.
+
+  /// Maps each retired card id to the card that now owns it: an artwork id
+  /// that is not itself a current card (current cards always have images).
+  /// Empty until the card data has been synced.
+  Future<Map<int, int>> getRetiredCardIdAliases() async {
+    final rows = await customSelect(
+      'SELECT ci.image_id AS old_id, ci.card_id AS new_id FROM card_images ci '
+      'WHERE ci.image_id != ci.card_id '
+      'AND NOT EXISTS (SELECT 1 FROM card_images live WHERE live.card_id = ci.image_id)',
+      readsFrom: {cardImages},
+    ).get();
+    return {for (final r in rows) r.read<int>('old_id'): r.read<int>('new_id')};
+  }
+
+  /// Moves inventory, deck, favorite and wanted entries from retired card ids
+  /// to their current ids, then deletes the retired card rows nothing points
+  /// at any more. Returns what changed so it can be pushed to the cloud.
+  Future<RetiredCardIdRemap> remapRetiredCardIds() async {
+    final aliases = await getRetiredCardIdAliases();
+    return transaction(() async {
+      final inventory = <({DriftCollectionItem removed, DriftCollectionItem kept})>[];
+      final deckIds = <int>{};
+      var favorites = <CardIdChange>[];
+      var wanted = <CardIdChange>[];
+
+      if (aliases.isNotEmpty) {
+        final oldItems = await (select(collectionItems)..where((t) => t.cardId.isIn(aliases.keys))).get();
+        for (final item in oldItems) {
+          final newId = aliases[item.cardId]!;
+          final target = await findCollectionItem(
+            cardId: newId,
+            setCode: item.setCode,
+            rarity: item.rarity,
+            collectionNumber: item.collectionNumber,
+          );
+          final int keptId;
+          if (target != null) {
+            // The same printing is already stored under the current id: merge.
+            await (update(collectionItems)..where((t) => t.id.equals(target.id))).write(
+              CollectionItemsCompanion(
+                quantity: Value(target.quantity + item.quantity),
+                updatedAt: Value(DateTime.now()),
+              ),
+            );
+            await (delete(collectionItems)..where((t) => t.id.equals(item.id))).go();
+            keptId = target.id;
+          } else {
+            await (update(collectionItems)..where((t) => t.id.equals(item.id)))
+                .write(CollectionItemsCompanion(cardId: Value(newId)));
+            keptId = item.id;
+          }
+          inventory.add((removed: item, kept: (await getCollectionItemById(keptId))!));
+        }
+
+        final oldDeckCards = await (select(deckCards)..where((t) => t.cardId.isIn(aliases.keys))).get();
+        for (final row in oldDeckCards) {
+          await (update(deckCards)..where((t) => t.id.equals(row.id)))
+              .write(DeckCardsCompanion(cardId: Value(aliases[row.cardId]!)));
+          deckIds.add(row.deckId);
+        }
+
+        favorites = await _remapFlagCardIds(favoriteCards, favoriteCards.cardId, favoriteCards.syncId, aliases);
+        wanted = await _remapFlagCardIds(wantedCards, wantedCards.cardId, wantedCards.syncId, aliases);
+      }
+
+      final removedCards = await deleteUnreferencedCards(aliases.keys);
+
+      return RetiredCardIdRemap(
+        inventory: inventory,
+        deckIds: deckIds,
+        favorites: favorites,
+        wanted: wanted,
+        removedCards: removedCards,
+      );
+    });
+  }
+
+  /// Deletes the card rows in [cardIds] that no inventory or deck entry
+  /// points at, together with their related rows. Returns how many cards
+  /// were deleted.
+  Future<int> deleteUnreferencedCards(Iterable<int> cardIds) async {
+    final ids = cardIds.toList();
+    if (ids.isEmpty) return 0;
+    return transaction(() async {
+      var removed = 0;
+      // Chunked to stay under SQLite's bound-variable limit.
+      for (var i = 0; i < ids.length; i += 500) {
+        final chunk = ids.sublist(i, i + 500 > ids.length ? ids.length : i + 500);
+        final unreferenced = (await (select(cards)
+                  ..where((t) =>
+                      t.id.isIn(chunk) &
+                      t.id.isNotInQuery(selectOnly(collectionItems)..addColumns([collectionItems.cardId])) &
+                      t.id.isNotInQuery(selectOnly(deckCards)..addColumns([deckCards.cardId]))))
+                .get())
+            .map((c) => c.id)
+            .toList();
+        if (unreferenced.isEmpty) continue;
+        await (delete(cardImages)..where((t) => t.cardId.isIn(unreferenced))).go();
+        await (delete(cardPrices)..where((t) => t.cardId.isIn(unreferenced))).go();
+        await (delete(cardSets)..where((t) => t.cardId.isIn(unreferenced))).go();
+        await (delete(banlistInfos)..where((t) => t.cardId.isIn(unreferenced))).go();
+        removed += await (delete(cards)..where((t) => t.id.isIn(unreferenced))).go();
+      }
+      return removed;
+    });
+  }
+
+  /// Moves favorite/wanted flags off retired ids. When the current id is
+  /// already flagged, the old flag is just dropped.
+  Future<List<CardIdChange>> _remapFlagCardIds<T extends Table, D>(
+    TableInfo<T, D> table,
+    GeneratedColumn<int> cardIdColumn,
+    GeneratedColumn<String> syncIdColumn,
+    Map<int, int> aliases,
+  ) async {
+    final rows = await (selectOnly(table)
+          ..addColumns([cardIdColumn])
+          ..where(cardIdColumn.isIn(aliases.keys)))
+        .get();
+    final changes = <CardIdChange>[];
+    for (final row in rows) {
+      final oldId = row.read(cardIdColumn)!;
+      final newId = aliases[oldId]!;
+      final existing = await (selectOnly(table)
+            ..addColumns([syncIdColumn])
+            ..where(cardIdColumn.equals(newId)))
+          .getSingleOrNull();
+      if (existing != null) {
+        await (delete(table)..where((_) => cardIdColumn.equals(oldId))).go();
+      } else {
+        await (update(table)..where((_) => cardIdColumn.equals(oldId)))
+            .write(RawValuesInsertable<D>({cardIdColumn.name: Variable.withInt(newId)}));
+      }
+      final current = await (selectOnly(table)
+            ..addColumns([syncIdColumn])
+            ..where(cardIdColumn.equals(newId)))
+          .getSingle();
+      changes.add((oldId: oldId, newId: newId, syncId: current.read(syncIdColumn)));
+    }
+    return changes;
+  }
+
+  // ==========================================
   // USER OWNED SETS QUERIES
   // ==========================================
 
@@ -1400,6 +1549,36 @@ LazyDatabase _openConnection() {
 
 /// A favorite/wanted flag as stored in the cloud.
 typedef CardFlagRecord = ({int cardId, String syncId, DateTime updatedAt});
+
+/// A favorite/wanted flag moved from a retired card id to the current one.
+typedef CardIdChange = ({int oldId, int newId, String? syncId});
+
+/// What [AppDatabase.remapRetiredCardIds] changed.
+class RetiredCardIdRemap {
+  /// Inventory rows moved off a retired id: [removed] is the row as it was,
+  /// [kept] is the row that now holds it (merged into an existing one if the
+  /// same printing was already stored under the current id).
+  final List<({DriftCollectionItem removed, DriftCollectionItem kept})> inventory;
+
+  /// Decks that had at least one card moved.
+  final Set<int> deckIds;
+  final List<CardIdChange> favorites;
+  final List<CardIdChange> wanted;
+
+  /// Retired card rows deleted because nothing pointed at them any more.
+  final int removedCards;
+
+  const RetiredCardIdRemap({
+    required this.inventory,
+    required this.deckIds,
+    required this.favorites,
+    required this.wanted,
+    required this.removedCards,
+  });
+
+  bool get hasUserDataChanges =>
+      inventory.isNotEmpty || deckIds.isNotEmpty || favorites.isNotEmpty || wanted.isNotEmpty;
+}
 
 class CardPrinting {
   final int cardId;

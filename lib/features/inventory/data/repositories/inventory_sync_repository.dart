@@ -75,16 +75,32 @@ class InventorySyncRepository {
       final snapshot = await collection.get().timeout(const Duration(seconds: 5));
       if (snapshot.docs.isEmpty) return;
 
+      // Documents saved under a retired card id are stored locally under the
+      // current id, and then moved in the cloud too (see below).
+      final aliases = await db.getRetiredCardIdAliases();
+      final migratedDocs = <({String oldDocId, int cardId, String setCode, String rarity, int collectionNumber})>[];
+
       await db.transaction(() async {
         for (final doc in snapshot.docs) {
           final data = doc.data();
           final colNum = data['collectionNumber'] as int? ?? 1;
           if (colNum == 0) continue; // Skip quote items
           final cloudUpdatedAt = (data['updatedAt'] as Timestamp).toDate();
+          final cloudCardId = data['cardId'] as int;
+          final cardId = aliases[cloudCardId] ?? cloudCardId;
+          if (cardId != cloudCardId) {
+            migratedDocs.add((
+              oldDocId: doc.id,
+              cardId: cardId,
+              setCode: data['setCode'] as String,
+              rarity: data['rarity'] as String,
+              collectionNumber: data['collectionNumber'] as int,
+            ));
+          }
 
           // 1. Check if item exists locally
           final existing = await db.findCollectionItem(
-            cardId: data['cardId'] as int,
+            cardId: cardId,
             setCode: data['setCode'] as String,
             rarity: data['rarity'] as String,
             collectionNumber: data['collectionNumber'] as int,
@@ -94,7 +110,7 @@ class InventorySyncRepository {
             // 2. Doesn't exist locally: Insert
             await db.into(db.collectionItems).insert(
                   CollectionItemsCompanion.insert(
-                    cardId: data['cardId'] as int,
+                    cardId: cardId,
                     setCode: data['setCode'] as String,
                     rarity: data['rarity'] as String,
                     collectionNumber: Value(data['collectionNumber'] as int),
@@ -124,6 +140,18 @@ class InventorySyncRepository {
           // 4. Local is newer (or same): Do nothing, local wins
         }
       });
+
+      // Replace each migrated document with one for the current card id.
+      for (final m in migratedDocs) {
+        await collection.doc(m.oldDocId).delete();
+        final item = await db.findCollectionItem(
+          cardId: m.cardId,
+          setCode: m.setCode,
+          rarity: m.rarity,
+          collectionNumber: m.collectionNumber,
+        );
+        if (item != null) await syncItem(item);
+      }
     } catch (e) {
       debugPrint('Sync Error: $e');
     }

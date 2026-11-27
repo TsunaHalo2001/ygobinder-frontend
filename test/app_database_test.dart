@@ -144,4 +144,112 @@ void main() {
     expect(await db.toggleWanted(46986414), isTrue);
     expect(await db.watchIsWanted(46986414).first, isTrue);
   });
+
+  group('retired card ids', () {
+    // 46986414 is the old Dark Magician id (inserted in setUp, no images).
+    // The card data now lists Dark Magician as 46986420 with 46986414 as one
+    // of its artworks.
+    const oldId = 46986414;
+    const newId = 46986420;
+
+    CardImagesCompanion image(int cardId, int imageId) => CardImagesCompanion.insert(
+          cardId: cardId,
+          imageId: imageId,
+          imageUrl: '',
+          imageUrlSmall: '',
+          imageUrlCropped: '',
+        );
+
+    setUp(() async {
+      await db.batch((b) {
+        b.insertAll(db.cards, [
+          _card(newId, 'Dark Magician'),
+          // Two current cards that list each other's ids as artworks.
+          _card(1122030, 'Artmage Masterwork -Succession-'),
+          _card(37517035, 'Artmage Vandalism -Assault-'),
+        ]);
+        b.insertAll(db.cardImages, [
+          image(89631139, 89631139),
+          image(newId, newId),
+          image(newId, oldId),
+          image(1122030, 1122030),
+          image(1122030, 37517035),
+          image(37517035, 37517035),
+          image(37517035, 1122030),
+        ]);
+      });
+    });
+
+    test('aliases only map artwork ids that are not current cards', () async {
+      expect(await db.getRetiredCardIdAliases(), {oldId: newId});
+    });
+
+    test('no aliases before the card data has been synced', () async {
+      await db.delete(db.cardImages).go();
+      expect(await db.getRetiredCardIdAliases(), isEmpty);
+    });
+
+    test('moves inventory, decks and flags to the current id and deletes the old card', () async {
+      await db.addToCollection(cardId: oldId, setCode: 'LOB-EN005', rarity: 'Ultra Rare', quantity: 2);
+      final deckId = await db.saveDeck('Spellcasters', {'main': [oldId, 89631139]});
+      await db.toggleFavorite(oldId);
+      await db.toggleWanted(oldId);
+      await db.toggleWanted(newId);
+
+      final remap = await db.remapRetiredCardIds();
+
+      final items = await db.select(db.collectionItems).get();
+      expect(items.map((i) => (i.cardId, i.quantity)), [(newId, 2)]);
+      expect(remap.inventory.single.removed.cardId, oldId);
+      expect(remap.inventory.single.kept.cardId, newId);
+
+      expect((await db.getDeckCards(deckId)).map((c) => c.cardId), containsAll([newId, 89631139]));
+      expect(remap.deckIds, {deckId});
+
+      expect(await db.watchIsFavorite(newId).first, isTrue);
+      expect(await db.watchIsFavorite(oldId).first, isFalse);
+      expect(await db.watchIsWanted(newId).first, isTrue);
+      expect(await db.watchIsWanted(oldId).first, isFalse);
+      expect(remap.favorites.single, (oldId: oldId, newId: newId, syncId: remap.favorites.single.syncId));
+      expect(remap.favorites.single.syncId, isNotNull);
+
+      expect(await db.getCardById(oldId), isNull);
+      expect(remap.removedCards, 1);
+    });
+
+    test('merges into an existing entry for the same printing', () async {
+      await db.addToCollection(cardId: oldId, setCode: 'LOB-EN005', rarity: 'Ultra Rare', quantity: 2);
+      await db.addToCollection(cardId: newId, setCode: 'LOB-EN005', rarity: 'Ultra Rare', quantity: 3);
+
+      final remap = await db.remapRetiredCardIds();
+
+      final items = await db.select(db.collectionItems).get();
+      expect(items.map((i) => (i.cardId, i.quantity)), [(newId, 5)]);
+      expect(remap.inventory.single.kept.quantity, 5);
+    });
+
+    test('does nothing when no data uses a retired id', () async {
+      await db.addToCollection(cardId: 89631139, setCode: 'LOB-EN001', rarity: 'Ultra Rare');
+
+      final remap = await db.remapRetiredCardIds();
+
+      expect(remap.hasUserDataChanges, isFalse);
+      expect((await db.select(db.collectionItems).getSingle()).cardId, 89631139);
+      expect(await db.getCardById(1122030), isNotNull);
+      expect(await db.getCardById(37517035), isNotNull);
+    });
+
+    test('deleteUnreferencedCards keeps cards that inventory or decks use', () async {
+      await db.addToCollection(cardId: 89631139, setCode: 'LOB-EN001', rarity: 'Ultra Rare');
+      await db.saveDeck('Deck', {'main': [1122030]});
+
+      final removed = await db.deleteUnreferencedCards([89631139, 1122030, 37517035]);
+
+      expect(removed, 1);
+      expect(await db.getCardById(89631139), isNotNull);
+      expect(await db.getCardById(1122030), isNotNull);
+      expect(await db.getCardById(37517035), isNull);
+      expect(await (db.select(db.cardImages)..where((t) => t.cardId.equals(37517035))).get(), isEmpty);
+    });
+  });
 }
