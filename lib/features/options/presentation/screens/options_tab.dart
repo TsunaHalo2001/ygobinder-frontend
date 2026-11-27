@@ -723,182 +723,193 @@ class _CurrencySelectorBottomSheetState extends ConsumerState<_CurrencySelectorB
     final db = ref.watch(databaseProvider);
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
 
-    return Container(
-      height: MediaQuery.sizeOf(context).height * 0.65,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Icon(Icons.currency_exchange_rounded, color: theme.colorScheme.primary, size: 24),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'CURRENCY CONVERSION',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
-                ),
-              ],
+    // Keep the sheet clear of the system navigation bar and lift it above the
+    // keyboard while the custom rate field is being edited.
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardInset = mediaQuery.viewInsets.bottom;
+    final navBarInset = keyboardInset > 0 ? 0.0 : mediaQuery.viewPadding.bottom;
+    final preferredHeight = mediaQuery.size.height * 0.65;
+    final availableHeight = mediaQuery.size.height - mediaQuery.viewPadding.top - keyboardInset;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: Container(
+        height: preferredHeight < availableHeight ? preferredHeight : availableHeight,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Select your preferred currency for card prices and statistics.',
-                style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Icon(Icons.currency_exchange_rounded, color: theme.colorScheme.primary, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'CURRENCY CONVERSION',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2, color: theme.colorScheme.onSurface),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close_rounded, size: 20, color: theme.colorScheme.onSurface),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Select your preferred currency for card prices and statistics.',
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
 
-          // Stream of exchange rates
-          Expanded(
-            child: StreamBuilder<List<DriftCurrencyRate>>(
-              stream: db.watchAllCurrencyRates(),
-              builder: (context, snapshot) {
-                final ratesList = snapshot.data ?? [];
-                final rateMap = <String, double>{};
-                for (final r in ratesList) {
-                  rateMap[r.currencyCode.toUpperCase()] = r.rateToUsd;
-                }
+            // Stream of exchange rates
+            Expanded(
+              child: StreamBuilder<List<DriftCurrencyRate>>(
+                stream: db.watchAllCurrencyRates(),
+                builder: (context, snapshot) {
+                  final ratesList = snapshot.data ?? [];
+                  final rateMap = <String, double>{};
+                  for (final r in ratesList) {
+                    rateMap[r.currencyCode.toUpperCase()] = r.rateToUsd;
+                  }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _currencies.length,
-                  itemBuilder: (context, index) {
-                    final curr = _currencies[index];
-                    final code = curr['code']!;
-                    final symbol = curr['symbol']!;
-                    final name = curr['name']!;
-                    final flag = curr['flag']!;
-                    final isSelected = selectedCurrency == code;
-                    final isCustom = code == 'CUSTOM';
-                    final customRateVal = ref.watch(customCurrencyRateProvider);
-                    final rate = rateMap[code.toUpperCase()];
+                  return ListView.builder(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + navBarInset),
+                    itemCount: _currencies.length,
+                    itemBuilder: (context, index) {
+                      final curr = _currencies[index];
+                      final code = curr['code']!;
+                      final symbol = curr['symbol']!;
+                      final name = curr['name']!;
+                      final flag = curr['flag']!;
+                      final isSelected = selectedCurrency == code;
+                      final isCustom = code == 'CUSTOM';
+                      final customRateVal = ref.watch(customCurrencyRateProvider);
+                      final rate = rateMap[code.toUpperCase()];
 
-                    String subtitleText;
-                    if (code == 'USD') {
-                      subtitleText = '1 USD = \$1.00 USD (Base)';
-                    } else if (isCustom) {
-                      subtitleText = 'Multiplier: ${customRateVal}x USD';
-                    } else if (rate != null) {
-                      subtitleText = '1 USD = $symbol${rate.toStringAsFixed(2)} $code';
-                    } else {
-                      subtitleText = 'Symbol: $symbol';
-                    }
+                      String subtitleText;
+                      if (code == 'USD') {
+                        subtitleText = '1 USD = \$1.00 USD (Base)';
+                      } else if (isCustom) {
+                        subtitleText = 'Multiplier: ${customRateVal}x USD';
+                      } else if (rate != null) {
+                        subtitleText = '1 USD = $symbol${rate.toStringAsFixed(2)} $code';
+                      } else {
+                        subtitleText = 'Symbol: $symbol';
+                      }
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: Material(
-                        color: isSelected
-                            ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-                        clipBehavior: Clip.antiAlias,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3),
-                            width: isSelected ? 1.5 : 1.0,
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Material(
+                          color: isSelected
+                              ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+                          clipBehavior: Clip.antiAlias,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3),
+                              width: isSelected ? 1.5 : 1.0,
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: Text(flag, style: const TextStyle(fontSize: 24)),
-                              title: Text(
-                                '$name ($code)',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                          child: Column(
+                            children: [
+                              ListTile(
+                                leading: Text(flag, style: const TextStyle(fontSize: 24)),
+                                title: Text(
+                                  '$name ($code)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                                  ),
                                 ),
-                              ),
-                              subtitle: Text(
-                                subtitleText,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.8) : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                subtitle: Text(
+                                  subtitleText,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.8) : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ),
                                 ),
-                              ),
-                              trailing: Radio<String>(
-                                value: code,
-                                groupValue: selectedCurrency,
-                                activeColor: theme.colorScheme.primary,
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    ref.read(selectedCurrencyProvider.notifier).setCurrency(val);
-                                  }
+                                trailing: Radio<String>(
+                                  value: code,
+                                  groupValue: selectedCurrency,
+                                  activeColor: theme.colorScheme.primary,
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      ref.read(selectedCurrencyProvider.notifier).setCurrency(val);
+                                    }
+                                  },
+                                ),
+                                onTap: () {
+                                  ref.read(selectedCurrencyProvider.notifier).setCurrency(code);
                                 },
                               ),
-                              onTap: () {
-                                ref.read(selectedCurrencyProvider.notifier).setCurrency(code);
-                              },
-                            ),
-                            if (isSelected && isCustom) ...[
-                              Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'Multiplier (1 USD = ):',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _customRateController,
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          hintText: 'e.g. 20.5',
-                                          prefixText: '\$ ',
-                                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                        onChanged: (val) {
-                                          final parsed = double.tryParse(val);
-                                          if (parsed != null && parsed > 0) {
-                                            ref.read(customCurrencyRateProvider.notifier).setRate(parsed);
-                                          }
-                                        },
+                              if (isSelected && isCustom) ...[
+                                Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        'Multiplier (1 USD = ):',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _customRateController,
+                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            hintText: 'e.g. 20.5',
+                                            prefixText: '\$ ',
+                                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          onChanged: (val) {
+                                            final parsed = double.tryParse(val);
+                                            if (parsed != null && parsed > 0) {
+                                              ref.read(customCurrencyRateProvider.notifier).setRate(parsed);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
