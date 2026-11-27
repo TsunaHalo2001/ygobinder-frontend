@@ -48,7 +48,7 @@ final class FirebaseAuthProvider
   }
 }
 
-String _$firebaseAuthHash() => r'38e8588489dbb10450ca16aace86818956d6e02d';
+String _$firebaseAuthHash() => r'a456a75247131751590f6d6fc4d6ecb3eed1258d';
 
 @ProviderFor(authStateChanges)
 final authStateChangesProvider = AuthStateChangesProvider._();
@@ -107,7 +107,7 @@ final class AuthNotifierProvider
   AuthNotifier create() => AuthNotifier();
 }
 
-String _$authNotifierHash() => r'00845dfe360caab8ef785ea13070a4bf9ab294db';
+String _$authNotifierHash() => r'304f6f4f05f022e02c8ed60916b9b0125f22adbf';
 
 abstract class _$AuthNotifier extends $AsyncNotifier<User?> {
   FutureOr<User?> build();

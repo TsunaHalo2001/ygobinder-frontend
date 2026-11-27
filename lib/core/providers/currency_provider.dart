@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:ygobinder/core/utils/formatters.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
-import 'package:ygobinder/core/database/app_database.dart';
 
 part 'currency_provider.g.dart';
 
@@ -22,16 +22,7 @@ class CurrencyInfo {
     final isJpy = code == 'JPY';
     final decimals = isJpy ? 0 : 2;
 
-    final parts = converted.toStringAsFixed(decimals).split('.');
-    final integerPart = parts[0];
-    final decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
-
-    final formattedInteger = integerPart.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-
-    final formattedVal = '$formattedInteger$decimalPart';
+    final formattedVal = formatWithThousandSeparators(converted, decimals: decimals);
 
     if (code == 'USD') return '\$$formattedVal';
     if (code == 'EUR') return '€$formattedVal';
@@ -101,6 +92,21 @@ Stream<Map<String, double>> currencyRatesStream(Ref ref) {
   });
 }
 
+const _currencySymbols = {
+  'USD': '\$',
+  'EUR': '€',
+  'GBP': '£',
+  'MXN': '\$',
+  'CAD': '\$',
+  'JPY': '¥',
+  'BRL': 'R\$',
+  'ARS': '\$',
+  'CLP': '\$',
+  'PEN': 'S/',
+  'COP': '\$',
+  'CUSTOM': '\$',
+};
+
 @riverpod
 CurrencyInfo activeCurrencyInfo(Ref ref) {
   final code = ref.watch(selectedCurrencyProvider);
@@ -115,24 +121,9 @@ CurrencyInfo activeCurrencyInfo(Ref ref) {
     rate = ratesMap[code] ?? 1.0;
   }
 
-  final symbols = {
-    'USD': '\$',
-    'EUR': '€',
-    'GBP': '£',
-    'MXN': '\$',
-    'CAD': '\$',
-    'JPY': '¥',
-    'BRL': 'R\$',
-    'ARS': '\$',
-    'CLP': '\$',
-    'PEN': 'S/',
-    'COP': '\$',
-    'CUSTOM': '\$',
-  };
-
   return CurrencyInfo(
     code: code,
-    symbol: symbols[code] ?? '\$',
+    symbol: _currencySymbols[code] ?? '\$',
     rateToUsd: rate,
   );
 }

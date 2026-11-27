@@ -3,25 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:ygobinder/firebase_options.dart';
-import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/features/cards/presentation/screens/initial_sync_screen.dart';
 import 'package:ygobinder/features/cards/presentation/screens/card_detail_screen.dart';
 import 'package:ygobinder/core/presentation/screens/splash_screen.dart';
 import 'package:ygobinder/core/presentation/screens/main_shell.dart';
 import 'package:ygobinder/features/scanner/presentation/screens/camera_scanner_screen.dart';
 import 'package:ygobinder/features/auth/presentation/screens/login_screen.dart';
-import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 import 'package:ygobinder/core/providers/theme_provider.dart';
 
-import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'package:ygobinder/core/providers/firebase_providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // ✅ Guard Firebase initialization: Only run on supported platforms
   // (Android, iOS, macOS, Web). Linux and Windows require additional setup.
-  if (kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+  if (isFirebaseSupported()) {
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -45,7 +43,31 @@ class MyApp extends ConsumerWidget {
     final bool isTablet = MediaQuery.sizeOf(context).shortestSide >= 600;
     final themeMode = ref.watch(themeModeProvider);
 
-    final darkTheme = ThemeData(
+    final darkTheme = _cachedTheme(isTablet, isDark: true);
+    final lightTheme = _cachedTheme(isTablet, isDark: false);
+
+    return MaterialApp.router(
+      title: 'YGOBinder',
+      themeMode: themeMode,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      routerConfig: _router,
+    );
+  }
+
+  /// Themes only depend on the device class and brightness, so they are
+  /// built once per combination instead of on every rebuild.
+  static final _themeCache = <(bool, bool), ThemeData>{};
+
+  ThemeData _cachedTheme(bool isTablet, {required bool isDark}) {
+    return _themeCache.putIfAbsent(
+      (isTablet, isDark),
+      () => isDark ? _buildDarkTheme(isTablet) : _buildLightTheme(isTablet),
+    );
+  }
+
+  ThemeData _buildDarkTheme(bool isTablet) {
+    return ThemeData(
       useMaterial3: true,
       fontFamily: 'YuGiOh',
       brightness: Brightness.dark,
@@ -78,8 +100,10 @@ class MyApp extends ConsumerWidget {
         ),
       ),
     );
+  }
 
-    final lightTheme = ThemeData(
+  ThemeData _buildLightTheme(bool isTablet) {
+    return ThemeData(
       useMaterial3: true,
       fontFamily: 'YuGiOh',
       brightness: Brightness.light,
@@ -111,14 +135,6 @@ class MyApp extends ConsumerWidget {
           borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
         ),
       ),
-    );
-
-    return MaterialApp.router(
-      title: 'YGOBinder',
-      themeMode: themeMode,
-      theme: lightTheme,
-      darkTheme: darkTheme,
-      routerConfig: _router,
     );
   }
 
@@ -179,7 +195,9 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/sync',
-      builder: (context, state) => const InitialSyncScreen(),
+      builder: (context, state) => InitialSyncScreen(
+        force: state.uri.queryParameters['force'] == 'true',
+      ),
     ),
     GoRoute(
       path: '/main',
@@ -198,39 +216,3 @@ final _router = GoRouter(
     ),
   ],
 );
-
-/// This screen checks the database and routes accordingly
-class InitializationScreen extends ConsumerWidget {
-  const InitializationScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // We use FutureBuilder to check the DB count without blocking the UI thread
-    return FutureBuilder<int>(
-      future: ref.read(databaseProvider).getCollectionSize(), // Or a specific getCardCount() method
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: SpinningCardLoader()),
-          );
-        }
-
-        // If we have cards, go to collection. If not, go to sync.
-        final hasCards = (snapshot.data ?? 0) > 0;
-
-        // Use addPostFrameCallback to navigate after the build is complete
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (hasCards) {
-            context.go('/collection');
-          } else {
-            context.go('/sync');
-          }
-        });
-
-        return const Scaffold(
-          body: Center(child: SpinningCardLoader()),
-        );
-      },
-    );
-  }
-}

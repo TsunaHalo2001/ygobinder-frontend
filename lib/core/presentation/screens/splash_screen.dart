@@ -6,6 +6,7 @@ import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dar
 import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 import 'package:ygobinder/features/decks/data/repositories/deck_sync_repository.dart';
 import 'package:ygobinder/features/cards/data/repositories/favorite_sync_repository.dart';
+import 'package:ygobinder/features/cards/data/repositories/wanted_sync_repository.dart';
 import 'package:ygobinder/core/presentation/widgets/spinning_card.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -47,12 +48,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       final inventorySyncRepo = ref.read(inventorySyncRepositoryProvider);
       final deckSyncRepo = ref.read(deckSyncRepositoryProvider);
       final favoriteSyncRepo = ref.read(favoriteSyncRepositoryProvider);
+      final wantedSyncRepo = ref.read(wantedSyncRepositoryProvider);
 
       if (user != null) {
         Future.wait([
           inventorySyncRepo.fullSync(db),
           deckSyncRepo.fullSync(db),
           favoriteSyncRepo.fullSync(db),
+          wantedSyncRepo.fullSync(db),
         ]).catchError((e) {
           debugPrint('Background sync failed: $e');
           return [];

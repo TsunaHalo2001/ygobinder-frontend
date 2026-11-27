@@ -1,8 +1,7 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
+import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
-
-part 'card_list_provider.g.dart';
 
 class CardListState {
   final List<YgoCard> cards;
@@ -28,566 +27,87 @@ class CardListState {
   }
 }
 
-@riverpod
-class CardList extends _$CardList {
+/// Paging, search, filter and sort logic shared by [CardList] (collection
+/// tab) and [DeckCardList] (deck builder sidebar).
+///
+/// Every request is tagged with a generation number; responses that arrive
+/// after a newer search/filter/sort request was issued are discarded, so a
+/// slow query can never overwrite newer results or append stale pages.
+mixin PagedCardListMixin on AsyncNotifier<CardListState> {
+  static const pageSize = 50;
+
+  CardFilters _filters = const CardFilters();
   int _offset = 0;
-  final int _pageSize = 50;
-  String _currentSearch = '';
-  String? _currentTypeFilter;
-  String? _currentAttributeFilter;
-  String? _currentRaceFilter;
-  String? _currentSubTypeFilter;
-  String? _currentFrameFilter;
-  int? _currentLevelFilter;
-  int? _currentScaleFilter;
-  int? _currentLinkValFilter;
-  int? _currentAtkFilter;
-  String? _currentAtkOperator;
-  bool? _currentAtkShowQuestionMark;
-  int? _currentDefFilter;
-  String? _currentDefOperator;
-  bool? _currentDefShowQuestionMark;
-  
-  String _currentSortBy = 'name';
-  bool _currentSortDescending = false;
-  bool _currentOnlyGoatFilter = false;
-  bool _currentOnlyEdisonFilter = false;
-  bool _currentOnlyHatFilter = false;
-  bool _currentOnlyFavoritesFilter = false;
-  bool _currentOnlyWantedFilter = false;
+  int _generation = 0;
 
-  @override
-  Future<CardListState> build() async {
+  CardFilters get filters => _filters;
+  bool get isFiltered => _filters.isFiltered;
+  String? get currentTypeFilter => _filters.type;
+  String get currentSortBy => _filters.sortBy;
+  bool get currentSortDescending => _filters.sortDescending;
+
+  Future<List<YgoCard>> _fetchPage(int offset) {
+    return ref.read(cardRepositoryProvider).getCardsPage(
+          offset: offset,
+          limit: pageSize,
+          filters: _filters,
+        );
+  }
+
+  CardListState _firstPage(List<YgoCard> cards) {
+    _offset = cards.length;
+    return CardListState(cards: cards, hasMore: cards.length >= pageSize);
+  }
+
+  /// Initial load used by `build()`; resets every criterion.
+  Future<CardListState> _buildFirstPage() async {
+    _filters = const CardFilters();
     _offset = 0;
-    _currentSearch = '';
-    _currentTypeFilter = null;
-    _currentAttributeFilter = null;
-    _currentRaceFilter = null;
-    _currentSubTypeFilter = null;
-    _currentFrameFilter = null;
-    _currentLevelFilter = null;
-    _currentScaleFilter = null;
-    _currentLinkValFilter = null;
-    _currentAtkFilter = null;
-    _currentAtkOperator = null;
-    _currentAtkShowQuestionMark = null;
-    _currentDefFilter = null;
-    _currentDefOperator = null;
-    _currentDefShowQuestionMark = null;
-    _currentSortBy = 'name';
-    _currentSortDescending = false;
-    _currentOnlyGoatFilter = false;
-    _currentOnlyEdisonFilter = false;
-    _currentOnlyHatFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-    
-    final initialCards = await _fetchPage(0);
-    _offset = initialCards.length;
-    
-    return CardListState(
-      cards: initialCards,
-      hasMore: initialCards.length >= _pageSize,
-    );
+    _generation++;
+    return _firstPage(await _fetchPage(0));
   }
 
-  Future<List<YgoCard>> _fetchPage(int offset) async {
-    final repo = ref.read(cardRepositoryProvider);
-    return repo.getCardsPage(
-      offset: offset,
-      limit: _pageSize,
-      searchQuery: _currentSearch,
-      typeFilter: _currentTypeFilter,
-      attributeFilter: _currentAttributeFilter,
-      raceFilter: _currentRaceFilter,
-      subTypeFilter: _currentSubTypeFilter,
-      frameFilter: _currentFrameFilter,
-      levelFilter: _currentLevelFilter,
-      scaleFilter: _currentScaleFilter,
-      linkValFilter: _currentLinkValFilter,
-      atkFilter: _currentAtkFilter,
-      atkOperator: _currentAtkOperator,
-      atkShowQuestionMark: _currentAtkShowQuestionMark,
-      defFilter: _currentDefFilter,
-      defOperator: _currentDefOperator,
-      defShowQuestionMark: _currentDefShowQuestionMark,
-      sortBy: _currentSortBy,
-      sortDescending: _currentSortDescending,
-      onlyGoat: _currentOnlyGoatFilter,
-      onlyEdison: _currentOnlyEdisonFilter,
-      onlyHat: _currentOnlyHatFilter,
-      onlyFavorites: _currentOnlyFavoritesFilter,
-      onlyWanted: _currentOnlyWantedFilter,
-    );
+  Future<void> _reload(CardFilters next) async {
+    _filters = next;
+    _offset = 0;
+    final generation = ++_generation;
+
+    state = const AsyncValue.loading();
+    try {
+      final cards = await _fetchPage(0);
+      if (!ref.mounted || generation != _generation) return;
+      state = AsyncValue.data(_firstPage(cards));
+    } catch (e, stack) {
+      if (!ref.mounted || generation != _generation) return;
+      state = AsyncValue.error(e, stack);
+    }
   }
-
-  bool get isFiltered => 
-      _currentTypeFilter != null || 
-      _currentAttributeFilter != null || 
-      _currentRaceFilter != null || 
-      _currentSubTypeFilter != null ||
-      _currentFrameFilter != null ||
-      _currentLevelFilter != null ||
-      _currentScaleFilter != null ||
-      _currentLinkValFilter != null ||
-      _currentAtkFilter != null ||
-      _currentAtkShowQuestionMark != null ||
-      _currentDefFilter != null ||
-      _currentDefShowQuestionMark != null ||
-      _currentOnlyGoatFilter ||
-      _currentOnlyEdisonFilter ||
-      _currentOnlyHatFilter ||
-      _currentOnlyFavoritesFilter ||
-      _currentOnlyWantedFilter;
-
-  String? get currentTypeFilter => _currentTypeFilter;
-  String? get currentAttributeFilter => _currentAttributeFilter;
-  String? get currentRaceFilter => _currentRaceFilter;
-  String? get currentSubTypeFilter => _currentSubTypeFilter;
-  String? get currentFrameFilter => _currentFrameFilter;
-  int? get currentLevelFilter => _currentLevelFilter;
-  int? get currentScaleFilter => _currentScaleFilter;
-  int? get currentLinkValFilter => _currentLinkValFilter;
-  int? get currentAtkFilter => _currentAtkFilter;
-  String? get currentAtkOperator => _currentAtkOperator;
-  bool? get currentAtkShowQuestionMark => _currentAtkShowQuestionMark;
-  int? get currentDefFilter => _currentDefFilter;
-  String? get currentDefOperator => _currentDefOperator;
-  bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
-  bool get currentOnlyGoatFilter => _currentOnlyGoatFilter;
-  bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
-  bool get currentOnlyHatFilter => _currentOnlyHatFilter;
-  bool get currentOnlyFavoritesFilter => _currentOnlyFavoritesFilter;
-  bool get currentOnlyWantedFilter => _currentOnlyWantedFilter;
-  
-  String get currentSortBy => _currentSortBy;
-  bool get currentSortDescending => _currentSortDescending;
 
   Future<void> loadMore() async {
     final currentState = state.value;
     if (currentState == null || currentState.isLoadingMore || !currentState.hasMore) return;
 
+    final generation = _generation;
     state = AsyncValue.data(currentState.copyWith(isLoadingMore: true));
 
     try {
       final newCards = await _fetchPage(_offset);
-      
-      state = AsyncValue.data(CardListState(
-        cards: [...currentState.cards, ...newCards],
-        hasMore: newCards.length >= _pageSize,
-        isLoadingMore: false,
-      ));
+      if (!ref.mounted || generation != _generation) return;
 
       _offset += newCards.length;
+      state = AsyncValue.data(CardListState(
+        cards: [...currentState.cards, ...newCards],
+        hasMore: newCards.length >= pageSize,
+      ));
     } catch (e, stack) {
+      if (!ref.mounted || generation != _generation) return;
       state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> search(String query) async {
-    if (_currentSearch == query) return;
-
-    _currentSearch = query;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> setTypeFilter(String? type) async {
-    if (_currentTypeFilter == type) return;
-
-    _currentTypeFilter = type;
-    if (type != 'Monster') {
-      _currentAttributeFilter = null;
-      _currentRaceFilter = null;
-      _currentSubTypeFilter = null;
-      _currentFrameFilter = null;
-      _currentLevelFilter = null;
-      _currentScaleFilter = null;
-      _currentLinkValFilter = null;
-      _currentAtkFilter = null;
-      _currentAtkOperator = null;
-      _currentAtkShowQuestionMark = null;
-      _currentDefFilter = null;
-      _currentDefOperator = null;
-      _currentDefShowQuestionMark = null;
-    }
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> setAttributeFilter(String? attribute) async {
-    if (_currentAttributeFilter == attribute) return;
-
-    _currentAttributeFilter = attribute;
-    _currentTypeFilter = 'Monster';
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> applyFilters({
-    String? type, 
-    String? attribute, 
-    String? race, 
-    String? subType,
-    String? frame,
-    int? level,
-    int? scale,
-    int? linkVal,
-    int? atk,
-    String? atkOperator,
-    bool? atkShowQuestionMark,
-    int? def,
-    String? defOperator,
-    bool? defShowQuestionMark,
-    bool? onlyGoat,
-    bool? onlyEdison,
-    bool? onlyHat,
-    bool? onlyFavorites,
-    bool? onlyWanted,
-  }) async {
-    _currentTypeFilter = type;
-    _currentAttributeFilter = attribute;
-    _currentRaceFilter = race;
-    _currentSubTypeFilter = subType;
-    _currentFrameFilter = frame;
-    _currentLevelFilter = level;
-    _currentScaleFilter = scale;
-    _currentLinkValFilter = linkVal;
-    _currentAtkFilter = atk;
-    _currentAtkOperator = atkOperator;
-    _currentAtkShowQuestionMark = atkShowQuestionMark;
-    _currentDefFilter = def;
-    _currentDefOperator = defOperator;
-    _currentDefShowQuestionMark = defShowQuestionMark;
-    if (onlyGoat != null) _currentOnlyGoatFilter = onlyGoat;
-    if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
-    if (onlyHat != null) _currentOnlyHatFilter = onlyHat;
-    if (onlyFavorites != null) _currentOnlyFavoritesFilter = onlyFavorites;
-    if (onlyWanted != null) _currentOnlyWantedFilter = onlyWanted;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> setSort(String sortBy, bool descending) async {
-    if (_currentSortBy == sortBy && _currentSortDescending == descending) return;
-
-    _currentSortBy = sortBy;
-    _currentSortDescending = descending;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> clearFilters() async {
-    _currentSearch = '';
-    _currentTypeFilter = null;
-    _currentAttributeFilter = null;
-    _currentRaceFilter = null;
-    _currentSubTypeFilter = null;
-    _currentFrameFilter = null;
-    _currentLevelFilter = null;
-    _currentScaleFilter = null;
-    _currentLinkValFilter = null;
-    _currentAtkFilter = null;
-    _currentAtkOperator = null;
-    _currentAtkShowQuestionMark = null;
-    _currentDefFilter = null;
-    _currentDefOperator = null;
-    _currentDefShowQuestionMark = null;
-    _currentOnlyGoatFilter = false;
-    _currentOnlyEdisonFilter = false;
-    _currentOnlyHatFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> resetSearchAndFilters() async {
-    _currentSearch = '';
-    _currentTypeFilter = null;
-    _currentAttributeFilter = null;
-    _currentRaceFilter = null;
-    _currentSubTypeFilter = null;
-    _currentFrameFilter = null;
-    _currentLevelFilter = null;
-    _currentScaleFilter = null;
-    _currentLinkValFilter = null;
-    _currentAtkFilter = null;
-    _currentAtkOperator = null;
-    _currentAtkShowQuestionMark = null;
-    _currentDefFilter = null;
-    _currentDefOperator = null;
-    _currentDefShowQuestionMark = null;
-    _currentOnlyGoatFilter = false;
-    _currentOnlyEdisonFilter = false;
-    _currentOnlyHatFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-    _currentSortBy = 'name';
-    _currentSortDescending = false;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-}
-
-@riverpod
-class DeckCardList extends _$DeckCardList {
-  int _offset = 0;
-  final int _pageSize = 50;
-  String _currentSearch = '';
-  String? _currentTypeFilter;
-  String? _currentAttributeFilter;
-  String? _currentRaceFilter;
-  String? _currentSubTypeFilter;
-  String? _currentFrameFilter;
-  int? _currentLevelFilter;
-  int? _currentScaleFilter;
-  int? _currentLinkValFilter;
-  int? _currentAtkFilter;
-  String? _currentAtkOperator;
-  bool? _currentAtkShowQuestionMark;
-  int? _currentDefFilter;
-  String? _currentDefOperator;
-  bool? _currentDefShowQuestionMark;
-
-  String _currentSortBy = 'name';
-  bool _currentSortDescending = false;
-  bool _currentOnlyGoatFilter = false;
-  bool _currentOnlyEdisonFilter = false;
-  bool _currentOnlyHatFilter = false;
-  bool _currentOnlyFavoritesFilter = false;
-  bool _currentOnlyWantedFilter = false;
-
-  @override
-  FutureOr<CardListState> build() async {
-    _offset = 0;
-    _currentSearch = '';
-    _currentTypeFilter = null;
-    _currentAttributeFilter = null;
-    _currentRaceFilter = null;
-    _currentSubTypeFilter = null;
-    _currentFrameFilter = null;
-    _currentLevelFilter = null;
-    _currentScaleFilter = null;
-    _currentLinkValFilter = null;
-    _currentAtkFilter = null;
-    _currentAtkOperator = null;
-    _currentAtkShowQuestionMark = null;
-    _currentDefFilter = null;
-    _currentDefOperator = null;
-    _currentDefShowQuestionMark = null;
-    _currentSortBy = 'name';
-    _currentSortDescending = false;
-    _currentOnlyGoatFilter = false;
-    _currentOnlyEdisonFilter = false;
-    _currentOnlyHatFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-
-    final initialCards = await _fetchPage(0);
-    _offset = initialCards.length;
-
-    return CardListState(
-      cards: initialCards,
-      hasMore: initialCards.length >= _pageSize,
-    );
-  }
-
-  Future<List<YgoCard>> _fetchPage(int offset) async {
-    final repo = ref.read(cardRepositoryProvider);
-    return repo.getCardsPage(
-      offset: offset,
-      limit: _pageSize,
-      searchQuery: _currentSearch,
-      typeFilter: _currentTypeFilter,
-      attributeFilter: _currentAttributeFilter,
-      raceFilter: _currentRaceFilter,
-      subTypeFilter: _currentSubTypeFilter,
-      frameFilter: _currentFrameFilter,
-      levelFilter: _currentLevelFilter,
-      scaleFilter: _currentScaleFilter,
-      linkValFilter: _currentLinkValFilter,
-      atkFilter: _currentAtkFilter,
-      atkOperator: _currentAtkOperator,
-      atkShowQuestionMark: _currentAtkShowQuestionMark,
-      defFilter: _currentDefFilter,
-      defOperator: _currentDefOperator,
-      defShowQuestionMark: _currentDefShowQuestionMark,
-      sortBy: _currentSortBy,
-      sortDescending: _currentSortDescending,
-      onlyGoat: _currentOnlyGoatFilter,
-      onlyEdison: _currentOnlyEdisonFilter,
-      onlyHat: _currentOnlyHatFilter,
-      onlyFavorites: _currentOnlyFavoritesFilter,
-      onlyWanted: _currentOnlyWantedFilter,
-    );
-  }
-
-  bool get isFiltered =>
-      _currentTypeFilter != null ||
-      _currentAttributeFilter != null ||
-      _currentRaceFilter != null ||
-      _currentSubTypeFilter != null ||
-      _currentFrameFilter != null ||
-      _currentLevelFilter != null ||
-      _currentScaleFilter != null ||
-      _currentLinkValFilter != null ||
-      _currentAtkFilter != null ||
-      _currentAtkShowQuestionMark != null ||
-      _currentDefFilter != null ||
-      _currentDefShowQuestionMark != null ||
-      _currentOnlyGoatFilter ||
-      _currentOnlyEdisonFilter ||
-      _currentOnlyHatFilter ||
-      _currentOnlyFavoritesFilter ||
-      _currentOnlyWantedFilter;
-
-  String? get currentTypeFilter => _currentTypeFilter;
-  String? get currentAttributeFilter => _currentAttributeFilter;
-  String? get currentRaceFilter => _currentRaceFilter;
-  String? get currentSubTypeFilter => _currentSubTypeFilter;
-  String? get currentFrameFilter => _currentFrameFilter;
-  int? get currentLevelFilter => _currentLevelFilter;
-  int? get currentScaleFilter => _currentScaleFilter;
-  int? get currentLinkValFilter => _currentLinkValFilter;
-  int? get currentAtkFilter => _currentAtkFilter;
-  String? get currentAtkOperator => _currentAtkOperator;
-  bool? get currentAtkShowQuestionMark => _currentAtkShowQuestionMark;
-  int? get currentDefFilter => _currentDefFilter;
-  String? get currentDefOperator => _currentDefOperator;
-  bool? get currentDefShowQuestionMark => _currentDefShowQuestionMark;
-  bool get currentOnlyGoatFilter => _currentOnlyGoatFilter;
-  bool get currentOnlyEdisonFilter => _currentOnlyEdisonFilter;
-  bool get currentOnlyHatFilter => _currentOnlyHatFilter;
-  bool get currentOnlyFavoritesFilter => _currentOnlyFavoritesFilter;
-  bool get currentOnlyWantedFilter => _currentOnlyWantedFilter;
-
-  String get currentSortBy => _currentSortBy;
-  bool get currentSortDescending => _currentSortDescending;
-
-  Future<void> loadMore() async {
-    final currentState = state.value;
-    if (currentState == null || currentState.isLoadingMore || !currentState.hasMore) return;
-
-    state = AsyncValue.data(currentState.copyWith(isLoadingMore: true));
-
-    try {
-      final newCards = await _fetchPage(_offset);
-
-      state = AsyncValue.data(CardListState(
-        cards: [...currentState.cards, ...newCards],
-        hasMore: newCards.length >= _pageSize,
-        isLoadingMore: false,
-      ));
-
-      _offset += newCards.length;
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> search(String query) async {
-    if (_currentSearch == query) return;
-
-    _currentSearch = query;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
+    if (_filters.search == query) return;
+    await _reload(_filters.withSearch(query));
   }
 
   Future<void> applyFilters({
@@ -610,142 +130,54 @@ class DeckCardList extends _$DeckCardList {
     bool? onlyHat,
     bool? onlyFavorites,
     bool? onlyWanted,
-  }) async {
-    _currentTypeFilter = type;
-    _currentAttributeFilter = attribute;
-    _currentRaceFilter = race;
-    _currentSubTypeFilter = subType;
-    _currentFrameFilter = frame;
-    _currentLevelFilter = level;
-    _currentScaleFilter = scale;
-    _currentLinkValFilter = linkVal;
-    _currentAtkFilter = atk;
-    _currentAtkOperator = atkOperator;
-    _currentAtkShowQuestionMark = atkShowQuestionMark;
-    _currentDefFilter = def;
-    _currentDefOperator = defOperator;
-    _currentDefShowQuestionMark = defShowQuestionMark;
-    if (onlyGoat != null) _currentOnlyGoatFilter = onlyGoat;
-    if (onlyEdison != null) _currentOnlyEdisonFilter = onlyEdison;
-    if (onlyHat != null) _currentOnlyHatFilter = onlyHat;
-    if (onlyFavorites != null) _currentOnlyFavoritesFilter = onlyFavorites;
-    if (onlyWanted != null) _currentOnlyWantedFilter = onlyWanted;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
+  }) {
+    return _reload(_filters.withAttributes(
+      type: type,
+      attribute: attribute,
+      race: race,
+      subType: subType,
+      frame: frame,
+      level: level,
+      scale: scale,
+      linkVal: linkVal,
+      atk: atk,
+      atkOperator: atkOperator,
+      atkShowQuestionMark: atkShowQuestionMark,
+      def: def,
+      defOperator: defOperator,
+      defShowQuestionMark: defShowQuestionMark,
+      onlyGoat: onlyGoat,
+      onlyEdison: onlyEdison,
+      onlyHat: onlyHat,
+      onlyFavorites: onlyFavorites,
+      onlyWanted: onlyWanted,
+    ));
   }
 
   Future<void> setSort(String sortBy, bool descending) async {
-    if (_currentSortBy == sortBy && _currentSortDescending == descending) return;
-
-    _currentSortBy = sortBy;
-    _currentSortDescending = descending;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
+    if (_filters.sortBy == sortBy && _filters.sortDescending == descending) return;
+    await _reload(_filters.withSort(sortBy, descending));
   }
 
-  Future<void> clearFilters() async {
-    _currentSearch = '';
-    _currentTypeFilter = null;
-    _currentAttributeFilter = null;
-    _currentRaceFilter = null;
-    _currentSubTypeFilter = null;
-    _currentFrameFilter = null;
-    _currentLevelFilter = null;
-    _currentScaleFilter = null;
-    _currentLinkValFilter = null;
-    _currentAtkFilter = null;
-    _currentAtkOperator = null;
-    _currentAtkShowQuestionMark = null;
-    _currentDefFilter = null;
-    _currentDefOperator = null;
-    _currentDefShowQuestionMark = null;
-    _currentOnlyGoatFilter = false;
-    _currentOnlyEdisonFilter = false;
-    _currentOnlyHatFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-    _offset = 0;
+  /// Clears search and filters, keeping the current sort.
+  Future<void> clearFilters() => _reload(_filters.cleared());
 
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  Future<void> resetSearchAndFilters() async {
-    _currentSearch = '';
-    _currentTypeFilter = null;
-    _currentAttributeFilter = null;
-    _currentRaceFilter = null;
-    _currentSubTypeFilter = null;
-    _currentFrameFilter = null;
-    _currentLevelFilter = null;
-    _currentScaleFilter = null;
-    _currentLinkValFilter = null;
-    _currentAtkFilter = null;
-    _currentAtkOperator = null;
-    _currentAtkShowQuestionMark = null;
-    _currentDefFilter = null;
-    _currentDefOperator = null;
-    _currentDefShowQuestionMark = null;
-    _currentOnlyGoatFilter = false;
-    _currentOnlyEdisonFilter = false;
-    _currentOnlyHatFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-    _currentOnlyFavoritesFilter = false;
-    _currentOnlyWantedFilter = false;
-    _currentSortBy = 'name';
-    _currentSortDescending = false;
-    _offset = 0;
-
-    state = const AsyncValue.loading();
-    try {
-      final initialCards = await _fetchPage(0);
-      if (!ref.mounted) return;
-      state = AsyncValue.data(CardListState(
-        cards: initialCards,
-        hasMore: initialCards.length >= _pageSize,
-      ));
-      _offset = initialCards.length;
-    } catch (e, stack) {
-      if (!ref.mounted) return;
-      state = AsyncValue.error(e, stack);
-    }
-  }
+  /// Restores search, filters and sort to their defaults.
+  Future<void> resetSearchAndFilters() => _reload(const CardFilters());
 }
+
+/// Card list shown in the Collection tab.
+class CardList extends AsyncNotifier<CardListState> with PagedCardListMixin {
+  @override
+  Future<CardListState> build() => _buildFirstPage();
+}
+
+final cardListProvider = AsyncNotifierProvider.autoDispose<CardList, CardListState>(CardList.new);
+
+/// Card list shown in the deck builder sidebar.
+class DeckCardList extends AsyncNotifier<CardListState> with PagedCardListMixin {
+  @override
+  Future<CardListState> build() => _buildFirstPage();
+}
+
+final deckCardListProvider = AsyncNotifierProvider.autoDispose<DeckCardList, CardListState>(DeckCardList.new);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ygobinder/core/theme/theme_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -8,27 +9,6 @@ import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
-
-Color getThemeGreen(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.greenAccent : Colors.green.shade800;
-}
-
-Color getThemeAmber(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.amber : Colors.amber.shade900;
-}
-
-Color getThemeAccent(BuildContext context, Color baseColor) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
-  if (!isDark) {
-    if (baseColor == Colors.tealAccent) return Colors.teal.shade800;
-    if (baseColor == Colors.amber) return Colors.amber.shade900;
-  }
-  return baseColor;
-}
-
-Color getThemeOrange(BuildContext context) {
-  return Theme.of(context).brightness == Brightness.dark ? Colors.orangeAccent : Colors.orange.shade800;
-}
 
 class StatsTab extends ConsumerWidget {
   const StatsTab({super.key});

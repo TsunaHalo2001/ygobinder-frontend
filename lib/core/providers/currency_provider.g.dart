@@ -196,4 +196,4 @@ final class ActiveCurrencyInfoProvider
 }
 
 String _$activeCurrencyInfoHash() =>
-    r'ef76629fd899c0eeec21e0cf5d700984a1a7ad9a';
+    r'818c4b448bf19b928863c82ad54d27af66bd3e26';

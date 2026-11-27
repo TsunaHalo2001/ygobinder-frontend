@@ -5,8 +5,10 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
+import 'package:ygobinder/features/cards/data/services/price_resolver.dart';
 
 part 'app_database.g.dart';
 
@@ -247,6 +249,22 @@ class CurrencyRates extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Opens the database with a custom executor (used by tests).
+  AppDatabase.forTesting(super.executor);
+
+  static const _indexStatements = [
+    'CREATE INDEX IF NOT EXISTS cards_name_idx ON cards (name)',
+    'CREATE INDEX IF NOT EXISTS cards_archetype_idx ON cards (archetype)',
+    'CREATE INDEX IF NOT EXISTS card_sets_card_id_idx ON card_sets (card_id)',
+    'CREATE INDEX IF NOT EXISTS card_sets_set_code_idx ON card_sets (set_code)',
+    'CREATE INDEX IF NOT EXISTS card_images_card_id_idx ON card_images (card_id)',
+    'CREATE INDEX IF NOT EXISTS card_prices_card_id_idx ON card_prices (card_id)',
+    'CREATE INDEX IF NOT EXISTS collection_items_col_num_idx ON collection_items (collection_number)',
+    'CREATE INDEX IF NOT EXISTS collection_items_print_idx ON collection_items (card_id, set_code, rarity)',
+    'CREATE INDEX IF NOT EXISTS deck_cards_deck_id_idx ON deck_cards (deck_id)',
+    'CREATE INDEX IF NOT EXISTS set_card_prices_card_id_idx ON set_card_prices (card_id)',
+  ];
+
   @override
   int get schemaVersion => 17;
 
@@ -256,13 +274,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 2) {
-        // Create new indexes for faster search using raw SQL
-        await customStatement('CREATE INDEX IF NOT EXISTS cards_name_idx ON cards (name)');
-        await customStatement('CREATE INDEX IF NOT EXISTS cards_archetype_idx ON cards (archetype)');
-        await customStatement('CREATE INDEX IF NOT EXISTS card_sets_card_id_idx ON card_sets (card_id)');
-        await customStatement('CREATE INDEX IF NOT EXISTS card_sets_set_code_idx ON card_sets (set_code)');
-      }
+      // v2 only added indexes; they are now ensured in beforeOpen.
       if (from < 3) {
         // Add new columns to CollectionItems using Migrator
         await m.addColumn(collectionItems, collectionItems.setCode);
@@ -271,10 +283,6 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(collectionItems, collectionItems.language);
         await m.addColumn(collectionItems, collectionItems.isFirstEdition);
         await m.addColumn(collectionItems, collectionItems.priceAtPurchase);
-        
-        // Add indexes for the new columns using raw SQL for simplicity
-        await customStatement('CREATE INDEX IF NOT EXISTS collection_items_col_num_idx ON collection_items (collection_number)');
-        await customStatement('CREATE INDEX IF NOT EXISTS collection_items_print_idx ON collection_items (card_id, set_code, rarity)');
       }
       if (from < 5) {
         // Ensure columns exist with correct DateTime type (Handles both v4 and v5)
@@ -326,9 +334,15 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
-      await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
-      await customStatement('CREATE INDEX IF NOT EXISTS set_card_prices_card_id_idx ON set_card_prices (card_id)').catchError((_) {});
+      if (!details.wasCreated) {
+        await customStatement('ALTER TABLE set_card_prices ADD COLUMN set_code TEXT').catchError((_) {});
+        await customStatement('ALTER TABLE set_card_prices ADD COLUMN previous_market_price REAL').catchError((_) {});
+      }
+      // Indexes are (re)ensured on every open: older versions only created
+      // them in onUpgrade, so fresh installs never had them.
+      for (final statement in _indexStatements) {
+        await customStatement(statement).catchError((_) {});
+      }
     },
   );
 
@@ -359,6 +373,15 @@ class AppDatabase extends _$AppDatabase {
     return (select(cards)..where((t) => t.id.equals(cardId))).getSingleOrNull();
   }
 
+  /// Whether the global card table has any rows.
+  Future<bool> hasCards() async {
+    final row = await (selectOnly(cards)
+          ..addColumns([cards.id])
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
+
   Future<DriftCard?> getCardByName(String name) {
     return (select(cards)..where((t) => t.name.equals(name))).getSingleOrNull();
   }
@@ -385,39 +408,9 @@ class AppDatabase extends _$AppDatabase {
     return result?.read(cardSets.cardId);
   }
 
-  Future<List<DriftCard>> searchCards(String query) { // ← Fixed: DriftCard
-    return (select(cards)..where((t) => t.name.like('%$query%'))..limit(20)).get();
-  }
-
-  Future<List<DriftCard>> getCardsByArchetype(String archetype) { // ← Fixed: DriftCard
-    return (select(cards)
-      ..where((t) => t.archetype.equals(archetype))
-      ..orderBy([(t) => OrderingTerm.asc(t.name)]))
-        .get();
-  }
-
-  Stream<List<DriftCard>> watchAllCards() { // ← Fixed: DriftCard
-    return select(cards).watch();
-  }
-
   // ==========================================
   // COLLECTION QUERIES
   // ==========================================
-
-  Stream<List<CollectionItemWithCard>> watchCollection() { // ← Fixed: returns Stream, not Future
-    final query = select(collectionItems).join([
-      innerJoin(cards, cards.id.equalsExp(collectionItems.cardId)),
-    ]);
-
-    return query.watch().map((rows) {
-      return rows.map((row) {
-        return CollectionItemWithCard(
-          collectionItem: row.readTable(collectionItems),
-          card: row.readTable(cards),
-        );
-      }).toList();
-    });
-  }
 
   /// Fast query for deck builder: watches only collectionItems to map cardId -> totalQuantity
   Stream<Map<int, int>> watchCollectionCardQuantities() {
@@ -496,21 +489,23 @@ class AppDatabase extends _$AppDatabase {
     await refreshUserOwnedSets();
   }
 
-  Future<void> clearCollection() async {
-    await delete(collectionItems).go();
-    await refreshUserOwnedSets();
+  /// Removes every account-specific row (collection, decks, favorites,
+  /// wanted, owned sets). Global card data and settings are kept.
+  Future<void> clearUserData() async {
+    await transaction(() async {
+      await delete(collectionItems).go();
+      await delete(deckCards).go();
+      await delete(decks).go();
+      await delete(favoriteCards).go();
+      await delete(wantedCards).go();
+      await delete(userOwnedSets).go();
+    });
   }
 
   Future<int> deleteQuoteCollection() async {
     final deletedCount = await (delete(collectionItems)..where((t) => t.collectionNumber.equals(0))).go();
     await refreshUserOwnedSets();
     return deletedCount;
-  }
-
-  Future<int> getCollectionSize() async {
-    final query = selectOnly(collectionItems)..addColumns([collectionItems.id.count()]);
-    final result = await query.getSingle();
-    return result.read(collectionItems.id.count()) ?? 0;
   }
 
   Stream<int> watchTotalCardCount() {
@@ -579,253 +574,122 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<CardPriceStat>> watchTopExpensiveCards(int limit) {
-    late StreamController<List<CardPriceStat>> controller;
-    StreamSubscription? sub1;
-    StreamSubscription? sub2;
-
-    Future<void> recalculate() async {
-      try {
-        final items = await select(collectionItems).get();
-        if (items.isEmpty) {
-          if (!controller.isClosed) controller.add([]);
-          return;
-        }
-
-        final cardIds = items.map((i) => i.cardId).toSet().toList();
-
-        final driftCards = await (select(cards)..where((t) => t.id.isIn(cardIds))).get();
-        final cardNameById = {for (final c in driftCards) c.id: c.name};
-
-        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final globalPriceById = <int, double>{};
-        for (final p in gPrices) {
-          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-          globalPriceById[p.cardId] = price;
-        }
-
-        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final setPricesMap = <String, double>{};
-        for (final sp in sPrices) {
-          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          if (sp.setCode != null && sp.setCode!.isNotEmpty) {
-            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
-          }
-          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
-          if (price > currentMax) {
-            setPricesMap['${sp.cardId}'] = price;
-          }
-        }
-
-        final stats = <CardPriceStat>[];
-        for (final cardId in cardIds) {
-          final name = cardNameById[cardId];
-          if (name == null) continue;
-
-          final cardItems = items.where((i) => i.cardId == cardId);
-
-          double maxOwnedCardPrice = 0.0;
-
-          for (final item in cardItems) {
-            final baseSetCode = item.setCode.trim().toUpperCase();
-            final setPriceKey = '${item.cardId}_$baseSetCode';
-
-            final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
-            final globalPrice = globalPriceById[item.cardId] ?? 0.0;
-            final purchasePrice = item.priceAtPurchase ?? 0.0;
-
-            double itemPrice = setPrice;
-            if (itemPrice <= 0.0) itemPrice = globalPrice;
-            if (itemPrice <= 0.0) itemPrice = purchasePrice;
-
-            if (itemPrice > maxOwnedCardPrice) {
-              maxOwnedCardPrice = itemPrice;
-            }
-          }
-
-          if (maxOwnedCardPrice > 0.0) {
-            stats.add(CardPriceStat(
-              cardId: cardId,
-              cardName: name,
-              price: maxOwnedCardPrice,
-            ));
-          }
-        }
-
-        stats.sort((a, b) => b.price.compareTo(a.price));
-        if (!controller.isClosed) {
-          controller.add(stats.take(limit).toList());
-        }
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-      }
-    }
-
-    controller = StreamController<List<CardPriceStat>>(
-      onListen: () {
-        recalculate();
-        sub1 = select(collectionItems).watch().listen((_) => recalculate());
-        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
-      },
-      onCancel: () {
-        sub1?.cancel();
-        sub2?.cancel();
-        controller.close();
-      },
-    );
-
-    return controller.stream;
+    return _watchDerived({collectionItems, setCardPrices}, () => _topExpensiveCards(limit));
   }
 
   Stream<double> watchTotalCollectionValue() {
-    late StreamController<double> controller;
-    StreamSubscription? sub1;
-    StreamSubscription? sub2;
-
-    Future<void> recalculate() async {
-      try {
-        final items = await (select(collectionItems)..where((t) => t.collectionNumber.isNotValue(0))).get();
-        if (items.isEmpty) {
-          if (!controller.isClosed) controller.add(0.0);
-          return;
-        }
-
-        final cardIds = items.map((i) => i.cardId).toSet().toList();
-
-        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final globalPriceById = <int, double>{};
-        for (final p in gPrices) {
-          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-          globalPriceById[p.cardId] = price;
-        }
-
-        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final setPricesMap = <String, double>{};
-        for (final sp in sPrices) {
-          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          if (sp.setCode != null) {
-            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
-          }
-          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
-          if (price > currentMax) {
-            setPricesMap['${sp.cardId}'] = price;
-          }
-        }
-
-        double totalValue = 0.0;
-
-        for (final item in items) {
-          final baseSetCode = item.setCode.trim().toUpperCase();
-          final setPriceKey = '${item.cardId}_$baseSetCode';
-
-          final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
-          final globalPrice = globalPriceById[item.cardId] ?? 0.0;
-          final purchasePrice = item.priceAtPurchase ?? 0.0;
-
-          double cardPrice = setPrice;
-          if (cardPrice <= 0.0) cardPrice = globalPrice;
-          if (cardPrice <= 0.0) cardPrice = purchasePrice;
-
-          totalValue += cardPrice * item.quantity;
-        }
-
-        if (!controller.isClosed) {
-          controller.add(totalValue);
-        }
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-      }
-    }
-
-    controller = StreamController<double>(
-      onListen: () {
-        recalculate();
-        sub1 = select(collectionItems).watch().listen((_) => recalculate());
-        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
-      },
-      onCancel: () {
-        sub1?.cancel();
-        sub2?.cancel();
-        controller.close();
-      },
-    );
-
-    return controller.stream;
+    return _watchDerived({collectionItems, setCardPrices}, () => _collectionValue(quote: false));
   }
 
   Stream<double> watchQuoteCollectionValue() {
-    late StreamController<double> controller;
-    StreamSubscription? sub1;
-    StreamSubscription? sub2;
+    return _watchDerived({collectionItems, setCardPrices}, () => _collectionValue(quote: true));
+  }
 
-    Future<void> recalculate() async {
-      try {
-        final items = await (select(collectionItems)..where((t) => t.collectionNumber.equals(0))).get();
-        if (items.isEmpty) {
-          if (!controller.isClosed) controller.add(0.0);
-          return;
+  /// Emits [compute] on listen and again whenever any of [tables] changes.
+  ///
+  /// Uses drift's table-update notifications (no query just to detect
+  /// changes) and coalesces bursts: while a computation runs, further
+  /// changes schedule exactly one more run, so results are never emitted
+  /// out of order.
+  Stream<T> _watchDerived<T>(Set<TableInfo> tables, Future<T> Function() compute) {
+    late StreamController<T> controller;
+    StreamSubscription<Set<TableUpdate>>? updatesSub;
+    var running = false;
+    var dirty = false;
+
+    Future<void> run() async {
+      if (running) {
+        dirty = true;
+        return;
+      }
+      running = true;
+      do {
+        dirty = false;
+        try {
+          final value = await compute();
+          if (!dirty && !controller.isClosed) controller.add(value);
+        } catch (e, stack) {
+          if (!dirty && !controller.isClosed) controller.addError(e, stack);
         }
+      } while (dirty && !controller.isClosed);
+      running = false;
+    }
 
-        final cardIds = items.map((i) => i.cardId).toSet().toList();
+    controller = StreamController<T>(
+      onListen: () {
+        run();
+        updatesSub = tableUpdates(TableUpdateQuery.onAllTables(tables)).listen((_) => run());
+      },
+      onCancel: () async {
+        await updatesSub?.cancel();
+        await controller.close();
+      },
+    );
+    return controller.stream;
+  }
 
-        final gPrices = await (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final globalPriceById = <int, double>{};
-        for (final p in gPrices) {
-          final price = p.tcgPlayerPrice ?? p.cardMarketPrice ?? 0.0;
-          globalPriceById[p.cardId] = price;
-        }
+  /// Loads every price needed to value the given cards.
+  Future<PriceResolver> _loadPriceResolver(List<int> cardIds) async {
+    final (globalPrices, setPrices) = await (
+      (select(cardPrices)..where((t) => t.cardId.isIn(cardIds))).get(),
+      (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get(),
+    ).wait;
+    return PriceResolver(globalPrices: globalPrices, setPrices: setPrices);
+  }
 
-        final sPrices = await (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-        final setPricesMap = <String, double>{};
-        for (final sp in sPrices) {
-          final price = sp.marketPrice ?? sp.lowPrice ?? 0.0;
-          if (sp.setCode != null) {
-            setPricesMap['${sp.cardId}_${sp.setCode!.toUpperCase()}'] = price;
-          }
-          final currentMax = setPricesMap['${sp.cardId}'] ?? 0.0;
-          if (price > currentMax) {
-            setPricesMap['${sp.cardId}'] = price;
-          }
-        }
+  /// Total value of the real collections ([quote] false) or of the quote
+  /// collection #0 ([quote] true).
+  Future<double> _collectionValue({required bool quote}) async {
+    final items = await (select(collectionItems)
+          ..where((t) => quote ? t.collectionNumber.equals(0) : t.collectionNumber.isNotValue(0)))
+        .get();
+    if (items.isEmpty) return 0.0;
 
-        double totalValue = 0.0;
+    final resolver = await _loadPriceResolver(items.map((i) => i.cardId).toSet().toList());
+    var totalValue = 0.0;
+    for (final item in items) {
+      totalValue += resolver.collectionItemPrice(item) * item.quantity;
+    }
+    return totalValue;
+  }
 
-        for (final item in items) {
-          final baseSetCode = item.setCode.trim().toUpperCase();
-          final setPriceKey = '${item.cardId}_$baseSetCode';
+  Future<List<CardPriceStat>> _topExpensiveCards(int limit) async {
+    final items = await select(collectionItems).get();
+    if (items.isEmpty) return [];
 
-          final setPrice = setPricesMap[setPriceKey] ?? setPricesMap['${item.cardId}'] ?? 0.0;
-          final globalPrice = globalPriceById[item.cardId] ?? 0.0;
-          final purchasePrice = item.priceAtPurchase ?? 0.0;
+    final itemsByCard = <int, List<DriftCollectionItem>>{};
+    for (final item in items) {
+      itemsByCard.putIfAbsent(item.cardId, () => []).add(item);
+    }
+    final cardIds = itemsByCard.keys.toList();
 
-          double cardPrice = setPrice;
-          if (cardPrice <= 0.0) cardPrice = globalPrice;
-          if (cardPrice <= 0.0) cardPrice = purchasePrice;
+    final (namesRows, resolver) = await (
+      (selectOnly(cards)
+            ..addColumns([cards.id, cards.name])
+            ..where(cards.id.isIn(cardIds)))
+          .get(),
+      _loadPriceResolver(cardIds),
+    ).wait;
+    final cardNameById = {for (final r in namesRows) r.read(cards.id)!: r.read(cards.name)!};
 
-          totalValue += cardPrice * item.quantity;
-        }
+    final stats = <CardPriceStat>[];
+    for (final entry in itemsByCard.entries) {
+      final name = cardNameById[entry.key];
+      if (name == null) continue;
 
-        if (!controller.isClosed) {
-          controller.add(totalValue);
-        }
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
+      var maxOwnedCardPrice = 0.0;
+      for (final item in entry.value) {
+        final itemPrice = resolver.collectionItemPrice(item);
+        if (itemPrice > maxOwnedCardPrice) maxOwnedCardPrice = itemPrice;
+      }
+
+      if (maxOwnedCardPrice > 0.0) {
+        stats.add(CardPriceStat(cardId: entry.key, cardName: name, price: maxOwnedCardPrice));
       }
     }
 
-    controller = StreamController<double>(
-      onListen: () {
-        recalculate();
-        sub1 = select(collectionItems).watch().listen((_) => recalculate());
-        sub2 = select(setCardPrices).watch().listen((_) => recalculate());
-      },
-      onCancel: () {
-        sub1?.cancel();
-        sub2?.cancel();
-        controller.close();
-      },
-    );
-
-    return controller.stream;
+    stats.sort((a, b) => b.price.compareTo(a.price));
+    return stats.take(limit).toList();
   }
 
   Stream<YgoCard?> watchNewestCard() {
@@ -892,32 +756,6 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
 
   // ← Fixed: Removed 'drift.' prefix. These classes are generated in this same file.
-  Future<void> saveCard(CardsCompanion card) async {
-    await into(cards).insertOnConflictUpdate(card);
-  }
-
-  Future<void> saveCardImages(List<CardImagesCompanion> images) async {
-    await batch((batch) {
-      batch.insertAll(cardImages, images, mode: InsertMode.insertOrReplace);
-    });
-  }
-
-  Future<void> saveCardPrices(List<CardPricesCompanion> prices) async {
-    await batch((batch) {
-      batch.insertAll(cardPrices, prices, mode: InsertMode.insertOrReplace);
-    });
-  }
-
-  Future<void> saveCardSets(List<CardSetsCompanion> sets) async {
-    await batch((batch) {
-      batch.insertAll(cardSets, sets, mode: InsertMode.insertOrReplace);
-    });
-  }
-
-  Future<void> saveBanlistInfo(BanlistInfosCompanion banlistInfo) async {
-    await into(banlistInfos).insertOnConflictUpdate(banlistInfo);
-  }
-
   // ==========================================
   // GET RELATED DATA
   // ==========================================
@@ -947,36 +785,32 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  // Add this inside AppDatabase
   Future<List<DriftCard>> getCardsPage({
     required int offset,
     required int limit,
-    String? searchQuery,
-    String? typeFilter,
-    String? attributeFilter,
-    String? raceFilter,
-    String? subTypeFilter, // ✅ Added sub-type filter
-    String? frameFilter, // ✅ Added frame filter
-    int? levelFilter, // ✅ Added level filter
-    int? scaleFilter, // ✅ Added scale filter
-    int? linkValFilter, // ✅ Added link val filter
-    int? atkFilter,
-    String? atkOperator,
-    bool? atkShowQuestionMark, // ✅ Added
-    int? defFilter,
-    String? defOperator,
-    bool? defShowQuestionMark, // ✅ Added
-    String? sortBy, // ✅ Added sort field
-    bool sortDescending = false, // ✅ Added sort direction
-    bool onlyGoat = false, // ✅ Added only Goat filter
-    bool onlyEdison = false, // ✅ Added only Edison filter
-    bool onlyHat = false, // ✅ Added only Hat filter
-    bool onlyFavorites = false, // ✅ Added only Favorites filter
-    bool onlyWanted = false, // ✅ Added only Wanted filter
+    CardFilters filters = const CardFilters(),
   }) {
+    final searchQuery = filters.search;
+    final typeFilter = filters.type;
+    final attributeFilter = filters.attribute;
+    final raceFilter = filters.race;
+    final subTypeFilter = filters.subType;
+    final frameFilter = filters.frame;
+    final levelFilter = filters.level;
+    final scaleFilter = filters.scale;
+    final linkValFilter = filters.linkVal;
+    final atkFilter = filters.atk;
+    final atkOperator = filters.atkOperator;
+    final atkShowQuestionMark = filters.atkShowQuestionMark;
+    final defFilter = filters.def;
+    final defOperator = filters.defOperator;
+    final defShowQuestionMark = filters.defShowQuestionMark;
+    final sortBy = filters.sortBy;
+    final sortDescending = filters.sortDescending;
+
     var query = select(cards);
 
-    if (searchQuery != null && searchQuery.isNotEmpty) {
+    if (searchQuery.isNotEmpty) {
       final safeQuery = '%$searchQuery%';
       
       query = query..where((t) {
@@ -1070,7 +904,7 @@ class AppDatabase extends _$AppDatabase {
       }
     }
 
-    if (onlyGoat) {
+    if (filters.onlyGoat) {
       final goatCutoff = DateTime(2005, 8, 17, 23, 59, 59);
       query = query..where((t) => t.tcgDate.isNotNull() & t.tcgDate.isSmallerOrEqualValue(goatCutoff));
       query = query..where((t) => t.frameType.like('%synchro%').not() &
@@ -1093,7 +927,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyEdison) {
+    if (filters.onlyEdison) {
       // ✅ Filter for cards available in Edison
       query = query..where((t) {
         return t.id.isInQuery(
@@ -1104,7 +938,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyHat) {
+    if (filters.onlyHat) {
       final hatCutoff = DateTime(2014, 5, 16, 23, 59, 59);
       query = query..where((t) => t.tcgDate.isNotNull() & t.tcgDate.isSmallerOrEqualValue(hatCutoff));
       query = query..where((t) => t.frameType.like('%pendulum%').not() &
@@ -1122,7 +956,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyFavorites) {
+    if (filters.onlyFavorites) {
       query = query..where((t) {
         return t.id.isInQuery(
           selectOnly(favoriteCards)..addColumns([favoriteCards.cardId])
@@ -1130,7 +964,7 @@ class AppDatabase extends _$AppDatabase {
       });
     }
 
-    if (onlyWanted) {
+    if (filters.onlyWanted) {
       query = query..where((t) {
         return t.id.isInQuery(
           selectOnly(wantedCards)..addColumns([wantedCards.cardId])
@@ -1203,147 +1037,101 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
-      // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
-      final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
-      final existingCardIds = await (selectOnly(cards)..addColumns([cards.id])..where(cards.id.isIn(allCardIds)))
-          .get()
-          .then((rows) => rows.map((r) => r.read(cards.id)).toSet());
-
-      for (final entry in categorizedCards.entries) {
-        final category = entry.key;
-        final cardIds = entry.value;
-
-        for (final cardId in cardIds) {
-          if (!existingCardIds.contains(cardId)) continue; // Skip missing cards
-
-          await into(deckCards).insert(
-            DeckCardsCompanion.insert(
-              deckId: deckId,
-              cardId: cardId,
-              category: category,
-            ),
-          );
-        }
-      }
-
+      await _insertDeckCards(deckId, categorizedCards);
       return deckId;
     });
   }
 
   // ==========================================
-  // FAVORITES QUERIES
+  // FAVORITES / WANTED QUERIES
   // ==========================================
+  // Both tables share the same shape (cardId PK, syncId, timestamps), so the
+  // logic lives in the generic helpers below.
 
-  Stream<bool> watchIsFavorite(int cardId) {
-    return (select(favoriteCards)..where((t) => t.cardId.equals(cardId)))
-        .watch()
-        .map((rows) => rows.isNotEmpty);
-  }
+  Stream<bool> watchIsFavorite(int cardId) => _watchFlag(favoriteCards, favoriteCards.cardId, cardId);
 
-  Future<bool> isFavorite(int cardId) async {
-    final item = await (select(favoriteCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    return item != null;
-  }
-
-  Future<bool> toggleFavorite(int cardId, {String? syncId}) async {
-    final existing = await (select(favoriteCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    if (existing != null) {
-      await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
-      return false;
-    } else {
-      final id = syncId ?? const Uuid().v4();
-      await into(favoriteCards).insert(
-        FavoriteCardsCompanion.insert(
-          cardId: Value(cardId),
-          syncId: Value(id),
-          createdAt: Value(DateTime.now()),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
-      return true;
-    }
-  }
-
-  Stream<List<int>> watchFavoriteCardIds() {
-    return select(favoriteCards).watch().map((rows) => rows.map((r) => r.cardId).toList());
-  }
-
-  Future<List<DriftFavoriteCard>> getAllFavoriteCards() {
-    return select(favoriteCards).get();
-  }
-
-  Future<void> upsertFavoriteCard(int cardId, String syncId, DateTime updatedAt) async {
-    await into(favoriteCards).insert(
-      FavoriteCardsCompanion.insert(
+  Future<bool> toggleFavorite(int cardId, {String? syncId}) {
+    return _toggleFlag(
+      favoriteCards,
+      favoriteCards.cardId,
+      cardId,
+      (id, now) => FavoriteCardsCompanion.insert(
         cardId: Value(cardId),
-        syncId: Value(syncId),
-        createdAt: Value(updatedAt),
-        updatedAt: Value(updatedAt),
+        syncId: Value(syncId ?? id),
+        createdAt: Value(now),
+        updatedAt: Value(now),
       ),
-      mode: InsertMode.insertOrReplace,
     );
   }
 
-  Future<void> removeFavoriteCard(int cardId) async {
-    await (delete(favoriteCards)..where((t) => t.cardId.equals(cardId))).go();
+  /// Inserts or replaces favorites pulled from the cloud in one batch.
+  Future<void> upsertFavoriteCards(List<CardFlagRecord> records) {
+    return batch((b) => b.insertAll(
+          favoriteCards,
+          [
+            for (final r in records)
+              FavoriteCardsCompanion.insert(
+                cardId: Value(r.cardId),
+                syncId: Value(r.syncId),
+                createdAt: Value(r.updatedAt),
+                updatedAt: Value(r.updatedAt),
+              ),
+          ],
+          mode: InsertMode.insertOrReplace,
+        ));
   }
 
-  // ==========================================
-  // WANTED QUERIES
-  // ==========================================
+  Stream<bool> watchIsWanted(int cardId) => _watchFlag(wantedCards, wantedCards.cardId, cardId);
 
-  Stream<bool> watchIsWanted(int cardId) {
-    return (select(wantedCards)..where((t) => t.cardId.equals(cardId)))
-        .watch()
-        .map((rows) => rows.isNotEmpty);
-  }
-
-  Future<bool> isWanted(int cardId) async {
-    final item = await (select(wantedCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    return item != null;
-  }
-
-  Future<bool> toggleWanted(int cardId, {String? syncId}) async {
-    final existing = await (select(wantedCards)..where((t) => t.cardId.equals(cardId))).getSingleOrNull();
-    if (existing != null) {
-      await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
-      return false;
-    } else {
-      final id = syncId ?? const Uuid().v4();
-      await into(wantedCards).insert(
-        WantedCardsCompanion.insert(
-          cardId: Value(cardId),
-          syncId: Value(id),
-          createdAt: Value(DateTime.now()),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
-      return true;
-    }
-  }
-
-  Stream<List<int>> watchWantedCardIds() {
-    return select(wantedCards).watch().map((rows) => rows.map((r) => r.cardId).toList());
-  }
-
-  Future<List<DriftWantedCard>> getAllWantedCards() {
-    return select(wantedCards).get();
-  }
-
-  Future<void> upsertWantedCard(int cardId, String syncId, DateTime updatedAt) async {
-    await into(wantedCards).insert(
-      WantedCardsCompanion.insert(
+  Future<bool> toggleWanted(int cardId, {String? syncId}) {
+    return _toggleFlag(
+      wantedCards,
+      wantedCards.cardId,
+      cardId,
+      (id, now) => WantedCardsCompanion.insert(
         cardId: Value(cardId),
-        syncId: Value(syncId),
-        createdAt: Value(updatedAt),
-        updatedAt: Value(updatedAt),
+        syncId: Value(syncId ?? id),
+        createdAt: Value(now),
+        updatedAt: Value(now),
       ),
-      mode: InsertMode.insertOrReplace,
     );
   }
 
-  Future<void> removeWantedCard(int cardId) async {
-    await (delete(wantedCards)..where((t) => t.cardId.equals(cardId))).go();
+  /// Inserts or replaces wanted cards pulled from the cloud in one batch.
+  Future<void> upsertWantedCards(List<CardFlagRecord> records) {
+    return batch((b) => b.insertAll(
+          wantedCards,
+          [
+            for (final r in records)
+              WantedCardsCompanion.insert(
+                cardId: Value(r.cardId),
+                syncId: Value(r.syncId),
+                createdAt: Value(r.updatedAt),
+                updatedAt: Value(r.updatedAt),
+              ),
+          ],
+          mode: InsertMode.insertOrReplace,
+        ));
+  }
+
+  Stream<bool> _watchFlag<T extends Table, D>(TableInfo<T, D> table, GeneratedColumn<int> cardIdColumn, int cardId) {
+    return (select(table)..where((_) => cardIdColumn.equals(cardId))).watch().map((rows) => rows.isNotEmpty);
+  }
+
+  /// Removes the flag if present, otherwise inserts [buildRow] (with a fresh
+  /// sync id). Returns the new flag state.
+  Future<bool> _toggleFlag<T extends Table, D>(
+    TableInfo<T, D> table,
+    GeneratedColumn<int> cardIdColumn,
+    int cardId,
+    Insertable<D> Function(String newSyncId, DateTime now) buildRow,
+  ) {
+    return transaction(() async {
+      final removed = await (delete(table)..where((_) => cardIdColumn.equals(cardId))).go();
+      if (removed > 0) return false;
+      await into(table).insert(buildRow(const Uuid().v4(), DateTime.now()));
+      return true;
+    });
   }
 
   // ==========================================
@@ -1352,18 +1140,6 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<DriftSetInfo>> getAllSetInfos() {
     return (select(setInfos)..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
-  }
-
-  Stream<List<DriftSetInfo>> watchAllSetInfos() {
-    return (select(setInfos)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
-  }
-
-  Future<DriftSetInfo?> getSetInfoByAbbreviation(String abbreviation) {
-    return (select(setInfos)..where((t) => t.abbreviation.equals(abbreviation))).getSingleOrNull();
-  }
-
-  Future<DriftSetInfo?> getSetInfoByName(String name) {
-    return (select(setInfos)..where((t) => t.name.equals(name))).getSingleOrNull();
   }
 
   Future<void> upsertDeck(String syncId, String name, Map<String, List<int>> categorizedCards, DateTime updatedAt) async {
@@ -1392,27 +1168,30 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
-      // Filter out card IDs that don't exist in the database to avoid FK constraints (Error 787)
-      final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
-      final existingCardIds = await (selectOnly(cards)..addColumns([cards.id])..where(cards.id.isIn(allCardIds)))
-          .get()
-          .then((rows) => rows.map((r) => r.read(cards.id)).toSet());
-
-      for (final entry in categorizedCards.entries) {
-        final category = entry.key;
-        for (final cardId in entry.value) {
-          if (!existingCardIds.contains(cardId)) continue; // Skip missing cards
-
-          await into(deckCards).insert(
-            DeckCardsCompanion.insert(
-              deckId: deckId,
-              cardId: cardId,
-              category: category,
-            ),
-          );
-        }
-      }
+      await _insertDeckCards(deckId, categorizedCards);
     });
+  }
+
+  /// Inserts the deck's cards in one batch, skipping card ids that are not in
+  /// the local database (they would violate the foreign key, error 787).
+  Future<void> _insertDeckCards(int deckId, Map<String, List<int>> categorizedCards) async {
+    final allCardIds = categorizedCards.values.expand((e) => e).toSet().toList();
+    if (allCardIds.isEmpty) return;
+
+    final existingRows = await (selectOnly(cards)
+          ..addColumns([cards.id])
+          ..where(cards.id.isIn(allCardIds)))
+        .get();
+    final existingCardIds = existingRows.map((r) => r.read(cards.id)).toSet();
+
+    final rows = [
+      for (final entry in categorizedCards.entries)
+        for (final cardId in entry.value)
+          if (existingCardIds.contains(cardId))
+            DeckCardsCompanion.insert(deckId: deckId, cardId: cardId, category: entry.key),
+    ];
+    if (rows.isEmpty) return;
+    await batch((b) => b.insertAll(deckCards, rows));
   }
 
   Future<DriftDeck?> getDeckBySyncId(String syncId) {
@@ -1438,10 +1217,6 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // USER OWNED SETS QUERIES
   // ==========================================
-
-  Stream<List<DriftUserOwnedSet>> watchUserOwnedSets() {
-    return (select(userOwnedSets)..orderBy([(t) => OrderingTerm.desc(t.totalCardsOwned)])).watch();
-  }
 
   Future<List<DriftUserOwnedSet>> getUserOwnedSets() {
     return (select(userOwnedSets)..orderBy([(t) => OrderingTerm.desc(t.totalCardsOwned)])).get();
@@ -1479,11 +1254,19 @@ class AppDatabase extends _$AppDatabase {
         for (final info in allSetInfos) info.name.toUpperCase(): info
       };
 
-      final allCardSets = await select(cardSets).get();
+      // Only codes unknown to setInfos need a name from card_sets; look those
+      // up individually instead of loading the whole (100k+ rows) table.
       final setNameByAbbr = <String, String>{};
-      for (final cs in allCardSets) {
-        final baseCode = cs.setCode.contains('-') ? cs.setCode.split('-').first.toUpperCase() : cs.setCode.toUpperCase();
-        setNameByAbbr.putIfAbsent(baseCode, () => cs.setName);
+      for (final baseCode in ownedSetCounts.keys) {
+        if (setInfoByAbbr.containsKey(baseCode)) continue;
+        final row = await (selectOnly(cardSets)
+              ..addColumns([cardSets.setName])
+              ..where(cardSets.setCode.like('$baseCode-%') | cardSets.setCode.equals(baseCode))
+              ..orderBy([OrderingTerm.asc(cardSets.id)])
+              ..limit(1))
+            .getSingleOrNull();
+        final name = row?.read(cardSets.setName);
+        if (name != null) setNameByAbbr[baseCode] = name;
       }
 
       final companions = <UserOwnedSetsCompanion>[];
@@ -1544,19 +1327,42 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  Future<List<DriftSetCardPrice>> getPricesForSetAndCard(int setId, int cardId) {
-    return (select(setCardPrices)
-          ..where((t) => t.setId.equals(setId) & t.cardId.equals(cardId)))
-        .get();
+  Future<List<DriftSetCardPrice>> getSetCardPricesForSet(int setId) {
+    return (select(setCardPrices)..where((t) => t.setId.equals(setId))).get();
+  }
+
+  /// Deletes price rows whose card id does not exist (legacy rows keyed by
+  /// TCGplayer product id).
+  Future<int> deleteOrphanSetCardPrices() {
+    return customUpdate(
+      'DELETE FROM set_card_prices WHERE card_id NOT IN (SELECT id FROM cards)',
+      updates: {setCardPrices},
+      updateKind: UpdateKind.delete,
+    );
+  }
+
+  /// Returns one printing per card for every card that has a printing whose
+  /// code starts with `PREFIX-` (e.g. `LOB` → `LOB-EN001`).
+  Future<List<CardPrinting>> getCardPrintingsBySetPrefix(String prefix) async {
+    final query = select(cardSets).join([
+      innerJoin(cards, cards.id.equalsExp(cardSets.cardId)),
+    ])
+      ..where(cardSets.setCode.like('${prefix.toUpperCase()}-%'));
+
+    final rows = await query.get();
+    final byCard = <int, CardPrinting>{};
+    for (final row in rows) {
+      final cs = row.readTable(cardSets);
+      byCard.putIfAbsent(
+        cs.cardId,
+        () => CardPrinting(cardId: cs.cardId, setCode: cs.setCode, cardName: row.readTable(cards).name),
+      );
+    }
+    return byCard.values.toList();
   }
 
   Stream<List<DriftSetCardPrice>> watchPricesForCard(int cardId) {
     return (select(setCardPrices)..where((t) => t.cardId.equals(cardId))).watch();
-  }
-
-  Stream<List<DriftSetCardPrice>> watchPricesForCardIds(List<int> cardIds) {
-    if (cardIds.isEmpty) return Stream.value([]);
-    return (select(setCardPrices)..where((t) => t.cardId.isIn(cardIds))).watch();
   }
 
   // ==========================================
@@ -1573,13 +1379,6 @@ class AppDatabase extends _$AppDatabase {
     return select(currencyRates).watch();
   }
 
-  Future<List<DriftCurrencyRate>> getAllCurrencyRates() {
-    return select(currencyRates).get();
-  }
-
-  Future<DriftCurrencyRate?> getCurrencyRate(String code) {
-    return (select(currencyRates)..where((t) => t.currencyCode.equals(code.toUpperCase()))).getSingleOrNull();
-  }
 }
 
 // ==========================================
@@ -1598,13 +1397,19 @@ LazyDatabase _openConnection() {
 // HELPER CLASSES
 // ==========================================
 
-class CollectionItemWithCard {
-  final DriftCollectionItem collectionItem; // ← Fixed: DriftCollectionItem
-  final DriftCard card; // ← Fixed: DriftCard
 
-  CollectionItemWithCard({
-    required this.collectionItem,
-    required this.card,
+/// A favorite/wanted flag as stored in the cloud.
+typedef CardFlagRecord = ({int cardId, String syncId, DateTime updatedAt});
+
+class CardPrinting {
+  final int cardId;
+  final String setCode;
+  final String cardName;
+
+  const CardPrinting({
+    required this.cardId,
+    required this.setCode,
+    required this.cardName,
   });
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ygobinder/features/cards/data/models/ban_status.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
 import 'package:ygobinder/features/cards/presentation/providers/card_list_provider.dart';
 import 'package:ygobinder/core/providers/image_cache_provider.dart';
@@ -216,13 +217,12 @@ class CardGridItem extends ConsumerWidget {
     if (info == null) return const SizedBox.shrink();
     final List<Widget> items = [];
     void addIcon(String? status, String label) {
-      if (status == null) return;
-      final String s = status.toLowerCase();
-      if (s == 'banned' || s == 'prohibited' || s == 'forbidden' || s == 'limited' || s == 'semi-limited' || s == 'semilimited' || s == '0' || s == '1' || s == '2') {
+      final banStatus = parseBanStatus(status);
+      if (banStatus != BanStatus.unlimited) {
         IconData iconData = Icons.block;
         Color iconColor = Colors.redAccent;
-        if (s == 'limited' || s == '1') { iconData = Icons.looks_one_outlined; iconColor = Colors.orangeAccent; }
-        else if (s.contains('semi') || s == '2') { iconData = Icons.looks_two_outlined; iconColor = Colors.yellowAccent; }
+        if (banStatus == BanStatus.limited) { iconData = Icons.looks_one_outlined; iconColor = Colors.orangeAccent; }
+        else if (banStatus == BanStatus.semiLimited) { iconData = Icons.looks_two_outlined; iconColor = Colors.yellowAccent; }
         items.add(Stack(alignment: Alignment.center, children: [
           Icon(iconData, color: iconColor, size: 32),
           Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/firebase_providers.dart';
+import 'package:ygobinder/features/decks/data/ydk.dart';
 import 'package:ygobinder/features/auth/presentation/providers/auth_provider.dart';
 
 part 'deck_sync_repository.g.dart';
@@ -32,15 +33,13 @@ class DeckSyncRepository {
     final collection = _userDecksCollection;
     if (collection == null || deck.syncId == null) return;
 
-    final main = cards.where((c) => c.category == 'main').map((c) => c.cardId).toList();
-    final extra = cards.where((c) => c.category == 'extra').map((c) => c.cardId).toList();
-    final side = cards.where((c) => c.category == 'side').map((c) => c.cardId).toList();
+    final grouped = groupDeckCardsByCategory(cards);
 
     await collection.doc(deck.syncId).set({
       'name': deck.name,
-      'main': main,
-      'extra': extra,
-      'side': side,
+      'main': grouped['main'],
+      'extra': grouped['extra'],
+      'side': grouped['side'],
       'updatedAt': Timestamp.fromDate(deck.updatedAt),
     }, SetOptions(merge: true));
   }

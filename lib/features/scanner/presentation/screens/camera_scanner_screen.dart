@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,7 @@ class CameraScannerScreen extends ConsumerStatefulWidget {
 
 class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> with WidgetsBindingObserver {
   CameraController? _controller;
+  CameraDescription? _pausedCamera;
   int _selectedCameraIndex = 0;
   FlashMode _flashMode = FlashMode.off;
   bool _isInitialized = false;
@@ -40,37 +42,50 @@ class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> with 
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final CameraController? cameraController = _controller;
 
+    if (state == AppLifecycleState.resumed) {
+      final paused = _pausedCamera;
+      if (paused != null && _controller == null) {
+        _pausedCamera = null;
+        _initializeCamera(paused);
+      }
+      return;
+    }
+
     // App state changed before we got the chance to initialize.
     if (cameraController == null || !cameraController.value.isInitialized) {
       return;
     }
 
     if (state == AppLifecycleState.inactive) {
+      // Drop the reference before disposing so build() never renders a
+      // disposed controller; remember the camera to restore it on resume.
+      _pausedCamera = cameraController.description;
+      _controller = null;
+      if (mounted) setState(() => _isInitialized = false);
       cameraController.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera(cameraController.description);
     }
   }
 
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
-    if (_controller != null) {
-      await _controller!.dispose();
-    }
-
-    _controller = CameraController(
+    final previous = _controller;
+    final controller = CameraController(
       cameraDescription,
       ResolutionPreset.high,
       enableAudio: false,
     );
+    _controller = controller;
+    if (previous != null) {
+      if (mounted) setState(() => _isInitialized = false);
+      await previous.dispose();
+    }
 
     try {
-      await _controller!.initialize();
-      await _controller!.setFlashMode(_flashMode);
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-      }
+      await controller.initialize();
+      await controller.setFlashMode(_flashMode);
+      if (!mounted || _controller != controller) return;
+      setState(() {
+        _isInitialized = true;
+      });
     } catch (e) {
       debugPrint('Camera error: $e');
     }
@@ -120,10 +135,15 @@ class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> with 
 
     try {
       final XFile file = await _controller!.takePicture();
-      
-      // Process with OCR
+
+      // Process with OCR, then delete the temporary capture
       final inputImage = InputImage.fromFilePath(file.path);
-      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+      final RecognizedText recognizedText;
+      try {
+        recognizedText = await _textRecognizer.processImage(inputImage);
+      } finally {
+        File(file.path).delete().ignore();
+      }
       
       final List<String> lines = recognizedText.blocks
           .expand((block) => block.lines)
@@ -174,7 +194,8 @@ class _CameraScannerScreenState extends ConsumerState<CameraScannerScreen> with 
             return const Center(child: Text('No cameras found'));
           }
 
-          if (!_isInitialized && _controller == null) {
+          // Lazily start the first camera (not while paused in background).
+          if (!_isInitialized && _controller == null && _pausedCamera == null) {
             _initializeCamera(cameras[_selectedCameraIndex]);
           }
 

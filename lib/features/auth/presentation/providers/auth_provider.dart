@@ -4,15 +4,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:ygobinder/core/database/database_provider.dart';
 
 import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'package:ygobinder/core/providers/firebase_providers.dart';
 
 part 'auth_provider.g.dart';
 
-bool _isFirebaseSupported() => kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
-
 @riverpod
 FirebaseAuth? firebaseAuth(Ref ref) {
-  if (!_isFirebaseSupported()) return null;
+  if (!isFirebaseSupported()) return null;
   return FirebaseAuth.instance;
 }
 
@@ -70,9 +68,10 @@ class AuthNotifier extends _$AuthNotifier {
     final auth = ref.read(firebaseAuthProvider);
     state = const AsyncLoading();
     
-    // ✅ Clear local collection and skip flag on logout
+    // Clear all account-specific local data (collection, decks, favorites,
+    // wanted) and the skip flag so nothing leaks into the next account.
     final db = ref.read(databaseProvider);
-    await db.clearCollection();
+    await db.clearUserData();
     await db.saveSetting('login_skipped', 'false');
     
     if (auth != null) {

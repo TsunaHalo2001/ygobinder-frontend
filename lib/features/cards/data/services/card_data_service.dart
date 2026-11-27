@@ -2,17 +2,25 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-class RawApiCacheData {
-  final List<dynamic> cards;
-  final List<dynamic> sets;
-  final String? version;
+/// Result of downloading the card cache.
+class CardCacheDownload {
+  /// Raw JSON bytes, or null when the server answered 304 Not Modified.
+  final Uint8List? bytes;
+  final String? etag;
 
-  RawApiCacheData({required this.cards, required this.sets, this.version});
+  const CardCacheDownload({this.bytes, this.etag});
+
+  bool get notModified => bytes == null;
 }
+
+final _versionPattern = RegExp(r'"(?:data sets version|data_sets_version|version)"\s*:\s*"([^"]+)"');
 
 class CardDataService {
   static const String cacheUrl =
       'https://raw.githubusercontent.com/TsunaHalo2001/ygobinder/refs/heads/master/assets/json/ygo_api_cache.json';
+
+  /// How many trailing bytes of the cache to read to find its `version`.
+  static const int _versionTailBytes = 4096;
 
   final Dio _dio;
 
@@ -21,49 +29,65 @@ class CardDataService {
     receiveTimeout: const Duration(seconds: 30),
   ));
 
+  /// Reads the `version` field stored at the end of the (~30 MB) card cache
+  /// without downloading the whole file: a HEAD request for its size, then a
+  /// byte-range request for the last few KB. Returns null on any failure.
   Future<String?> fetchCacheVersion() async {
+    // Identity encoding: with gzip, content-length and ranges refer to the
+    // compressed bytes.
+    const identity = {'Accept-Encoding': 'identity'};
     try {
-      final response = await _dio.get<dynamic>(cacheUrl);
-      if (response.statusCode == 200 && response.data != null) {
-        dynamic decoded = response.data;
-        if (decoded is String) decoded = jsonDecode(decoded);
+      final head = await _dio.head<void>(cacheUrl, options: Options(headers: identity));
+      final length = int.tryParse(head.headers.value(Headers.contentLengthHeader) ?? '');
+      if (length == null || length <= 0) return null;
 
-        if (decoded is Map<String, dynamic>) {
-          final ver = decoded['data sets version'] ?? decoded['version'] ?? decoded['data_sets_version'];
-          if (ver != null) return ver.toString();
-        }
-      }
+      final start = length > _versionTailBytes ? length - _versionTailBytes : 0;
+      final response = await _dio.get<String>(
+        cacheUrl,
+        options: Options(
+          responseType: ResponseType.plain,
+          headers: {...identity, 'Range': 'bytes=$start-${length - 1}'},
+        ),
+      );
+      if (response.statusCode != 206 && response.statusCode != 200) return null;
+
+      final matches = _versionPattern.allMatches(response.data ?? '');
+      return matches.isEmpty ? null : matches.last.group(1);
     } catch (e) {
       debugPrint('Error fetching cache version: $e');
     }
     return null;
   }
 
-  Future<RawApiCacheData> fetchRawCardData({
+  /// Downloads the card cache. When [etag] is given and the file did not
+  /// change, returns a [CardCacheDownload] with [CardCacheDownload.notModified].
+  Future<CardCacheDownload> downloadCardCache({
+    String? etag,
     void Function(int received, int total)? onProgress,
   }) async {
     try {
-      final response = await _dio.get<String>(
+      final response = await _dio.get<List<int>>(
         cacheUrl,
         onReceiveProgress: onProgress,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'If-None-Match': ?etag},
+          validateStatus: (status) => status == 200 || status == 304,
+        ),
       );
 
-      if (response.statusCode == 200 && response.data != null) {
-        final decoded = jsonDecode(response.data!);
-
-        if (decoded is Map<String, dynamic>) {
-          final cards = (decoded['data'] ?? decoded['cards'] ?? decoded['results']) as List<dynamic>? ?? [];
-          final sets = (decoded['sets']) as List<dynamic>? ?? [];
-          final version = (decoded['data sets version'] ?? decoded['version'] ?? decoded['data_sets_version']) as String?;
-          return RawApiCacheData(cards: cards, sets: sets, version: version);
-        } else if (decoded is List) {
-          return RawApiCacheData(cards: decoded, sets: []);
-        }
-
-        throw Exception('Unexpected JSON structure: Expected a list or a map.');
-      } else {
-        throw Exception('Failed to fetch card data: ${response.statusCode}');
+      if (response.statusCode == 304) {
+        return CardCacheDownload(etag: etag);
       }
+
+      final data = response.data;
+      if (data == null || data.isEmpty) {
+        throw Exception('Failed to fetch card data: empty response');
+      }
+      return CardCacheDownload(
+        bytes: data is Uint8List ? data : Uint8List.fromList(data),
+        etag: response.headers.value('etag'),
+      );
     }
     on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout) {
@@ -72,9 +96,6 @@ class CardDataService {
         throw Exception('Receive timeout while fetching card data.');
       }
       throw Exception('Dio error while fetching card data: ${e.message}');
-    }
-    catch (e) {
-      throw Exception('Unexpected error while fetching card data: $e');
     }
   }
 

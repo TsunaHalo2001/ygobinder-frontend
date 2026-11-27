@@ -1,10 +1,14 @@
-import 'dart:isolate';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/mappers/card_mapper.dart';
+import 'package:ygobinder/features/cards/data/models/card_filters.dart';
 import 'package:ygobinder/features/cards/data/models/ygo_card.dart';
+import 'package:ygobinder/features/cards/data/services/card_cache_parser.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
+import 'package:ygobinder/features/cards/data/services/set_price_service.dart';
 import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 
 class CardRepository {
@@ -14,12 +18,21 @@ class CardRepository {
 
   CardRepository(this._db, this._dataService, [this._syncRepo]);
 
+  static const _etagSettingKey = 'card_cache_etag';
+
+  /// Downloads and stores the full card database.
+  ///
+  /// Unless [force] is true, the stored ETag is sent so an unchanged file is
+  /// answered with 304 and the (expensive) parse + rewrite is skipped.
   Future<void> syncAllCards({
     void Function(String status, double? progress)? onStatusChange,
+    bool force = false,
   }) async {
     onStatusChange?.call('Downloading card data...', 0.0);
 
-    final rawCache = await _dataService.fetchRawCardData(
+    final etag = force ? null : await _usableCachedEtag();
+    final download = await _dataService.downloadCardCache(
+      etag: etag,
       onProgress: (received, total) {
         if (total > 0) {
           final progress = (received / total).clamp(0.0, 1.0);
@@ -28,19 +41,32 @@ class CardRepository {
       },
     );
 
-    onStatusChange?.call(
-        'Parsing ${rawCache.cards.length} cards & ${rawCache.sets.length} sets...', null);
-    final cards = await fetchAndParseCards(rawCache.cards);
-    final setInfos = await fetchAndParseSets(rawCache.sets);
+    if (!download.notModified) {
+      final parsed = await parseCardCacheInBackground(
+        download.bytes!,
+        onDecoded: (cardCount, setCount) =>
+            onStatusChange?.call('Parsing $cardCount cards & $setCount sets...', null),
+      );
 
-    onStatusChange?.call('Saving database...', null);
-    await saveCardsAndSets(cards, setInfos);
+      onStatusChange?.call('Saving database...', null);
+      await saveParsedCardCache(parsed);
+      if (download.etag != null) {
+        await _db.saveSetting(_etagSettingKey, download.etag!);
+      }
+    }
     await syncCurrencyRates();
 
     final todayString = DateTime.now().toIso8601String();
     await _db.saveSetting('last_sync_date', todayString);
 
     onStatusChange?.call('Sync complete!', 1.0);
+  }
+
+  /// The stored ETag, only if the local card table is actually populated.
+  Future<String?> _usableCachedEtag() async {
+    final etag = await _db.getSetting(_etagSettingKey);
+    if (etag == null || etag.isEmpty) return null;
+    return await _db.hasCards() ? etag : null;
   }
 
   Future<void> syncCurrencyRates() async {
@@ -78,96 +104,38 @@ class CardRepository {
     await syncCurrencyRates();
   }
 
-  Future<List<YgoCard>> fetchAndParseCards(List<dynamic> apiData) async {
-    return Isolate.run(() {
-      final validData = apiData.where((item) => item['type'] != 'Skill Card').toList();
-
-      return validData.map((item) => YgoCard.fromJson(item as Map<String, dynamic>)).toList();
-    });
-  }
-
-  Future<List<SetInfosCompanion>> fetchAndParseSets(List<dynamic> apiSets) async {
-    if (apiSets.isEmpty) return [];
-    return Isolate.run(() {
-      return apiSets.map((item) {
-        final json = item as Map<String, dynamic>;
-        return SetInfosCompanion.insert(
-          id: Value(json['id'] as int),
-          name: json['name'] as String,
-          abbreviation: Value(json['abbreviation'] as String?),
-          setType: Value(json['type'] as String?),
-          isSupplemental: Value(json['is_supplemental'] as bool? ?? false),
-          publishedOn: Value(json['published_on'] as String?),
-          modifiedOn: Value(json['modified_on'] as String?),
-          productCount: Value(json['product_count'] as int?),
-          skuCount: Value(json['sku_count'] as int?),
-          setSymbolUrl: Value(json['set_symbol_url'] as String?),
-          setSymbolCached: Value(json['set_symbol_cached'] as bool? ?? false),
-          apiUrl: Value(json['api_url'] as String?),
-          cardsUrl: Value(json['cards_url'] as String?),
-          sealedUrl: Value(json['sealed_url'] as String?),
-          pricingUrl: Value(json['pricing_url'] as String?),
-          skusUrl: Value(json['skus_url'] as String?),
-        );
-      }).toList();
-    });
-  }
-
-  Future<void> saveCardsAndSets(List<YgoCard> cards, List<SetInfosCompanion> setInfos) async {
-    // 1. Prepare all data in memory first (Very fast, no DB calls yet)
-    final cardCompanions = cards.map((c) => CardMapper.toDriftCardCompanion(c)).toList();
-    final imageCompanions = <CardImagesCompanion>[];
-    final priceCompanions = <CardPricesCompanion>[];
-    final setCompanions = <CardSetsCompanion>[];
-    final banlistCompanions = <BanlistInfosCompanion>[];
-
-    for (final card in cards) {
-      if (card.cardImages?.isNotEmpty ?? false) {
-        imageCompanions.addAll(CardMapper.toDriftCardImagesCompanions(card.id, card.cardImages!));
-      }
-      if (card.cardPrices?.isNotEmpty ?? false) {
-        priceCompanions.addAll(CardMapper.toDriftCardPricesCompanions(card.id, card.cardPrices!));
-      }
-      if (card.cardSets?.isNotEmpty ?? false) {
-        setCompanions.addAll(CardMapper.toDriftCardSetsCompanions(card.id, card.cardSets!));
-      }
-      if (card.banlistInfo != null) {
-        final banlist = CardMapper.toDriftBanlistInfoCompanion(card.id, card.banlistInfo);
-        if (banlist != null) banlistCompanions.add(banlist);
-      }
-    }
-
-    // 2. Execute ONE massive transaction (The "Second Plane" speed boost)
+  /// Replaces all global card data with [parsed] in one transaction.
+  Future<void> saveParsedCardCache(ParsedCardCache parsed) async {
     await _db.transaction(() async {
-      // Clear old related data (Since this is a full sync, it's faster to clear than to update row-by-row)
+      // Full sync: clearing related tables is faster than row-by-row updates
       await _db.delete(_db.cardImages).go();
       await _db.delete(_db.cardPrices).go();
       await _db.delete(_db.cardSets).go();
       await _db.delete(_db.banlistInfos).go();
       await _db.delete(_db.setInfos).go();
 
-      // Batch insert everything at once
       await _db.batch((batch) {
-        batch.insertAll(_db.cards, cardCompanions, mode: InsertMode.insertOrReplace);
-        batch.insertAll(_db.cardImages, imageCompanions);
-        batch.insertAll(_db.cardPrices, priceCompanions);
-        batch.insertAll(_db.cardSets, setCompanions);
-        batch.insertAll(_db.banlistInfos, banlistCompanions);
-        if (setInfos.isNotEmpty) {
-          batch.insertAll(_db.setInfos, setInfos, mode: InsertMode.insertOrReplace);
+        batch.insertAll(_db.cards, parsed.cards, mode: InsertMode.insertOrReplace);
+        batch.insertAll(_db.cardImages, parsed.images);
+        batch.insertAll(_db.cardPrices, parsed.prices);
+        batch.insertAll(_db.cardSets, parsed.cardSets);
+        batch.insertAll(_db.banlistInfos, parsed.banlists);
+        if (parsed.setInfos.isNotEmpty) {
+          batch.insertAll(_db.setInfos, parsed.setInfos, mode: InsertMode.insertOrReplace);
         }
       });
     });
   }
 
   Future<YgoCard?> getCardWithDetails(int cardId) async {
-    final card = await _db.getCardById(cardId);
+    final (card, images, prices, sets, banlist) = await (
+      _db.getCardById(cardId),
+      _db.getCardImages(cardId),
+      _db.getCardPrices(cardId),
+      _db.getCardSets(cardId),
+      _db.getBanlistInfo(cardId),
+    ).wait;
     if (card == null) return null;
-
-    final images = await _db.getCardImages(cardId);
-    final prices = await _db.getCardPrices(cardId);
-    final sets = await _db.getCardSets(cardId);
-    final banlist = await _db.getBanlistInfo(cardId);
 
     return CardMapper.toYgoCard(
       card,
@@ -178,149 +146,66 @@ class CardRepository {
     );
   }
 
-  Future<List<YgoCard>> searchCards(String query) async {
-    final cards = await _db.searchCards(query);
-
-    return cards.map((card) => CardMapper.toYgoCard(card)).toList();
-  }
-
   Future<List<YgoCard>> getCardsPage({
     required int offset,
     required int limit,
-    String? searchQuery,
-    String? typeFilter,
-    String? attributeFilter,
-    String? raceFilter,
-    String? subTypeFilter,
-    String? frameFilter,
-    int? levelFilter,
-    int? scaleFilter,
-    int? linkValFilter,
-    int? atkFilter,
-    String? atkOperator,
-    bool? atkShowQuestionMark, // ✅ Added
-    int? defFilter,
-    String? defOperator,
-    bool? defShowQuestionMark,
-    String? sortBy, // ✅ Added sort field
-    bool sortDescending = false, // ✅ Added sort direction
-    bool onlyGoat = false, // ✅ Added only Goat filter
-    bool onlyEdison = false, // ✅ Added only Edison filter
-    bool onlyHat = false, // ✅ Added only Hat filter
-    bool onlyFavorites = false, // ✅ Added only Favorites filter
-    bool onlyWanted = false, // ✅ Added only Wanted filter
+    CardFilters filters = const CardFilters(),
   }) async {
     final driftCards = await _db.getCardsPage(
       offset: offset,
       limit: limit,
-      searchQuery: searchQuery,
-      typeFilter: typeFilter,
-      attributeFilter: attributeFilter,
-      raceFilter: raceFilter,
-      subTypeFilter: subTypeFilter,
-      frameFilter: frameFilter,
-      levelFilter: levelFilter,
-      scaleFilter: scaleFilter,
-      linkValFilter: linkValFilter,
-      atkFilter: atkFilter,
-      atkOperator: atkOperator,
-      atkShowQuestionMark: atkShowQuestionMark,
-      defFilter: defFilter,
-      defOperator: defOperator,
-      defShowQuestionMark: defShowQuestionMark,
-      sortBy: sortBy, // ✅ Passed sortBy
-      sortDescending: sortDescending, // ✅ Passed sortDescending
-      onlyGoat: onlyGoat, // ✅ Passed onlyGoat
-      onlyEdison: onlyEdison, // ✅ Passed onlyEdison
-      onlyHat: onlyHat, // ✅ Passed onlyHat
-      onlyFavorites: onlyFavorites,
-      onlyWanted: onlyWanted,
+      filters: filters,
     );
 
-    if (driftCards.isEmpty) return [];
-
-    // Efficiently fetch all images and banlist info for these cards in one batch
-    final cardIds = driftCards.map((c) => c.id).toList();
-    
-    final imagesFuture = (_db.select(_db.cardImages)
-      ..where((t) => t.cardId.isIn(cardIds)))
-        .get();
-        
-    final banlistFuture = (_db.select(_db.banlistInfos)
-      ..where((t) => t.cardId.isIn(cardIds)))
-        .get();
-
-    final [allImages, allBanlists] = await Future.wait([imagesFuture, banlistFuture]);
-
-    // Group images by cardId
-    final imagesByCardId = <int, List<DriftCardImage>>{};
-    for (final img in allImages as List<DriftCardImage>) {
-      imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
-    }
-    
-    // Group banlist by cardId
-    final banlistByCardId = {
-      for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b
-    };
-
-    return driftCards.map((card) {
-      return CardMapper.toYgoCard(
-        card,
-        images: imagesByCardId[card.id] ?? [],
-        banlist: banlistByCardId[card.id],
-      );
-    }).toList();
+    return _attachRelations(driftCards);
   }
 
   Future<List<YgoCard>> getCardsByIds(List<int> cardIds) async {
     if (cardIds.isEmpty) return [];
 
     final driftCards = await (_db.select(_db.cards)..where((t) => t.id.isIn(cardIds))).get();
+    return _attachRelations(driftCards, withPricesAndSets: true);
+  }
 
+  /// Maps [driftCards] to [YgoCard]s, loading images and banlist info (and
+  /// optionally prices and sets) for all of them in a few batched queries.
+  Future<List<YgoCard>> _attachRelations(List<DriftCard> driftCards, {bool withPricesAndSets = false}) async {
     if (driftCards.isEmpty) return [];
+    final cardIds = driftCards.map((c) => c.id).toList();
 
-    final imagesFuture = (_db.select(_db.cardImages)..where((t) => t.cardId.isIn(cardIds))).get();
-    final banlistFuture = (_db.select(_db.banlistInfos)..where((t) => t.cardId.isIn(cardIds))).get();
-    final pricesFuture = (_db.select(_db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get();
-    final setsFuture = (_db.select(_db.cardSets)..where((t) => t.cardId.isIn(cardIds))).get();
+    final (images, banlists, prices, sets) = await (
+      (_db.select(_db.cardImages)..where((t) => t.cardId.isIn(cardIds))).get(),
+      (_db.select(_db.banlistInfos)..where((t) => t.cardId.isIn(cardIds))).get(),
+      withPricesAndSets
+          ? (_db.select(_db.cardPrices)..where((t) => t.cardId.isIn(cardIds))).get()
+          : Future.value(const <DriftCardPrice>[]),
+      withPricesAndSets
+          ? (_db.select(_db.cardSets)..where((t) => t.cardId.isIn(cardIds))).get()
+          : Future.value(const <DriftCardSet>[]),
+    ).wait;
 
-    final [allImages, allBanlists, allPrices, allSets] = await Future.wait([
-      imagesFuture,
-      banlistFuture,
-      pricesFuture,
-      setsFuture,
-    ]);
-
-    final imagesByCardId = <int, List<DriftCardImage>>{};
-    for (final img in allImages as List<DriftCardImage>) {
-      imagesByCardId.putIfAbsent(img.cardId, () => []).add(img);
-    }
-
-    final banlistByCardId = {for (final b in allBanlists as List<DriftBanlistInfo>) b.cardId: b};
-
-    final pricesByCardId = <int, List<DriftCardPrice>>{};
-    for (final p in allPrices as List<DriftCardPrice>) {
-      pricesByCardId.putIfAbsent(p.cardId, () => []).add(p);
-    }
-
-    final setsByCardId = <int, List<DriftCardSet>>{};
-    for (final s in allSets as List<DriftCardSet>) {
-      setsByCardId.putIfAbsent(s.cardId, () => []).add(s);
-    }
+    final imagesByCardId = _groupBy(images, (DriftCardImage i) => i.cardId);
+    final pricesByCardId = _groupBy(prices, (DriftCardPrice p) => p.cardId);
+    final setsByCardId = _groupBy(sets, (DriftCardSet s) => s.cardId);
+    final banlistByCardId = {for (final b in banlists) b.cardId: b};
 
     return driftCards.map((card) {
       return CardMapper.toYgoCard(
         card,
-        images: imagesByCardId[card.id] ?? [],
+        images: imagesByCardId[card.id] ?? const [],
         banlist: banlistByCardId[card.id],
-        prices: pricesByCardId[card.id] ?? [],
-        sets: setsByCardId[card.id] ?? [],
+        prices: pricesByCardId[card.id] ?? const [],
+        sets: setsByCardId[card.id] ?? const [],
       );
     }).toList();
   }
 
-  Stream<List<YgoCard>> watchAllCards() {
-    return _db.watchAllCards().map((cards) => cards.map((card) => CardMapper.toYgoCard(card)).toList());
+  static Map<int, List<T>> _groupBy<T>(Iterable<T> rows, int Function(T) key) {
+    final grouped = <int, List<T>>{};
+    for (final row in rows) {
+      grouped.putIfAbsent(key(row), () => []).add(row);
+    }
+    return grouped;
   }
 
   Future<void> addCardToCollection({
@@ -338,13 +223,21 @@ class CardRepository {
       collectionNumber: collectionNumber,
     );
 
-    // Sync to Cloud
-    if (_syncRepo != null) {
+    // Sync to Cloud. Not awaited: Firestore only completes on server ack, so
+    // awaiting would block the UI while offline. Firestore queues the write.
+    final syncRepo = _syncRepo;
+    if (syncRepo != null) {
       final updatedItem = await _db.getCollectionItemById(itemId);
       if (updatedItem != null) {
-        await _syncRepo.syncItem(updatedItem);
+        _runCloudSync(() => syncRepo.syncItem(updatedItem));
       }
     }
+  }
+
+  void _runCloudSync(Future<void> Function() action) {
+    unawaited(Future(action).catchError((Object e) {
+      debugPrint('Cloud sync failed: $e');
+    }));
   }
 
   Future<int> clearQuoteCollection() async {
@@ -363,15 +256,16 @@ class CardRepository {
       quantityToRemove: quantity,
     );
 
-    // Sync to Cloud
-    if (_syncRepo != null && existing != null) {
+    // Sync to Cloud (not awaited, see addCardToCollection)
+    final syncRepo = _syncRepo;
+    if (syncRepo != null && existing != null) {
       final updatedItem = await _db.getCollectionItemById(collectionItemId);
       if (updatedItem != null) {
         // Still exists (decreased quantity)
-        await _syncRepo.syncItem(updatedItem);
+        _runCloudSync(() => syncRepo.syncItem(updatedItem));
       } else {
         // Completely removed
-        await _syncRepo.removeItem(existing);
+        _runCloudSync(() => syncRepo.removeItem(existing));
       }
     }
   }
@@ -527,6 +421,17 @@ class CardRepository {
       throw Exception('Could not match set IDs for owned sets.');
     }
 
+    // Remove rows written by older versions that keyed prices by TCGplayer
+    // product id instead of card id (they never match any card).
+    await _db.deleteOrphanSetCardPrices();
+
+    // Printing codes the user actually owns, preferred over other codes of
+    // the same card in a set (e.g. LOB-EN001 over LOB-001).
+    final ownedCodesByCard = <int, Set<String>>{};
+    for (final item in await _db.select(_db.collectionItems).get()) {
+      ownedCodesByCard.putIfAbsent(item.cardId, () => {}).add(item.setCode.trim().toUpperCase());
+    }
+
     final totalSets = setsToSync.length;
 
     for (var i = 0; i < totalSets; i++) {
@@ -536,56 +441,65 @@ class CardRepository {
       onProgress(i + 1, totalSets, task.setName);
 
       try {
-        final pricingData = await _dataService.fetchSetPricing(task.setId);
-        if (pricingData != null) {
-          final setId = pricingData['set_id'] as int? ?? task.setId;
-          final updatedStr = pricingData['updated'] as String? ?? DateTime.now().toIso8601String();
-          final pricesMap = pricingData['prices'] as Map<String, dynamic>?;
-
-          if (pricesMap != null && pricesMap.isNotEmpty) {
-            final companions = <SetCardPricesCompanion>[];
-
-            for (final entry in pricesMap.entries) {
-              final cardId = int.tryParse(entry.key);
-              if (cardId == null) continue;
-
-              final cardData = entry.value as Map<String, dynamic>?;
-              final tcgData = cardData?['tcg'] as Map<String, dynamic>?;
-
-              if (tcgData != null) {
-                for (final printingEntry in tcgData.entries) {
-                  final printing = printingEntry.key;
-                  final pMap = printingEntry.value as Map<String, dynamic>?;
-
-                  final low = (pMap?['low'] as num?)?.toDouble();
-                  final market = (pMap?['market'] as num?)?.toDouble();
-
-                  companions.add(
-                    SetCardPricesCompanion.insert(
-                      setId: setId,
-                      cardId: cardId,
-                      printing: printing,
-                      lowPrice: Value(low),
-                      marketPrice: Value(market),
-                      lastUpdated: Value(updatedStr),
-                    ),
-                  );
-                }
-              }
-            }
-
-            if (companions.isNotEmpty) {
-              await _db.saveSetCardPrices(companions);
-            }
-          }
-        }
+        await _updateSetPrices(task, ownedCodesByCard, isCancelled);
       } catch (e) {
         // Allow sync to proceed for remaining sets
+        debugPrint('Error updating prices for set ${task.setId}: $e');
       }
 
       if (i < totalSets - 1 && !isCancelled()) {
         await Future.delayed(const Duration(seconds: 1));
       }
+    }
+  }
+
+  /// Fetches `/cards` + `/pricing` for one set and stores per-printing prices
+  /// for every local card that has a printing in that set.
+  Future<void> _updateSetPrices(
+    _SetSyncTask task,
+    Map<int, Set<String>> ownedCodesByCard,
+    bool Function() isCancelled,
+  ) async {
+    final setCards = await _dataService.fetchSetCards(task.setId);
+    if (setCards == null || setCards.isEmpty) return;
+
+    // One printing code per card in this set (e.g. LOB-EN001 for card 89631139).
+    final printings = await _db.getCardPrintingsBySetPrefix(task.setCode);
+    if (printings.isEmpty) return;
+
+    if (isCancelled()) return;
+    await Future.delayed(const Duration(seconds: 1)); // Respect API rate limit
+
+    final pricingData = await _dataService.fetchSetPricing(task.setId);
+    if (pricingData == null) return;
+
+    final previousPrices = SetPriceService.previousPricesFrom(
+      await _db.getSetCardPricesForSet(task.setId),
+    );
+
+    final companions = <SetCardPricesCompanion>[];
+    final prefix = '${task.setCode.toUpperCase()}-';
+    for (final printing in printings) {
+      final ownedCode = ownedCodesByCard[printing.cardId]?.firstWhereOrNull((c) => c.startsWith(prefix));
+      final setCode = ownedCode ?? printing.setCode;
+      final products = SetPriceService.matchProducts(
+        setCards,
+        setCode: setCode,
+        cardName: printing.cardName,
+      );
+      if (products.isEmpty) continue;
+      companions.addAll(SetPriceService.buildCompanions(
+        pricingData: pricingData,
+        fallbackSetId: task.setId,
+        cardId: printing.cardId,
+        setCode: setCode,
+        products: products,
+        previousPrices: previousPrices,
+      ));
+    }
+
+    if (companions.isNotEmpty) {
+      await _db.saveSetCardPrices(companions);
     }
   }
 }

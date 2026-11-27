@@ -5,15 +5,13 @@ import 'package:ygobinder/core/database/database_provider.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/core/providers/currency_provider.dart';
 import 'package:ygobinder/core/providers/theme_provider.dart';
-import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:io';
+import 'package:ygobinder/core/app_version.dart';
+import 'package:ygobinder/core/providers/firebase_providers.dart';
 
-bool get _isGoogleSignInSupported =>
-    kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
+bool get _isGoogleSignInSupported => isFirebaseSupported();
 
 final appVersionCheckProvider = FutureProvider.autoDispose<String?>((ref) async {
   final dataService = CardDataService();
@@ -72,7 +70,7 @@ class OptionsTab extends ConsumerWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              context.go('/sync'); // Reuse the initial sync screen
+              context.go('/sync?force=true'); // Reuse the initial sync screen, forcing a full re-download
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
@@ -135,6 +133,7 @@ class OptionsTab extends ConsumerWidget {
     var currentSetName = 'Initializing...';
     var isCancelled = false;
     var isCompleted = false;
+    var started = false;
     String? errorMessage;
 
     showDialog(
@@ -143,7 +142,10 @@ class OptionsTab extends ConsumerWidget {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            if (processed == 0 && !isCancelled && errorMessage == null && !isCompleted) {
+            // Start the job exactly once, even if the dialog rebuilds before
+            // the first progress event.
+            if (!started) {
+              started = true;
               final repo = ref.read(cardRepositoryProvider);
               repo.updateOwnedSetCardPrices(
                 onProgress: (p, t, setName) {
@@ -260,7 +262,7 @@ class OptionsTab extends ConsumerWidget {
     final user = authState.value;
     final theme = Theme.of(context);
     final versionAsync = ref.watch(appVersionCheckProvider);
-    const String currentAppVersion = '1.4.0+17';
+    const String currentAppVersion = kAppVersion;
 
     return Scaffold(
       appBar: AppBar(
@@ -311,7 +313,7 @@ class OptionsTab extends ConsumerWidget {
               return const SizedBox.shrink();
             },
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
           // Account Section
           if (user != null)
@@ -630,7 +632,7 @@ class OptionsTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Version 1.4.0',
+                  'Version $kAppVersionName',
                   style: TextStyle(
                     color: Colors.white38,
                     fontSize: 12,
