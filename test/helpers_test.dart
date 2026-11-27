@@ -8,6 +8,15 @@ import 'package:ygobinder/features/options/presentation/screens/options_tab.dart
 
 void main() {
   group('ydk', () {
+    test('replaceYdkCardIds maps retired ids and keeps other lines', () {
+      const content = '#created by tool\r\n#main\r\n46986414\r\n89631139\r\n!side\r\n46986414\r\n';
+      expect(
+        replaceYdkCardIds(content, {46986414: 46986420}),
+        '#created by tool\r\n#main\r\n46986420\r\n89631139\r\n!side\r\n46986420\r\n',
+      );
+      expect(replaceYdkCardIds(content, const {}), content);
+    });
+
     test('build → parse round trip keeps order and duplicates', () {
       final content = buildYdk(main: [1, 1, 2], extra: [3], side: [4]);
       expect(content, '#main\n1\n1\n2\n#extra\n3\n!side\n4\n');

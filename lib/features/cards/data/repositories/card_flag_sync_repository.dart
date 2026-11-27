@@ -54,22 +54,31 @@ class CardFlagSyncRepository {
       final snapshot = await collection.get().timeout(const Duration(seconds: 5));
       if (snapshot.docs.isEmpty) return;
 
+      // Flags saved under a retired card id are stored under the current id
+      // and moved in the cloud too.
+      final aliases = await db.getRetiredCardIdAliases();
+      final migrated = <CardIdChange>[];
+
       final records = <CardFlagRecord>[];
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        final cardId = data['cardId'];
+        final cloudCardId = data['cardId'];
         final updatedAt = data['updatedAt'];
-        if (cardId is! int || updatedAt is! Timestamp) {
+        if (cloudCardId is! int || updatedAt is! Timestamp) {
           debugPrint('Skipping malformed $collectionName doc ${doc.id}');
           continue;
         }
-        records.add((
-          cardId: cardId,
-          syncId: data['syncId'] as String? ?? '',
-          updatedAt: updatedAt.toDate(),
-        ));
+        final cardId = aliases[cloudCardId] ?? cloudCardId;
+        final syncId = data['syncId'] as String? ?? '';
+        if (cardId != cloudCardId) migrated.add((oldId: cloudCardId, newId: cardId, syncId: syncId));
+        records.add((cardId: cardId, syncId: syncId, updatedAt: updatedAt.toDate()));
       }
       if (records.isNotEmpty) await saveLocally(db, records);
+
+      for (final change in migrated) {
+        await syncFlag(change.oldId, false);
+        await syncFlag(change.newId, true, syncId: change.syncId);
+      }
     } catch (e) {
       debugPrint('$collectionName sync error: $e');
     }

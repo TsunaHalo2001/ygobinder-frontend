@@ -105,7 +105,10 @@ class DeckFileContent extends _$DeckFileContent {
         return;
       }
 
-      final content = await file.readAsString();
+      // Deck files from other tools can use card ids the card data has
+      // retired; map them so those cards aren't dropped as unknown.
+      final aliases = await ref.read(databaseProvider).getRetiredCardIdAliases();
+      final content = replaceYdkCardIds(await file.readAsString(), aliases);
       state = DeckState(
         content: content,
         name: filePath.split('/').last.replaceAll('.ydk', ''),

@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygobinder/core/database/app_database.dart';
 import 'package:ygobinder/features/cards/data/repositories/card_repository.dart';
+import 'package:ygobinder/features/cards/data/repositories/favorite_sync_repository.dart';
+import 'package:ygobinder/features/cards/data/repositories/wanted_sync_repository.dart';
+import 'package:ygobinder/features/decks/data/repositories/deck_sync_repository.dart';
 import 'package:ygobinder/features/cards/data/services/card_data_service.dart';
 import 'package:ygobinder/features/inventory/data/repositories/inventory_sync_repository.dart';
 
@@ -23,5 +26,12 @@ final cardRepositoryProvider = Provider<CardRepository>((ref) {
   final dataService = ref.watch(cardDataServiceProvider);
   final syncRepo = ref.watch(inventorySyncRepositoryProvider);
 
-  return CardRepository(db, dataService, syncRepo);
+  return CardRepository(
+    db,
+    dataService,
+    syncRepo,
+    ref.watch(favoriteSyncRepositoryProvider),
+    ref.watch(wantedSyncRepositoryProvider),
+    ref.watch(deckSyncRepositoryProvider),
+  );
 });

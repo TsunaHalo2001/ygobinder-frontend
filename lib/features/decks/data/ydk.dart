@@ -24,6 +24,17 @@ String buildYdkFromCategorized(Map<String, List<int>> categorized) => buildYdk(
       side: categorized['side'] ?? const [],
     );
 
+/// Replaces card ids in `.ydk` text using [aliases] (old id -> current id),
+/// leaving every other line untouched.
+String replaceYdkCardIds(String content, Map<int, int> aliases) {
+  if (aliases.isEmpty) return content;
+  return content.split('\n').map((line) {
+    final id = int.tryParse(line.trim());
+    final newId = id == null ? null : aliases[id];
+    return newId == null ? line : line.replaceFirst(id.toString(), newId.toString());
+  }).join('\n');
+}
+
 /// Parses `.ydk` text into `main` / `extra` / `side` card id lists.
 Map<String, List<int>> parseYdkContent(String content) {
   final categorizedCards = <String, List<int>>{
