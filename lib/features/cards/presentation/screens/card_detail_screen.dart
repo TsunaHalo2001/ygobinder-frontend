@@ -2280,7 +2280,7 @@ class _CardPricesBottomSheetState extends ConsumerState<_CardPricesBottomSheet> 
                 final groupedList = uniqueSets.values.toList();
 
                 return ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewPaddingOf(context).bottom),
                   itemCount: groupedList.length,
                   separatorBuilder: (context, index) => const Divider(color: Colors.white10),
                   itemBuilder: (context, index) {
